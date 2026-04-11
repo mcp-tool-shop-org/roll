@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.md">English</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/roll/readme.png" width="400" alt="Roll"></p>
@@ -50,17 +50,17 @@ npx @mcptoolshop/roll 4d6dl1 --analyze
 └───────────────────────────────────────────────┘
 ```
 
-## Install
+## 安装
 
 ```bash
 npm install @mcptoolshop/roll
 ```
 
-Requires Node.js >= 22.
+需要 Node.js >= 22。
 
-## CLI Usage
+## 命令行用法
 
-### Roll dice
+### 投骰子
 
 ```bash
 roll 2d6+3
@@ -72,28 +72,28 @@ roll 4dF
 roll "(2d6+3)*2"
 ```
 
-### Analyze probability
+### 分析概率
 
 ```bash
 roll 2d6 --analyze          # Full distribution + statistics
 roll d20+5 --at-least 15    # P(result >= 15)
 ```
 
-### Compare distributions
+### 比较分布
 
 ```bash
 roll --compare "4d6dl1" "3d6"
 ```
 
-Side-by-side stats (mean, median, mode, stddev, range, entropy) with diff column, plus both histograms.
+并排显示统计数据（均值、中位数、众数、标准差、范围、熵），包含差异列，以及直方图。
 
-### Loot tables
+### 掉落表
 
 ```bash
 roll --loot treasure.json
 ```
 
-JSON format:
+JSON 格式：
 
 ```json
 {
@@ -118,9 +118,9 @@ JSON format:
 }
 ```
 
-Features: weighted selection, nested table references, dice expressions for quantity and value.
+特性：加权选择、嵌套表引用、用于数量和值的骰子表达式。
 
-### Other flags
+### 其他选项
 
 ```bash
 roll 2d6+3 --times 5       # Roll 5 times
@@ -129,22 +129,22 @@ roll --help                 # Full usage
 roll --version              # Version
 ```
 
-## Dice Notation
+## 骰子表示法
 
-| Notation | Meaning |
+| 表示法 | 含义 |
 |----------|---------|
-| `2d6` | Roll 2 six-sided dice |
-| `d20` | Roll 1 twenty-sided die |
-| `4d6kh3` | Roll 4d6, keep highest 3 |
-| `4d6dl1` | Roll 4d6, drop lowest 1 |
-| `1d6!` | Exploding d6 (reroll on max, add) |
-| `1d6!>4` | Explode on 4 or higher |
-| `d%` | Percentile die (1-100) |
-| `4dF` | Fate/Fudge dice (-1, 0, +1 each) |
-| `(2d6+3)*2` | Arithmetic with grouping |
-| `2d6+1d4+3` | Chained expressions |
+| `2d6` | 投掷 2 个六面骰子 |
+| `d20` | 投掷 1 个二十面骰子 |
+| `4d6kh3` | 投掷 4d6，保留最高的 3 个 |
+| `4d6dl1` | 投掷 4d6，舍弃最低的 1 个 |
+| `1d6!` | 爆炸骰子（最大值时重新投掷，并加总） |
+| `1d6!>4` | 当结果为 4 或更高时爆炸 |
+| `d%` | 百分位骰子（1-100） |
+| `4dF` | 命运/模糊骰子（-1、0、+1 各一个） |
+| `(2d6+3)*2` | 带有分组的算术运算 |
+| `2d6+1d4+3` | 链式表达式 |
 
-## Library API
+## 库 API
 
 ```typescript
 import { roll, analyze, parse, evaluate, computeDistribution } from '@mcptoolshop/roll';
@@ -171,34 +171,34 @@ const tables = [{ table: "Loot", items: [{ name: "Gold", weight: 50, roll: "2d6*
 const drops = rollLootTable(tables);
 ```
 
-## Probability Engine
+## 概率引擎
 
-- **Exact distributions** via polynomial convolution for basic NdM
-- **Full enumeration** for keep/drop mechanics (4d6 = 1,296 states)
-- **Truncated recursion** for exploding dice (capped at 10 explosions)
-- **Monte Carlo fallback** (100k samples) when exact computation exceeds 10M states
+- **精确分布**：通过多项式卷积计算基本 NdM 概率。
+- **完整枚举**：用于保留/舍弃机制（4d6 = 1296 种状态）。
+- **截断递归**：用于爆炸骰子（最多 10 次爆炸）。
+- **蒙特卡洛方法**（10 万个样本）：当精确计算超过 1000 万种状态时使用。
 
-## Zero Dependencies
+## 无外部依赖
 
-Built entirely on Node.js 22+ builtins:
-- `util.styleText` for terminal colors
-- `util.parseArgs` for CLI argument parsing
-- `crypto.randomInt` for cryptographically secure dice rolls
+完全基于 Node.js 22+ 的内置模块：
+- `util.styleText` 用于终端颜色。
+- `util.parseArgs` 用于命令行参数解析。
+- `crypto.randomInt` 用于密码学安全的骰子投掷。
 
-## Security & Trust
+## 安全与信任
 
-`@mcptoolshop/roll` processes dice expressions and nothing else. It makes no network requests, writes no files, and collects no data. The only filesystem access is the `--loot` flag, which reads a single user-specified JSON file.
+`@mcptoolshop/roll` 只处理骰子表达式，不做其他任何操作。它不进行任何网络请求，不写入任何文件，也不收集任何数据。唯一的系统文件访问是 `--loot` 选项，它读取单个用户指定的 JSON 文件。
 
-There is no telemetry, no analytics, and no tracking of any kind. No secrets, tokens, or credentials are involved in any operation.
+没有遥测数据，没有分析，也没有任何形式的跟踪。没有涉及任何秘密、令牌或凭据。
 
-All dice rolls use `crypto.randomInt` from the Node.js `crypto` module, providing cryptographically secure randomness suitable for fair outcomes.
+所有骰子投掷都使用 Node.js `crypto` 模块中的 `crypto.randomInt`，提供密码学安全的随机数，适用于公平的结果。
 
-See [SECURITY.md](./SECURITY.md) for the vulnerability reporting policy.
+请参阅 [SECURITY.md](./SECURITY.md) 以获取漏洞报告政策。
 
-## License
+## 许可证
 
 MIT
 
 ---
 
-Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+由 <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> 构建。

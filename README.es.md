@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.md">English</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/roll/readme.png" width="400" alt="Roll"></p>
@@ -50,17 +50,17 @@ npx @mcptoolshop/roll 4d6dl1 --analyze
 └───────────────────────────────────────────────┘
 ```
 
-## Install
+## Instalación
 
 ```bash
 npm install @mcptoolshop/roll
 ```
 
-Requires Node.js >= 22.
+Requiere Node.js >= 22.
 
-## CLI Usage
+## Uso de la línea de comandos
 
-### Roll dice
+### Lanzar dados
 
 ```bash
 roll 2d6+3
@@ -72,28 +72,28 @@ roll 4dF
 roll "(2d6+3)*2"
 ```
 
-### Analyze probability
+### Analizar probabilidad
 
 ```bash
 roll 2d6 --analyze          # Full distribution + statistics
 roll d20+5 --at-least 15    # P(result >= 15)
 ```
 
-### Compare distributions
+### Comparar distribuciones
 
 ```bash
 roll --compare "4d6dl1" "3d6"
 ```
 
-Side-by-side stats (mean, median, mode, stddev, range, entropy) with diff column, plus both histograms.
+Estadísticas comparativas (media, mediana, moda, desviación estándar, rango, entropía) con columna de diferencias, además de ambos histogramas.
 
-### Loot tables
+### Tablas de botín
 
 ```bash
 roll --loot treasure.json
 ```
 
-JSON format:
+Formato JSON:
 
 ```json
 {
@@ -118,9 +118,9 @@ JSON format:
 }
 ```
 
-Features: weighted selection, nested table references, dice expressions for quantity and value.
+Características: selección ponderada, referencias a tablas anidadas, expresiones de dados para cantidad y valor.
 
-### Other flags
+### Otras opciones
 
 ```bash
 roll 2d6+3 --times 5       # Roll 5 times
@@ -129,22 +129,22 @@ roll --help                 # Full usage
 roll --version              # Version
 ```
 
-## Dice Notation
+## Notación de dados
 
-| Notation | Meaning |
+| Notación | Significado |
 |----------|---------|
-| `2d6` | Roll 2 six-sided dice |
-| `d20` | Roll 1 twenty-sided die |
-| `4d6kh3` | Roll 4d6, keep highest 3 |
-| `4d6dl1` | Roll 4d6, drop lowest 1 |
-| `1d6!` | Exploding d6 (reroll on max, add) |
-| `1d6!>4` | Explode on 4 or higher |
-| `d%` | Percentile die (1-100) |
-| `4dF` | Fate/Fudge dice (-1, 0, +1 each) |
-| `(2d6+3)*2` | Arithmetic with grouping |
-| `2d6+1d4+3` | Chained expressions |
+| `2d6` | Lanzar 2 dados de seis caras |
+| `d20` | Lanzar 1 dado de veinte caras |
+| `4d6kh3` | Lanzar 4d6, conservar los 3 más altos |
+| `4d6dl1` | Lanzar 4d6, descartar el más bajo |
+| `1d6!` | Dado explosivo (relanzar en el máximo, sumar) |
+| `1d6!>4` | Explosión al obtener 4 o más |
+| `d%` | Dado de percentil (1-100) |
+| `4dF` | Dados de Fate/Fudge (-1, 0, +1 cada uno) |
+| `(2d6+3)*2` | Aritmética con agrupación |
+| `2d6+1d4+3` | Expresiones encadenadas |
 
-## Library API
+## API de la biblioteca
 
 ```typescript
 import { roll, analyze, parse, evaluate, computeDistribution } from '@mcptoolshop/roll';
@@ -171,34 +171,34 @@ const tables = [{ table: "Loot", items: [{ name: "Gold", weight: 50, roll: "2d6*
 const drops = rollLootTable(tables);
 ```
 
-## Probability Engine
+## Motor de probabilidad
 
-- **Exact distributions** via polynomial convolution for basic NdM
-- **Full enumeration** for keep/drop mechanics (4d6 = 1,296 states)
-- **Truncated recursion** for exploding dice (capped at 10 explosions)
-- **Monte Carlo fallback** (100k samples) when exact computation exceeds 10M states
+- **Distribuciones exactas** mediante convolución polinómica para NdM básicos.
+- **Enumeración completa** para mecánicas de conservación/descarte (4d6 = 1296 estados).
+- **Recursión truncada** para dados explosivos (limitado a 10 explosiones).
+- **Método de Monte Carlo** (100.000 muestras) cuando el cálculo exacto supera los 10 millones de estados.
 
-## Zero Dependencies
+## Sin dependencias externas
 
-Built entirely on Node.js 22+ builtins:
-- `util.styleText` for terminal colors
-- `util.parseArgs` for CLI argument parsing
-- `crypto.randomInt` for cryptographically secure dice rolls
+Construido completamente con funciones integradas de Node.js 22+:
+- `util.styleText` para colores en la terminal.
+- `util.parseArgs` para el análisis de argumentos de la línea de comandos.
+- `crypto.randomInt` para generación de números aleatorios criptográficamente seguros para el lanzamiento de dados.
 
-## Security & Trust
+## Seguridad y Confianza
 
-`@mcptoolshop/roll` processes dice expressions and nothing else. It makes no network requests, writes no files, and collects no data. The only filesystem access is the `--loot` flag, which reads a single user-specified JSON file.
+`@mcptoolshop/roll` procesa expresiones de dados y nada más. No realiza solicitudes de red, no escribe archivos y no recopila datos. El único acceso al sistema de archivos es a través de la opción `--loot`, que lee un único archivo JSON especificado por el usuario.
 
-There is no telemetry, no analytics, and no tracking of any kind. No secrets, tokens, or credentials are involved in any operation.
+No hay telemetría, ni análisis, ni seguimiento de ningún tipo. No se utilizan secretos, tokens ni credenciales en ninguna operación.
 
-All dice rolls use `crypto.randomInt` from the Node.js `crypto` module, providing cryptographically secure randomness suitable for fair outcomes.
+Todos los lanzamientos de dados utilizan `crypto.randomInt` del módulo `crypto` de Node.js, proporcionando aleatoriedad criptográficamente segura adecuada para obtener resultados justos.
 
-See [SECURITY.md](./SECURITY.md) for the vulnerability reporting policy.
+Consulte [SECURITY.md](./SECURITY.md) para obtener la política de informes de vulnerabilidades.
 
-## License
+## Licencia
 
 MIT
 
 ---
 
-Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+Desarrollado por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

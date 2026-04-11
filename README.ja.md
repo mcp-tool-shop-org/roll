@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/roll/readme.png" width="400" alt="Roll"></p>
@@ -50,17 +50,17 @@ npx @mcptoolshop/roll 4d6dl1 --analyze
 └───────────────────────────────────────────────┘
 ```
 
-## Install
+## インストール
 
 ```bash
 npm install @mcptoolshop/roll
 ```
 
-Requires Node.js >= 22.
+Node.js 22 以降が必要です。
 
-## CLI Usage
+## CLI の使用方法
 
-### Roll dice
+### サイコロを振る
 
 ```bash
 roll 2d6+3
@@ -72,28 +72,28 @@ roll 4dF
 roll "(2d6+3)*2"
 ```
 
-### Analyze probability
+### 確率を分析する
 
 ```bash
 roll 2d6 --analyze          # Full distribution + statistics
 roll d20+5 --at-least 15    # P(result >= 15)
 ```
 
-### Compare distributions
+### 分布を比較する
 
 ```bash
 roll --compare "4d6dl1" "3d6"
 ```
 
-Side-by-side stats (mean, median, mode, stddev, range, entropy) with diff column, plus both histograms.
+統計情報（平均、中央値、最頻値、標準偏差、範囲、エントロピー）を並べて表示し、差分を表示。ヒストグラムも表示します。
 
-### Loot tables
+### アイテムテーブル
 
 ```bash
 roll --loot treasure.json
 ```
 
-JSON format:
+JSON 形式：
 
 ```json
 {
@@ -118,9 +118,9 @@ JSON format:
 }
 ```
 
-Features: weighted selection, nested table references, dice expressions for quantity and value.
+機能：重み付けされた選択、ネストされたテーブル参照、サイコロの個数と値を指定するための数式。
 
-### Other flags
+### その他のオプション
 
 ```bash
 roll 2d6+3 --times 5       # Roll 5 times
@@ -129,22 +129,22 @@ roll --help                 # Full usage
 roll --version              # Version
 ```
 
-## Dice Notation
+## サイコロの表記法
 
-| Notation | Meaning |
+| 表記 | 意味 |
 |----------|---------|
-| `2d6` | Roll 2 six-sided dice |
-| `d20` | Roll 1 twenty-sided die |
-| `4d6kh3` | Roll 4d6, keep highest 3 |
-| `4d6dl1` | Roll 4d6, drop lowest 1 |
-| `1d6!` | Exploding d6 (reroll on max, add) |
-| `1d6!>4` | Explode on 4 or higher |
-| `d%` | Percentile die (1-100) |
-| `4dF` | Fate/Fudge dice (-1, 0, +1 each) |
-| `(2d6+3)*2` | Arithmetic with grouping |
-| `2d6+1d4+3` | Chained expressions |
+| `2d6` | 6面サイコロを2個振る |
+| `d20` | 20面サイコロを1個振る |
+| `4d6kh3` | 6面サイコロを4個振り、最も高い3個を残す |
+| `4d6dl1` | 6面サイコロを4個振り、最も低い1個を捨てる |
+| `1d6!` | 爆発サイコロ（最大値が出たら再ロールし、加算する） |
+| `1d6!>4` | 4以上が出たら爆発 |
+| `d%` | パーセントサイコロ（1～100） |
+| `4dF` | Fate/Fudge サイコロ（-1、0、+1） |
+| `(2d6+3)*2` | グループ化された算術演算 |
+| `2d6+1d4+3` | 連鎖した数式 |
 
-## Library API
+## ライブラリ API
 
 ```typescript
 import { roll, analyze, parse, evaluate, computeDistribution } from '@mcptoolshop/roll';
@@ -171,34 +171,34 @@ const tables = [{ table: "Loot", items: [{ name: "Gold", weight: 50, roll: "2d6*
 const drops = rollLootTable(tables);
 ```
 
-## Probability Engine
+## 確率エンジン
 
-- **Exact distributions** via polynomial convolution for basic NdM
-- **Full enumeration** for keep/drop mechanics (4d6 = 1,296 states)
-- **Truncated recursion** for exploding dice (capped at 10 explosions)
-- **Monte Carlo fallback** (100k samples) when exact computation exceeds 10M states
+- 基本的な NdM の場合、多項式畳み込みによる**正確な分布**
+- keep/drop メカニズムの場合の**完全な列挙**（4d6 = 1,296 通りの状態）
+- 爆発サイコロの場合の**切り捨てられた再帰**（爆発回数は最大10回）
+- 正確な計算が 100 万以上の状態を超える場合、**モンテカルロ法**（10万サンプル）を使用
 
-## Zero Dependencies
+## 依存関係なし
 
-Built entirely on Node.js 22+ builtins:
-- `util.styleText` for terminal colors
-- `util.parseArgs` for CLI argument parsing
-- `crypto.randomInt` for cryptographically secure dice rolls
+Node.js 22 以降の組み込み機能のみを使用：
+- ターミナルカラー表示用の `util.styleText`
+- CLI 引数解析用の `util.parseArgs`
+- 暗号学的に安全なサイコロの出目生成用の `crypto.randomInt`
 
-## Security & Trust
+## セキュリティと信頼性
 
-`@mcptoolshop/roll` processes dice expressions and nothing else. It makes no network requests, writes no files, and collects no data. The only filesystem access is the `--loot` flag, which reads a single user-specified JSON file.
+`@mcptoolshop/roll` は、サイコロの数式を処理するのみです。ネットワークリクエストは行わず、ファイルへの書き込みも行わず、データも収集しません。ファイルシステムへのアクセスは、`--loot` オプションを使用した場合のみで、これはユーザーが指定した単一の JSON ファイルを読み込みます。
 
-There is no telemetry, no analytics, and no tracking of any kind. No secrets, tokens, or credentials are involved in any operation.
+テレメトリー、分析、およびあらゆる種類のトラッキングは一切ありません。秘密、トークン、または認証情報は、いかなる操作にも使用されません。
 
-All dice rolls use `crypto.randomInt` from the Node.js `crypto` module, providing cryptographically secure randomness suitable for fair outcomes.
+すべてのサイコロの出目は、Node.js の `crypto` モジュールにある `crypto.randomInt` を使用しており、暗号学的に安全な乱数を生成し、公平な結果を得ることができます。
 
-See [SECURITY.md](./SECURITY.md) for the vulnerability reporting policy.
+脆弱性報告ポリシーについては、[SECURITY.md](./SECURITY.md) を参照してください。
 
-## License
+## ライセンス
 
 MIT
 
 ---
 
-Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+<a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> が作成しました。

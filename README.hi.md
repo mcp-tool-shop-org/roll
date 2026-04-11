@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.md">English</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/roll/readme.png" width="400" alt="Roll"></p>
@@ -50,17 +50,17 @@ npx @mcptoolshop/roll 4d6dl1 --analyze
 └───────────────────────────────────────────────┘
 ```
 
-## Install
+## इंस्टॉल करें
 
 ```bash
 npm install @mcptoolshop/roll
 ```
 
-Requires Node.js >= 22.
+इसके लिए Node.js >= 22 की आवश्यकता है।
 
-## CLI Usage
+## सीएलआई (CLI) का उपयोग
 
-### Roll dice
+### पासा फेंको
 
 ```bash
 roll 2d6+3
@@ -72,28 +72,28 @@ roll 4dF
 roll "(2d6+3)*2"
 ```
 
-### Analyze probability
+### संभावना का विश्लेषण करें
 
 ```bash
 roll 2d6 --analyze          # Full distribution + statistics
 roll d20+5 --at-least 15    # P(result >= 15)
 ```
 
-### Compare distributions
+### वितरणों की तुलना करें
 
 ```bash
 roll --compare "4d6dl1" "3d6"
 ```
 
-Side-by-side stats (mean, median, mode, stddev, range, entropy) with diff column, plus both histograms.
+एक साथ आंकड़े (माध्य, माध्यिका, बहुलक, मानक विचलन, सीमा, एंट्रॉपी) 'अंतर' कॉलम के साथ, साथ ही दोनों हिस्टोग्राम।
 
-### Loot tables
+### लूट तालिकाएँ
 
 ```bash
 roll --loot treasure.json
 ```
 
-JSON format:
+JSON प्रारूप:
 
 ```json
 {
@@ -118,9 +118,9 @@ JSON format:
 }
 ```
 
-Features: weighted selection, nested table references, dice expressions for quantity and value.
+विशेषताएं: भारित चयन, नेस्टेड टेबल संदर्भ, मात्रा और मूल्य के लिए पासा अभिव्यक्तियाँ।
 
-### Other flags
+### अन्य विकल्प
 
 ```bash
 roll 2d6+3 --times 5       # Roll 5 times
@@ -129,22 +129,22 @@ roll --help                 # Full usage
 roll --version              # Version
 ```
 
-## Dice Notation
+## पासा संकेतन
 
-| Notation | Meaning |
+| संकेतन | अर्थ |
 |----------|---------|
-| `2d6` | Roll 2 six-sided dice |
-| `d20` | Roll 1 twenty-sided die |
-| `4d6kh3` | Roll 4d6, keep highest 3 |
-| `4d6dl1` | Roll 4d6, drop lowest 1 |
-| `1d6!` | Exploding d6 (reroll on max, add) |
-| `1d6!>4` | Explode on 4 or higher |
-| `d%` | Percentile die (1-100) |
-| `4dF` | Fate/Fudge dice (-1, 0, +1 each) |
-| `(2d6+3)*2` | Arithmetic with grouping |
-| `2d6+1d4+3` | Chained expressions |
+| `2d6` | 2 छः-भुजा वाले पासे फेंको |
+| `d20` | 1 बीस-भुजा वाला पासा फेंको |
+| `4d6kh3` | 4d6 फेंको, शीर्ष 3 रखें |
+| `4d6dl1` | 4d6 फेंको, सबसे कम 1 हटा दें |
+| `1d6!` | विस्फोटक d6 (अधिकतम पर पुनः रोल करें, जोड़ें) |
+| `1d6!>4` | 4 या उससे अधिक पर विस्फोट करें |
+| `d%` | प्रतिशत पासा (1-100) |
+| `4dF` | फेट/फज पासे (-1, 0, +1 प्रत्येक) |
+| `(2d6+3)*2` | समूहीकरण के साथ अंकगणित |
+| `2d6+1d4+3` | शृंखलाबद्ध अभिव्यक्तियाँ |
 
-## Library API
+## लाइब्रेरी एपीआई
 
 ```typescript
 import { roll, analyze, parse, evaluate, computeDistribution } from '@mcptoolshop/roll';
@@ -171,34 +171,34 @@ const tables = [{ table: "Loot", items: [{ name: "Gold", weight: 50, roll: "2d6*
 const drops = rollLootTable(tables);
 ```
 
-## Probability Engine
+## संभावना इंजन
 
-- **Exact distributions** via polynomial convolution for basic NdM
-- **Full enumeration** for keep/drop mechanics (4d6 = 1,296 states)
-- **Truncated recursion** for exploding dice (capped at 10 explosions)
-- **Monte Carlo fallback** (100k samples) when exact computation exceeds 10M states
+- बुनियादी NdM के लिए बहुपद संवलन के माध्यम से **सटीक वितरण**
+- 'कीप/ड्रॉप' तंत्र के लिए **पूर्ण गणना** (4d6 = 1,296 अवस्थाएँ)
+- विस्फोटक पासे के लिए **छंटनी की गई पुनरावृत्ति** (10 विस्फोटों तक सीमित)
+- जब सटीक गणना 10 मिलियन से अधिक अवस्थाओं से अधिक हो जाती है तो **मोंटे कार्लो बैकअप** (100k नमूने)
 
-## Zero Dependencies
+## शून्य निर्भरताएँ
 
-Built entirely on Node.js 22+ builtins:
-- `util.styleText` for terminal colors
-- `util.parseArgs` for CLI argument parsing
-- `crypto.randomInt` for cryptographically secure dice rolls
+यह पूरी तरह से Node.js 22+ के अंतर्निहित घटकों पर आधारित है:
+- टर्मिनल रंगों के लिए `util.styleText`
+- सीएलआई तर्क पार्सिंग के लिए `util.parseArgs`
+- क्रिप्टोग्राफिक रूप से सुरक्षित पासा रोल के लिए `crypto.randomInt`
 
-## Security & Trust
+## सुरक्षा और विश्वसनीयता
 
-`@mcptoolshop/roll` processes dice expressions and nothing else. It makes no network requests, writes no files, and collects no data. The only filesystem access is the `--loot` flag, which reads a single user-specified JSON file.
+`@mcptoolshop/roll` केवल पासा अभिव्यक्तियों को संसाधित करता है और कुछ और नहीं। यह कोई नेटवर्क अनुरोध नहीं करता है, कोई फ़ाइल नहीं लिखता है और कोई डेटा एकत्र नहीं करता है। एकमात्र फ़ाइल सिस्टम एक्सेस `--loot` ध्वज है, जो एक उपयोगकर्ता-निर्दिष्ट JSON फ़ाइल को पढ़ता है।
 
-There is no telemetry, no analytics, and no tracking of any kind. No secrets, tokens, or credentials are involved in any operation.
+इसमें कोई टेलीमेट्री, कोई विश्लेषण और किसी भी प्रकार की ट्रैकिंग नहीं है। किसी भी ऑपरेशन में कोई गुप्त जानकारी, टोकन या क्रेडेंशियल शामिल नहीं हैं।
 
-All dice rolls use `crypto.randomInt` from the Node.js `crypto` module, providing cryptographically secure randomness suitable for fair outcomes.
+सभी पासा रोल Node.js के `crypto` मॉड्यूल से `crypto.randomInt` का उपयोग करते हैं, जो निष्पक्ष परिणामों के लिए उपयुक्त क्रिप्टोग्राफिक रूप से सुरक्षित यादृच्छिकता प्रदान करता है।
 
-See [SECURITY.md](./SECURITY.md) for the vulnerability reporting policy.
+भेद्यता रिपोर्टिंग नीति के लिए [SECURITY.md](./SECURITY.md) देखें।
 
-## License
+## लाइसेंस
 
 MIT
 
 ---
 
-Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+<a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> द्वारा निर्मित।
