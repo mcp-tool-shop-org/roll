@@ -1,0 +1,24 @@
+{
+  "tables": [
+    {
+      "table": "Treasure",
+      "items": [
+        { "name": "Gold", "weight": 40, "roll": "2d6*10" },
+        { "name": "Potion of Healing", "weight": 25 },
+        { "name": "Scroll of Fireball", "weight": 15, "quantity": "1d3" },
+        { "name": "Gemstones", "weight": 10, "roll": "3d6*5", "quantity": "1d4" },
+        { "name": "Rare Item", "weight": 10, "table": "Rare Weapons" }
+      ]
+    },
+    {
+      "table": "Rare Weapons",
+      "items": [
+        { "name": "Flametongue Sword", "weight": 30 },
+        { "name": "Frost Brand", "weight": 25 },
+        { "name": "Vorpal Blade", "weight": 5 },
+        { "name": "Staff of Power", "weight": 20 },
+        { "name": "Dagger of Venom", "weight": 20 }
+      ]
+    }
+  ]
+}

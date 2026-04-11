@@ -1,0 +1,61 @@
+import type { Distribution } from "../analyze/distribution.js";
+import type { DistributionStats } from "../analyze/stats.js";
+import { bold, dim, cyan, yellow, green, boldCyan } from "./color.js";
+
+const FULL_BLOCK = "\u2588";
+const BLOCKS = [" ", "\u2581", "\u2582", "\u2583", "\u2584", "\u2585", "\u2586", "\u2587", "\u2588"];
+
+/** Render a horizontal bar chart of a probability distribution. */
+export function renderHistogram(
+  dist: Distribution,
+  stats: DistributionStats,
+  maxWidth = 60,
+): string {
+  const entries = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+  if (entries.length === 0) return "";
+
+  const maxProb = Math.max(...entries.map(([, p]) => p));
+  const lines: string[] = [];
+
+  // Header
+  lines.push(boldCyan("  Distribution"));
+  lines.push("");
+
+  // Determine label width
+  const maxLabel = Math.max(...entries.map(([v]) => String(v).length));
+  const barWidth = Math.min(maxWidth, (process.stdout.columns || 80) - maxLabel - 15);
+
+  for (const [value, prob] of entries) {
+    const label = String(value).padStart(maxLabel);
+    const barLen = Math.round((prob / maxProb) * barWidth);
+    const bar = FULL_BLOCK.repeat(barLen);
+    const pctStr = (prob * 100).toFixed(2).padStart(6) + "%";
+
+    // Highlight mode
+    const isMode = value === stats.mode;
+    const isMedian = value === stats.median;
+
+    let prefix = "  ";
+    if (isMode && isMedian) prefix = bold("M>");
+    else if (isMode) prefix = bold("*>");
+    else if (isMedian) prefix = "~>";
+
+    const coloredBar = isMode ? yellow(bar) : cyan(bar);
+    const coloredPct = isMode ? bold(pctStr) : dim(pctStr);
+
+    lines.push(`${prefix}${dim(label)} ${coloredBar} ${coloredPct}`);
+  }
+
+  return lines.join("\n");
+}
+
+/** Render a compact sparkline for inline display. */
+export function renderSparkline(dist: Distribution): string {
+  const entries = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+  if (entries.length === 0) return "";
+
+  const maxProb = Math.max(...entries.map(([, p]) => p));
+  return entries
+    .map(([, p]) => BLOCKS[Math.round((p / maxProb) * 8)])
+    .join("");
+}

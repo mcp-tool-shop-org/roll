@@ -1,0 +1,55 @@
+{
+  "name": "@mcptoolshop/roll",
+  "version": "1.0.0",
+  "description": "RPG dice engine — expression parser, probability analyzer, loot tables, beautiful terminal output",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "roll": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "verify": "npm run build && npm test",
+    "prepublishOnly": "npm run clean && npm run verify"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "dice",
+    "rpg",
+    "roller",
+    "probability",
+    "dnd",
+    "tabletop",
+    "loot-table",
+    "game-design",
+    "cli"
+  ],
+  "author": "mcp-tool-shop",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcp-tool-shop-org/roll.git"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
