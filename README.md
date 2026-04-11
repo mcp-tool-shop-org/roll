@@ -1,6 +1,13 @@
-# @mcptoolshop/roll
+<p align="center"><img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/roll/readme.png" width="400" alt="Roll"></p>
 
-RPG dice engine with probability analysis, loot tables, and beautiful terminal output.
+<p align="center">
+  <a href="https://github.com/mcp-tool-shop-org/roll/actions"><img src="https://github.com/mcp-tool-shop-org/roll/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://mcp-tool-shop-org.github.io/roll/"><img src="https://img.shields.io/badge/Landing_Page-online-brightgreen" alt="Landing Page"></a>
+  <a href="https://www.npmjs.com/package/@mcptoolshop/roll"><img src="https://img.shields.io/npm/v/@mcptoolshop/roll" alt="npm version"></a>
+</p>
+
+<p align="center">RPG dice engine with probability analysis, loot tables, and beautiful terminal output.</p>
 
 ```
 npx @mcptoolshop/roll 4d6dl1 --analyze
@@ -174,6 +181,20 @@ Built entirely on Node.js 22+ builtins:
 - `util.parseArgs` for CLI argument parsing
 - `crypto.randomInt` for cryptographically secure dice rolls
 
+## Security & Trust
+
+`@mcptoolshop/roll` processes dice expressions and nothing else. It makes no network requests, writes no files, and collects no data. The only filesystem access is the `--loot` flag, which reads a single user-specified JSON file.
+
+There is no telemetry, no analytics, and no tracking of any kind. No secrets, tokens, or credentials are involved in any operation.
+
+All dice rolls use `crypto.randomInt` from the Node.js `crypto` module, providing cryptographically secure randomness suitable for fair outcomes.
+
+See [SECURITY.md](./SECURITY.md) for the vulnerability reporting policy.
+
 ## License
 
 MIT
+
+---
+
+Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
