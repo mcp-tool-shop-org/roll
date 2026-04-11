@@ -7,12 +7,109 @@ export class LexerError extends Error {
   }
 }
 
-const TWO_CHAR_KEYWORDS: Record<string, TokenType> = {
-  kh: TokenType.KH,
-  kl: TokenType.KL,
-  dh: TokenType.DH,
-  dl: TokenType.DL,
-};
+// Longest-match keyword table — ordered longest-first within each length group.
+// Keywords that are prefixes of others MUST come after the longer variant
+// (e.g., "ro" before "r") to ensure greedy matching.
+const KEYWORDS: Array<[string, TokenType]> = [
+  // 3-char
+  ["min", TokenType.MIN],
+  ["max", TokenType.MAX],
+  // 2-char
+  ["kh", TokenType.KH],
+  ["kl", TokenType.KL],
+  ["dh", TokenType.DH],
+  ["dl", TokenType.DL],
+  ["ro", TokenType.RO],
+  ["cs", TokenType.CS],
+  ["cf", TokenType.CF],
+  ["sa", TokenType.SA],
+  ["sd", TokenType.SD],
+  // 1-char (must be last — "r" is a prefix of "ro")
+  ["r", TokenType.R],
+];
+
+// Token types that indicate dice context (for dh/dl disambiguation)
+const DICE_CONTEXT_TOKENS = new Set<TokenType>([
+  TokenType.NUMBER,
+  TokenType.PERCENT,
+  TokenType.F,
+  TokenType.KH,
+  TokenType.KL,
+  TokenType.DH,
+  TokenType.DL,
+  TokenType.BANG,
+  TokenType.BANG_BANG,
+  TokenType.BANG_P,
+  TokenType.GT,
+  TokenType.GTE,
+  TokenType.LT,
+  TokenType.LTE,
+  TokenType.EQ,
+  TokenType.R,
+  TokenType.RO,
+  TokenType.CS,
+  TokenType.CF,
+  TokenType.SA,
+  TokenType.SD,
+  TokenType.MIN,
+  TokenType.MAX,
+]);
+
+function tryMatchKeyword(
+  input: string,
+  pos: number,
+  tokens: Token[],
+): { type: TokenType; length: number } | null {
+  const remaining = input.slice(pos).toLowerCase();
+
+  for (const [keyword, type] of KEYWORDS) {
+    if (!remaining.startsWith(keyword)) continue;
+
+    // Ensure the character after the keyword is not a letter (word boundary).
+    // This prevents matching "min" inside "mint" or "r" inside "roll".
+    const nextChar = input[pos + keyword.length];
+    if (nextChar && nextChar >= "a" && nextChar <= "z") continue;
+    if (nextChar && nextChar >= "A" && nextChar <= "Z") continue;
+
+    // Context-sensitive disambiguation for dh/dl/r/ro/cs/cf/sa/sd/min/max:
+    // These are modifier keywords only valid after dice-related tokens.
+    // Without this check, "d20" would match "d" then fail on "2" if "d" + something matched.
+    if (type === TokenType.DH || type === TokenType.DL) {
+      const lastToken = tokens[tokens.length - 1];
+      if (!lastToken || !DICE_CONTEXT_TOKENS.has(lastToken.type)) {
+        continue; // Not in dice context — fall through to single-char "d"
+      }
+    }
+
+    // "r" alone could appear in contexts where it's not a reroll modifier.
+    // Only match r/ro as keywords after dice context.
+    if (type === TokenType.R || type === TokenType.RO) {
+      const lastToken = tokens[tokens.length - 1];
+      if (!lastToken || !DICE_CONTEXT_TOKENS.has(lastToken.type)) {
+        continue;
+      }
+    }
+
+    // cs/cf/sa/sd/min/max are only valid after dice context
+    if (
+      type === TokenType.CS ||
+      type === TokenType.CF ||
+      type === TokenType.SA ||
+      type === TokenType.SD ||
+      type === TokenType.MIN ||
+      type === TokenType.MAX
+    ) {
+      const lastToken = tokens[tokens.length - 1];
+      if (!lastToken || !DICE_CONTEXT_TOKENS.has(lastToken.type)) {
+        continue;
+      }
+    }
+
+    return { type, length: keyword.length };
+  }
+
+  return null;
+}
 
 export function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
@@ -39,45 +136,19 @@ export function tokenize(input: string): Token[] {
       continue;
     }
 
-    // Two-char keywords (kh, kl, dh, dl) — but not 'd' alone
-    const twoChar = input.slice(i, i + 2).toLowerCase();
-    if (TWO_CHAR_KEYWORDS[twoChar]) {
-      // Make sure 'dh'/'dl' aren't confused with 'd' followed by a modifier
-      // Only match dh/dl if the previous token is a dice-related context
-      if (twoChar === "dh" || twoChar === "dl") {
-        // dh/dl are drop-highest/drop-lowest modifiers, only valid after dice
-        const lastToken = tokens[tokens.length - 1];
-        if (
-          lastToken &&
-          (lastToken.type === TokenType.NUMBER ||
-            lastToken.type === TokenType.PERCENT ||
-            lastToken.type === TokenType.F ||
-            lastToken.type === TokenType.KH ||
-            lastToken.type === TokenType.KL ||
-            lastToken.type === TokenType.DH ||
-            lastToken.type === TokenType.DL ||
-            lastToken.type === TokenType.BANG)
-        ) {
-          tokens.push({
-            type: TWO_CHAR_KEYWORDS[twoChar],
-            value: twoChar,
-            position: pos,
-          });
-          i += 2;
-          continue;
-        }
-      } else {
-        tokens.push({
-          type: TWO_CHAR_KEYWORDS[twoChar],
-          value: twoChar,
-          position: pos,
-        });
-        i += 2;
-        continue;
-      }
+    // Try keyword match (longest-match, context-sensitive)
+    const kwMatch = tryMatchKeyword(input, i, tokens);
+    if (kwMatch) {
+      tokens.push({
+        type: kwMatch.type,
+        value: input.slice(i, i + kwMatch.length),
+        position: pos,
+      });
+      i += kwMatch.length;
+      continue;
     }
 
-    // Single characters
+    // Multi-char and single-char operators
     switch (ch.toLowerCase()) {
       case "d":
         tokens.push({ type: TokenType.D, value: ch, position: pos });
@@ -116,11 +187,40 @@ export function tokenize(input: string): Token[] {
         i++;
         break;
       case "!":
-        tokens.push({ type: TokenType.BANG, value: ch, position: pos });
-        i++;
+        // Peek ahead: !! = compound, !p = penetrate, ! = explode
+        if (i + 1 < input.length && input[i + 1] === "!") {
+          tokens.push({ type: TokenType.BANG_BANG, value: "!!", position: pos });
+          i += 2;
+        } else if (i + 1 < input.length && input[i + 1].toLowerCase() === "p") {
+          tokens.push({ type: TokenType.BANG_P, value: "!p", position: pos });
+          i += 2;
+        } else {
+          tokens.push({ type: TokenType.BANG, value: ch, position: pos });
+          i++;
+        }
         break;
       case ">":
-        tokens.push({ type: TokenType.GT, value: ch, position: pos });
+        // Peek ahead: >= or >
+        if (i + 1 < input.length && input[i + 1] === "=") {
+          tokens.push({ type: TokenType.GTE, value: ">=", position: pos });
+          i += 2;
+        } else {
+          tokens.push({ type: TokenType.GT, value: ch, position: pos });
+          i++;
+        }
+        break;
+      case "<":
+        // Peek ahead: <= or <
+        if (i + 1 < input.length && input[i + 1] === "=") {
+          tokens.push({ type: TokenType.LTE, value: "<=", position: pos });
+          i += 2;
+        } else {
+          tokens.push({ type: TokenType.LT, value: ch, position: pos });
+          i++;
+        }
+        break;
+      case "=":
+        tokens.push({ type: TokenType.EQ, value: ch, position: pos });
         i++;
         break;
       default:

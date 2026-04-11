@@ -83,12 +83,14 @@ describe("parser", () => {
 
   it("parses exploding dice", () => {
     const ast = parse("1d6!") as DiceNode;
-    expect(ast.modifiers).toEqual([{ kind: "explode", value: undefined }]);
+    expect(ast.modifiers).toEqual([{ kind: "explode" }]);
   });
 
   it("parses exploding with threshold", () => {
     const ast = parse("1d6!>4") as DiceNode;
-    expect(ast.modifiers).toEqual([{ kind: "explode", value: 4 }]);
+    expect(ast.modifiers).toEqual([
+      { kind: "explode", compare: { operator: ">", value: 4 } },
+    ]);
   });
 
   it("parses percentile dice", () => {
@@ -134,5 +136,150 @@ describe("parser", () => {
 
   it("throws on unclosed parenthesis", () => {
     expect(() => parse("(2d6+3")).toThrow(ParseError);
+  });
+
+  // ─── V2 Modifiers ─────────────────────────────────────────────────────────
+
+  it("parses reroll with compare point", () => {
+    const ast = parse("2d6r<2") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "reroll", compare: { operator: "<", value: 2 } },
+    ]);
+  });
+
+  it("parses reroll once", () => {
+    const ast = parse("2d6ro=1") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "reroll_once", compare: { operator: "=", value: 1 } },
+    ]);
+  });
+
+  it("parses bare reroll (defaults to =1)", () => {
+    const ast = parse("2d6r") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "reroll", compare: { operator: "=", value: 1 } },
+    ]);
+  });
+
+  it("parses compounding dice", () => {
+    const ast = parse("1d6!!") as DiceNode;
+    expect(ast.modifiers).toEqual([{ kind: "compound" }]);
+  });
+
+  it("parses compounding with threshold", () => {
+    const ast = parse("1d6!!>4") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "compound", compare: { operator: ">", value: 4 } },
+    ]);
+  });
+
+  it("parses penetrating dice", () => {
+    const ast = parse("1d6!p") as DiceNode;
+    expect(ast.modifiers).toEqual([{ kind: "penetrate" }]);
+  });
+
+  it("parses penetrating with threshold", () => {
+    const ast = parse("1d6!p>=4") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "penetrate", compare: { operator: ">=", value: 4 } },
+    ]);
+  });
+
+  it("parses success counting", () => {
+    const ast = parse("8d6cs>=5") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "cs_count", compare: { operator: ">=", value: 5 } },
+    ]);
+    expect(ast.resultMode).toBe("success_count");
+  });
+
+  it("parses success + failure counting", () => {
+    const ast = parse("8d6cs>=5cf<=1") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "cs_count", compare: { operator: ">=", value: 5 } },
+      { kind: "cf_count", compare: { operator: "<=", value: 1 } },
+    ]);
+    expect(ast.resultMode).toBe("success_count");
+  });
+
+  it("parses min floor", () => {
+    const ast = parse("2d6min3") as DiceNode;
+    expect(ast.modifiers).toEqual([{ kind: "min", value: 3 }]);
+  });
+
+  it("parses max ceiling", () => {
+    const ast = parse("2d6max5") as DiceNode;
+    expect(ast.modifiers).toEqual([{ kind: "max", value: 5 }]);
+  });
+
+  it("parses sort ascending", () => {
+    const ast = parse("4d6sa") as DiceNode;
+    expect(ast.modifiers).toEqual([{ kind: "sort_asc" }]);
+  });
+
+  it("parses sort descending", () => {
+    const ast = parse("4d6sd") as DiceNode;
+    expect(ast.modifiers).toEqual([{ kind: "sort_desc" }]);
+  });
+
+  it("parses critical success mark (no compare point)", () => {
+    const ast = parse("1d20cs") as DiceNode;
+    expect(ast.modifiers).toEqual([{ kind: "cs_mark" }]);
+    expect(ast.resultMode).toBeUndefined();
+  });
+
+  it("parses exploding with >= threshold", () => {
+    const ast = parse("1d6!>=5") as DiceNode;
+    expect(ast.modifiers).toEqual([
+      { kind: "explode", compare: { operator: ">=", value: 5 } },
+    ]);
+  });
+
+  it("parses complex modifier chain", () => {
+    const ast = parse("4d6r<2min2kh3sa") as DiceNode;
+    expect(ast.modifiers).toHaveLength(4);
+    expect(ast.modifiers[0].kind).toBe("reroll");
+    expect(ast.modifiers[1].kind).toBe("min");
+    expect(ast.modifiers[2].kind).toBe("kh");
+    expect(ast.modifiers[3].kind).toBe("sort_asc");
+  });
+
+  it("resultMode is undefined for non-pool expressions", () => {
+    const ast = parse("4d6kh3") as DiceNode;
+    expect(ast.resultMode).toBeUndefined();
+  });
+
+  it("parses WoD-style pool: 8d10cs>=8", () => {
+    const ast = parse("8d10cs>=8") as DiceNode;
+    expect(ast.count).toBe(8);
+    expect(ast.sides).toBe(10);
+    expect(ast.resultMode).toBe("success_count");
+    expect(ast.modifiers[0]).toEqual({
+      kind: "cs_count",
+      compare: { operator: ">=", value: 8 },
+    });
+  });
+
+  it("parses Shadowrun-style pool: 12d6cs>=5", () => {
+    const ast = parse("12d6cs>=5") as DiceNode;
+    expect(ast.count).toBe(12);
+    expect(ast.resultMode).toBe("success_count");
+  });
+
+  it("parses all comparison operators in compare points", () => {
+    const ops = [">", ">=", "<", "<=", "="] as const;
+    const exprs = ["1d6!>4", "1d6!>=4", "1d6r<2", "1d6r<=2", "1d6r=1"];
+    for (let i = 0; i < ops.length; i++) {
+      const ast = parse(exprs[i]) as DiceNode;
+      expect(ast.modifiers[0].compare?.operator).toBe(ops[i]);
+    }
+  });
+
+  it("success counting with arithmetic: 8d6cs>=5+2", () => {
+    const ast = parse("8d6cs>=5+2") as BinaryOpNode;
+    expect(ast.type).toBe("binary");
+    expect(ast.op).toBe("+");
+    const dice = ast.left as DiceNode;
+    expect(dice.resultMode).toBe("success_count");
   });
 });

@@ -136,3 +136,129 @@ describe("probabilityAtLeast", () => {
     expect(probabilityAtLeast(dist, 13)).toBeCloseTo(0, 10);
   });
 });
+
+// ─── V2 Distribution Strategies ──────────────────────────────────────────────
+
+describe("reroll distribution", () => {
+  it("1d6r=1 has no probability on face 1", () => {
+    const { dist, stats } = analyze("1d6r=1");
+    expect(dist.get(1) ?? 0).toBeCloseTo(0, 10);
+    // Mean shifts up: faces 2-6 each have p=1/5
+    expect(stats.mean).toBeCloseTo(4, 5);
+    expect(stats.min).toBe(2);
+    expect(stats.max).toBe(6);
+  });
+
+  it("1d6r<3 has no probability on faces 1 and 2", () => {
+    const { dist, stats } = analyze("1d6r<3");
+    expect(dist.get(1) ?? 0).toBeCloseTo(0, 10);
+    expect(dist.get(2) ?? 0).toBeCloseTo(0, 10);
+    // Remaining 4 faces each have p=1/4
+    expect(dist.get(3)).toBeCloseTo(0.25, 5);
+    expect(stats.mean).toBeCloseTo(4.5, 5);
+  });
+
+  it("2d6r=1 has higher mean than 2d6", () => {
+    const plain = analyze("2d6");
+    const rerolled = analyze("2d6r=1");
+    expect(rerolled.stats.mean).toBeGreaterThan(plain.stats.mean);
+    expect(rerolled.stats.min).toBe(4); // each die min is 2, so 2+2=4
+  });
+
+  it("1d6ro=1 still has probability on face 1 (reroll once)", () => {
+    const { dist } = analyze("1d6ro=1");
+    // P(end on 1) = P(roll 1) * P(reroll to 1) = 1/6 * 1/6 = 1/36
+    expect(dist.get(1)).toBeCloseTo(1 / 36, 5);
+    // P(end on 2) = P(roll 2) + P(roll 1) * P(reroll to 2) = 1/6 + 1/36 = 7/36
+    expect(dist.get(2)).toBeCloseTo(7 / 36, 5);
+  });
+});
+
+describe("min/max distribution", () => {
+  it("1d6min3 has min 3 and piled mass", () => {
+    const { dist, stats } = analyze("1d6min3");
+    expect(stats.min).toBe(3);
+    expect(stats.max).toBe(6);
+    // P(3) = P(1) + P(2) + P(3) = 3/6 = 0.5
+    expect(dist.get(3)).toBeCloseTo(0.5, 5);
+    expect(dist.get(4)).toBeCloseTo(1 / 6, 5);
+  });
+
+  it("1d6max4 has max 4 and piled mass", () => {
+    const { dist, stats } = analyze("1d6max4");
+    expect(stats.min).toBe(1);
+    expect(stats.max).toBe(4);
+    // P(4) = P(4) + P(5) + P(6) = 3/6 = 0.5
+    expect(dist.get(4)).toBeCloseTo(0.5, 5);
+    expect(dist.get(1)).toBeCloseTo(1 / 6, 5);
+  });
+
+  it("2d6min3 has correct range", () => {
+    const { stats } = analyze("2d6min3");
+    expect(stats.min).toBe(6);   // 3+3
+    expect(stats.max).toBe(12);  // 6+6
+    expect(stats.mean).toBeGreaterThan(7); // higher than plain 2d6
+  });
+});
+
+describe("compound/penetrate distribution", () => {
+  it("1d6!! has same mean as 1d6! (compound vs explode)", () => {
+    const explode = analyze("1d6!");
+    const compound = analyze("1d6!!");
+    // Same expected value — compound just sums differently in engine
+    expect(compound.stats.mean).toBeCloseTo(explode.stats.mean, 2);
+  });
+
+  it("1d6!p has lower mean than 1d6! (penetrating penalty)", () => {
+    const explode = analyze("1d6!");
+    const penetrate = analyze("1d6!p");
+    expect(penetrate.stats.mean).toBeLessThan(explode.stats.mean);
+    expect(penetrate.stats.mean).toBeGreaterThan(3.5); // still > non-exploding
+  });
+
+  it("1d6!! max is greater than 6", () => {
+    const { stats } = analyze("1d6!!");
+    expect(stats.max).toBeGreaterThan(6);
+  });
+});
+
+describe("success count distribution", () => {
+  it("8d6cs>=5 has range 0-8", () => {
+    const { stats } = analyze("8d6cs>=5");
+    expect(stats.min).toBe(0);
+    expect(stats.max).toBe(8);
+    // P(success per die) = 2/6, so mean = 8 * 2/6 ≈ 2.667
+    expect(stats.mean).toBeCloseTo(8 * (2 / 6), 2);
+  });
+
+  it("8d6cs>=5cf<=1 can go negative", () => {
+    const { stats } = analyze("8d6cs>=5cf<=1");
+    // Each die: +1 if >=5, -1 if <=1, 0 otherwise
+    // P(+1) = 2/6, P(-1) = 1/6, P(0) = 3/6
+    // Mean = 8 * (2/6 - 1/6) = 8/6 ≈ 1.333
+    expect(stats.mean).toBeCloseTo(8 * (1 / 6), 2);
+    expect(stats.min).toBe(-8); // all failures
+    expect(stats.max).toBe(8);  // all successes
+  });
+
+  it("10d10cs>=8 (WoD pool) has known distribution", () => {
+    const { stats } = analyze("10d10cs>=8");
+    // P(success) = 3/10, mean = 10 * 0.3 = 3
+    expect(stats.mean).toBeCloseTo(3, 2);
+    expect(stats.min).toBe(0);
+    expect(stats.max).toBe(10);
+  });
+
+  it("12d6cs>=5 (Shadowrun pool) has correct mean", () => {
+    const { stats } = analyze("12d6cs>=5");
+    // P(hit) = 2/6, mean = 12 * 1/3 = 4
+    expect(stats.mean).toBeCloseTo(4, 2);
+  });
+
+  it("probabilities sum to 1", () => {
+    const { dist } = analyze("8d6cs>=5");
+    let total = 0;
+    for (const p of dist.values()) total += p;
+    expect(total).toBeCloseTo(1, 8);
+  });
+});

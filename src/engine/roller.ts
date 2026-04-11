@@ -1,16 +1,20 @@
-import type { ASTNode, DiceNode, DiceModifier, DiceSides } from "../parser/ast.js";
+import type { ASTNode, DiceNode, DiceSides } from "../parser/ast.js";
 import { cryptoRng, type RngFn } from "./random.js";
+import { runPipeline, type PipelineDie } from "./pipeline.js";
 
 export interface DieResult {
   value: number;
   kept: boolean;
   exploded: boolean;
+  rerolledFrom?: number;
+  critical?: "success" | "failure";
 }
 
 export interface DiceGroupResult {
   expression: string;
   dice: DieResult[];
   total: number;
+  resultMode: "sum" | "success_count";
 }
 
 export interface RollResult {
@@ -19,147 +23,95 @@ export interface RollResult {
   groups: DiceGroupResult[];
 }
 
-const MAX_EXPLOSIONS = 100;
-
-function resolveSides(sides: DiceSides): number {
-  if (sides === "%") return 100;
-  if (sides === "F") return 3; // internal: we roll 0-2 and map to -1,0,+1
-  return sides;
+function pipelineDieToDieResult(d: PipelineDie): DieResult {
+  const result: DieResult = {
+    value: d.value,
+    kept: d.kept,
+    exploded: d.exploded,
+  };
+  if (d.rerolledFrom !== undefined) result.rerolledFrom = d.rerolledFrom;
+  if (d.critical !== undefined) result.critical = d.critical;
+  return result;
 }
 
-function rollSingleDie(sides: DiceSides, rng: RngFn): number {
-  if (sides === "F") {
-    return rng(0, 2) - 1; // -1, 0, +1
+function buildExpression(node: DiceNode): string {
+  let expr = `${node.count}d${node.sides === "%" ? "%" : node.sides === "F" ? "F" : node.sides}`;
+
+  for (const mod of node.modifiers) {
+    switch (mod.kind) {
+      case "explode":
+        expr += "!";
+        if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
+        break;
+      case "compound":
+        expr += "!!";
+        if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
+        break;
+      case "penetrate":
+        expr += "!p";
+        if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
+        break;
+      case "reroll":
+        expr += "r";
+        if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
+        break;
+      case "reroll_once":
+        expr += "ro";
+        if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
+        break;
+      case "cs_count":
+        expr += "cs";
+        if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
+        break;
+      case "cf_count":
+        expr += "f";
+        if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
+        break;
+      case "cs_mark":
+        expr += "cs";
+        break;
+      case "cf_mark":
+        expr += "cf";
+        break;
+      case "min":
+        expr += `min${mod.value}`;
+        break;
+      case "max":
+        expr += `max${mod.value}`;
+        break;
+      case "sort_asc":
+        expr += "sa";
+        break;
+      case "sort_desc":
+        expr += "sd";
+        break;
+      default:
+        // kh, kl, dh, dl
+        expr += mod.kind;
+        if (mod.value !== undefined) expr += mod.value;
+    }
   }
-  const max = sides === "%" ? 100 : sides;
-  return rng(1, max);
+
+  return expr;
 }
 
 function rollDiceGroup(node: DiceNode, rng: RngFn): DiceGroupResult {
-  const maxSide = resolveSides(node.sides);
-  const isFate = node.sides === "F";
+  const resultMode = node.resultMode ?? "sum";
 
-  // Determine explosion settings
-  const explodeMod = node.modifiers.find((m) => m.kind === "explode");
-  const explodeThreshold = explodeMod
-    ? explodeMod.value ?? (isFate ? undefined : maxSide)
-    : undefined;
+  const pipeline = runPipeline(
+    node.count,
+    node.sides,
+    node.modifiers,
+    rng,
+    resultMode,
+  );
 
-  // Roll initial dice
-  const rawRolls: number[] = [];
-  for (let i = 0; i < node.count; i++) {
-    let roll = rollSingleDie(node.sides, rng);
-    rawRolls.push(roll);
-
-    // Handle exploding
-    if (explodeThreshold !== undefined && !isFate) {
-      let explosions = 0;
-      while (roll >= explodeThreshold && explosions < MAX_EXPLOSIONS) {
-        roll = rollSingleDie(node.sides, rng);
-        rawRolls.push(roll);
-        explosions++;
-      }
-    }
-  }
-
-  // Build die results (all kept initially)
-  const dice: DieResult[] = rawRolls.map((value) => ({
-    value,
-    kept: true,
-    exploded: false,
-  }));
-
-  // Mark exploded dice
-  if (explodeThreshold !== undefined && !isFate) {
-    let dieIndex = 0;
-    for (let i = 0; i < node.count; i++) {
-      // Skip the initial die
-      dieIndex++;
-      // Mark subsequent exploded dice
-      while (
-        dieIndex < dice.length &&
-        dice[dieIndex - 1].value >= explodeThreshold
-      ) {
-        dice[dieIndex].exploded = true;
-        dieIndex++;
-      }
-    }
-  }
-
-  // Apply keep/drop modifiers
-  for (const mod of node.modifiers) {
-    if (mod.kind === "explode") continue;
-    applyKeepDrop(dice, mod);
-  }
-
-  const total = dice.filter((d) => d.kept).reduce((sum, d) => sum + d.value, 0);
-
-  // Build expression string
-  let expr = `${node.count}d${node.sides === "%" ? "%" : node.sides === "F" ? "F" : node.sides}`;
-  for (const mod of node.modifiers) {
-    if (mod.kind === "explode") {
-      expr += "!";
-      if (mod.value !== undefined) expr += `>${mod.value}`;
-    } else {
-      expr += mod.kind;
-      if (mod.value !== undefined) expr += mod.value;
-    }
-  }
-
-  return { expression: expr, dice, total };
-}
-
-function applyKeepDrop(dice: DieResult[], mod: DiceModifier): void {
-  const n = mod.value ?? 1;
-  const keptDice = dice.filter((d) => d.kept);
-
-  // Sort by value to determine which to keep/drop
-  const sorted = [...keptDice].sort((a, b) => a.value - b.value);
-
-  switch (mod.kind) {
-    case "kh": {
-      // Keep highest N — drop everything else
-      const threshold = sorted.length - n;
-      let dropped = 0;
-      for (const d of sorted) {
-        if (dropped < threshold) {
-          d.kept = false;
-          dropped++;
-        }
-      }
-      break;
-    }
-    case "kl": {
-      // Keep lowest N — drop everything else
-      let kept = 0;
-      for (const d of sorted) {
-        if (kept < n) {
-          kept++;
-        } else {
-          d.kept = false;
-        }
-      }
-      break;
-    }
-    case "dh": {
-      // Drop highest N
-      let dropped = 0;
-      for (let i = sorted.length - 1; i >= 0 && dropped < n; i--) {
-        sorted[i].kept = false;
-        dropped++;
-      }
-      break;
-    }
-    case "dl": {
-      // Drop lowest N
-      let dropped = 0;
-      for (let i = 0; i < sorted.length && dropped < n; i++) {
-        sorted[i].kept = false;
-        dropped++;
-      }
-      break;
-    }
-  }
+  return {
+    expression: buildExpression(node),
+    dice: pipeline.dice.map(pipelineDieToDieResult),
+    total: pipeline.total,
+    resultMode: pipeline.resultMode,
+  };
 }
 
 export function evaluate(ast: ASTNode, rng: RngFn = cryptoRng): RollResult {

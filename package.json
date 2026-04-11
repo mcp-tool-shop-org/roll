@@ -1,17 +1,27 @@
 {
   "name": "@mcptoolshop/roll",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "RPG dice engine — expression parser, probability analyzer, loot tables, beautiful terminal output",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "roll": "./dist/bin.js"
+    "roll": "./dist/bin.js",
+    "roll-bridge": "./dist/bridge/server.js",
+    "roll-mcp": "./dist/mcp/server.js"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./tables": {
+      "types": "./dist/tables/schema.d.ts",
+      "import": "./dist/tables/engine.js"
+    },
+    "./bridge": {
+      "types": "./dist/bridge/protocol.d.ts",
+      "import": "./dist/bridge/handler.js"
     }
   },
   "files": [

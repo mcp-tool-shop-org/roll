@@ -1,4 +1,4 @@
-import { ASTNode, DiceModifier, DiceSides } from "./ast.js";
+import { ASTNode, ComparePoint, DiceModifier, DiceSides } from "./ast.js";
 import { Token, TokenType } from "./tokens.js";
 import { tokenize } from "./lexer.js";
 
@@ -8,6 +8,14 @@ export class ParseError extends Error {
     this.name = "ParseError";
   }
 }
+
+const COMPARE_TOKENS = new Set([
+  TokenType.GT,
+  TokenType.GTE,
+  TokenType.LT,
+  TokenType.LTE,
+  TokenType.EQ,
+]);
 
 class Parser {
   private tokens: Token[];
@@ -43,6 +51,26 @@ class Parser {
       return this.advance();
     }
     return null;
+  }
+
+  /** Parse a compare point: >, >=, <, <=, = followed by a number. */
+  private parseComparePoint(): ComparePoint | undefined {
+    const token = this.peek();
+    if (!COMPARE_TOKENS.has(token.type)) return undefined;
+
+    this.advance();
+    const numToken = this.expect(TokenType.NUMBER);
+    const value = parseInt(numToken.value, 10);
+
+    const operatorMap: Record<string, ComparePoint["operator"]> = {
+      [TokenType.GT]: ">",
+      [TokenType.GTE]: ">=",
+      [TokenType.LT]: "<",
+      [TokenType.LTE]: "<=",
+      [TokenType.EQ]: "=",
+    };
+
+    return { operator: operatorMap[token.type], value };
   }
 
   // expression → term (('+' | '-') term)*
@@ -154,47 +182,120 @@ class Parser {
     let parsing = true;
     while (parsing) {
       switch (this.peek().type) {
+        // --- Keep/Drop (unchanged from V1) ---
         case TokenType.KH: {
           this.advance();
-          const n = this.parseOptionalNumber(1);
-          modifiers.push({ kind: "kh", value: n });
+          modifiers.push({ kind: "kh", value: this.parseOptionalNumber(1) });
           break;
         }
         case TokenType.KL: {
           this.advance();
-          const n = this.parseOptionalNumber(1);
-          modifiers.push({ kind: "kl", value: n });
+          modifiers.push({ kind: "kl", value: this.parseOptionalNumber(1) });
           break;
         }
         case TokenType.DH: {
           this.advance();
-          const n = this.parseOptionalNumber(1);
-          modifiers.push({ kind: "dh", value: n });
+          modifiers.push({ kind: "dh", value: this.parseOptionalNumber(1) });
           break;
         }
         case TokenType.DL: {
           this.advance();
-          const n = this.parseOptionalNumber(1);
-          modifiers.push({ kind: "dl", value: n });
+          modifiers.push({ kind: "dl", value: this.parseOptionalNumber(1) });
           break;
         }
+
+        // --- Explosion variants ---
         case TokenType.BANG: {
           this.advance();
-          let threshold: number | undefined;
-          if (this.peek().type === TokenType.GT) {
-            this.advance();
-            const numToken = this.expect(TokenType.NUMBER);
-            threshold = parseInt(numToken.value, 10);
-          }
-          modifiers.push({ kind: "explode", value: threshold });
+          const cp = this.parseComparePoint();
+          modifiers.push({ kind: "explode", compare: cp });
           break;
         }
+        case TokenType.BANG_BANG: {
+          this.advance();
+          const cp = this.parseComparePoint();
+          modifiers.push({ kind: "compound", compare: cp });
+          break;
+        }
+        case TokenType.BANG_P: {
+          this.advance();
+          const cp = this.parseComparePoint();
+          modifiers.push({ kind: "penetrate", compare: cp });
+          break;
+        }
+
+        // --- Reroll ---
+        case TokenType.R: {
+          this.advance();
+          const cp = this.parseComparePoint() ?? { operator: "=" as const, value: 1 };
+          modifiers.push({ kind: "reroll", compare: cp });
+          break;
+        }
+        case TokenType.RO: {
+          this.advance();
+          const cp = this.parseComparePoint() ?? { operator: "=" as const, value: 1 };
+          modifiers.push({ kind: "reroll_once", compare: cp });
+          break;
+        }
+
+        // --- Success/failure counting and marking ---
+        case TokenType.CS: {
+          this.advance();
+          const cp = this.parseComparePoint();
+          if (cp) {
+            modifiers.push({ kind: "cs_count", compare: cp });
+          } else {
+            modifiers.push({ kind: "cs_mark" });
+          }
+          break;
+        }
+        case TokenType.CF: {
+          this.advance();
+          const cp = this.parseComparePoint();
+          if (cp) {
+            modifiers.push({ kind: "cf_count", compare: cp });
+          } else {
+            modifiers.push({ kind: "cf_mark" });
+          }
+          break;
+        }
+
+        // --- Min/Max clamping ---
+        case TokenType.MIN: {
+          this.advance();
+          const numToken = this.expect(TokenType.NUMBER);
+          modifiers.push({ kind: "min", value: parseInt(numToken.value, 10) });
+          break;
+        }
+        case TokenType.MAX: {
+          this.advance();
+          const numToken = this.expect(TokenType.NUMBER);
+          modifiers.push({ kind: "max", value: parseInt(numToken.value, 10) });
+          break;
+        }
+
+        // --- Sorting ---
+        case TokenType.SA: {
+          this.advance();
+          modifiers.push({ kind: "sort_asc" });
+          break;
+        }
+        case TokenType.SD: {
+          this.advance();
+          modifiers.push({ kind: "sort_desc" });
+          break;
+        }
+
         default:
           parsing = false;
       }
     }
 
-    return { type: "dice", count, sides, modifiers };
+    // Determine result mode: success_count if any cs_count modifier present
+    const hasSuccessCounting = modifiers.some((m) => m.kind === "cs_count");
+    const resultMode = hasSuccessCounting ? ("success_count" as const) : undefined;
+
+    return { type: "dice", count, sides, modifiers, resultMode };
   }
 
   private parseOptionalNumber(defaultValue: number): number {

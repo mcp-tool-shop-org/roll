@@ -12,19 +12,39 @@ function dieFace(value: number, sides: number): string {
   return String(value);
 }
 
-function formatDie(die: DieResult, maxSide: number): string {
+function formatDie(die: DieResult, maxSide: number, isPool = false): string {
   const face = dieFace(die.value, maxSide);
   if (!die.kept) return dim(`[${face}]`);
+  if (die.rerolledFrom !== undefined) {
+    // Show rerolled die with original value
+    const orig = dieFace(die.rerolledFrom, maxSide);
+    if (die.exploded) return magenta(`${dim(orig + "→")}${face}!`);
+    if (isPool && die.critical === "success") return boldGreen(`${dim(orig + "→")}${face}`);
+    return cyan(`${dim(orig + "→")}${face}`);
+  }
   if (die.exploded) return magenta(`${face}!`);
+  // Pool mode: color by success/failure marking
+  if (isPool) {
+    if (die.critical === "success") return boldGreen(face);
+    if (die.critical === "failure") return boldRed(face);
+    return dim(face);
+  }
+  // Standard mode: color by max/min face
   if (die.value === maxSide && maxSide > 1) return boldGreen(face); // crit
   if (die.value === 1 && maxSide > 1) return boldRed(face); // fumble
   return face;
 }
 
 function formatGroup(group: DiceGroupResult): string {
-  // Determine max side for crit/fumble detection
   const maxSide = inferMaxSide(group.expression);
-  const dice = group.dice.map((d) => formatDie(d, maxSide)).join(" ");
+  const isPool = group.resultMode === "success_count";
+  const dice = group.dice.map((d) => formatDie(d, maxSide, isPool)).join(" ");
+
+  if (isPool) {
+    const label = group.total === 1 ? "success" : "successes";
+    return `${dim(group.expression)}: ${dice} ${dim("→")} ${boldYellow(String(group.total))} ${dim(label)}`;
+  }
+
   return `${dim(group.expression)}: ${dice} ${dim("=")} ${bold(String(group.total))}`;
 }
 
@@ -141,10 +161,13 @@ export function formatJson(result: RollResult, expression: string): string {
     groups: result.groups.map((g) => ({
       expression: g.expression,
       total: g.total,
+      resultMode: g.resultMode,
       dice: g.dice.map((d) => ({
         value: d.value,
         kept: d.kept,
         ...(d.exploded ? { exploded: true } : {}),
+        ...(d.rerolledFrom !== undefined ? { rerolledFrom: d.rerolledFrom } : {}),
+        ...(d.critical ? { critical: d.critical } : {}),
       })),
     })),
   }, null, 2);

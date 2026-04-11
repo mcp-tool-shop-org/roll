@@ -9,7 +9,7 @@ Roll includes a probability engine that computes exact distributions for dice ex
 
 ## How distributions are computed
 
-The engine picks the most efficient algorithm based on the structure of the dice expression. There are four strategies, tried in order of preference.
+The engine picks the most efficient algorithm based on the structure of the dice expression. There are seven strategies, tried in order of preference.
 
 ### Polynomial convolution (basic NdM)
 
@@ -33,9 +33,33 @@ For `4d6dl1`, there are 6^4 = 1,296 possible outcomes. Roll walks through all 1,
 
 This produces exact results but the cost grows exponentially with the number of dice. Roll caps the enumeration at **10 million states**. For `4d6` through about `7d6`, exact enumeration is feasible. Beyond that, Roll falls back to Monte Carlo.
 
-### Truncated recursion (exploding dice)
+### Analytical reroll
 
-Exploding dice create variable-length chains: a d6 might produce 1 die, or 2, or 10 in a row. Roll handles this with iterative depth expansion.
+When the expression uses `r` (unlimited reroll) or `ro` (reroll once) without keep/drop or explosion, Roll computes the modified per-die distribution analytically.
+
+For unlimited reroll (`r<3` on a d6), faces 1 and 2 have zero probability. Their mass redistributes uniformly to the remaining faces: each of faces 3-6 gets probability 1/4 instead of 1/6. The result is then convolved N times.
+
+For reroll once (`ro=1` on a d6), each face gets a two-step probability: P(end on face) = P(roll face directly, face doesn't match) + P(roll a match, then reroll to face). This produces exact results with no simulation.
+
+### Analytical min/max clamping
+
+For `min` and `max` modifiers without keep/drop or explosion, Roll modifies the single-die distribution by truncating and piling mass.
+
+For `1d6min3`: faces 1 and 2 have their probability mass (1/6 each) piled onto face 3. The result: P(3) = 3/6, P(4) = P(5) = P(6) = 1/6.
+
+For `1d6max4`: faces 5 and 6 pile onto face 4. Same principle in reverse.
+
+### Analytical success counting
+
+For success counting pools (`cs>=N`, optionally with `cf<=M`) without keep/drop or explosion, Roll classifies each die face as +1 (success), -1 (failure), or 0 (neutral) based on the thresholds. This creates a 3-outcome single-die distribution that is convolved N times.
+
+For `8d6cs>=5`: each die has P(+1) = 2/6 (faces 5,6), P(0) = 4/6 (faces 1-4). The resulting distribution over 0-8 successes is computed exactly via convolution.
+
+When reroll and min/max modifiers are present, Roll first computes the modified per-die distribution (after reroll and clamping), then classifies the faces. This means `8d6r<2cs>=5` produces an exact distribution — not Monte Carlo.
+
+### Truncated recursion (exploding / compounding / penetrating dice)
+
+Exploding, compounding, and penetrating dice create variable-length chains. Roll handles all three variants with iterative depth expansion.
 
 For each "chain depth" from 0 to 10, Roll tracks every possible accumulated sum and its probability. At each depth, it fans out into all M faces:
 
@@ -44,7 +68,9 @@ For each "chain depth" from 0 to 10, Roll tracks every possible accumulated sum 
 
 The depth cap of 10 explosions means Roll truncates chains longer than 10 rerolls. For a standard d6 (explode on 6), the probability of reaching 10 explosions is (1/6)^10, which is about 0.000002%. The truncation error is negligible.
 
-After computing the distribution for a single exploding die, Roll convolves it N times for NdX! expressions.
+For **penetrating dice** (`!p`), each explosion depth subtracts 1 from the rolled face value (minimum 1), producing a distribution that skews lower than standard exploding. For **compounding dice** (`!!`), the distribution shape is mathematically identical to exploding — the difference is engine-side (one die vs. many), not probability-side.
+
+After computing the distribution for a single exploding/compounding/penetrating die, Roll convolves it N times for NdX! expressions.
 
 ### Monte Carlo fallback
 
@@ -181,7 +207,13 @@ Returns the expression, target, and probability as a decimal.
 | `4d6dl1` | Enumeration | 1,296 states | Instant |
 | `6d6dl1` | Enumeration | 46,656 states | Fast |
 | `1d6!` | Truncated recursion | ~60 values | Instant |
+| `1d6!!` | Truncated recursion | ~60 values | Instant |
+| `1d6!p` | Truncated recursion | ~60 values | Instant |
 | `4d6!` | Recursion + convolution | ~240 values | Instant |
+| `2d6r<2` | Analytical reroll | 5 values | Instant |
+| `2d6min3` | Analytical clamp | 4 values | Instant |
+| `8d6cs>=5` | Success counting | 9 values | Instant |
+| `8d6r<2cs>=5` | Reroll + success counting | 9 values | Instant |
 | `2d6*1d4` | Monte Carlo | 100k samples | ~50ms |
 | `20d20kh10` | Monte Carlo | 100k samples | ~50ms |
 

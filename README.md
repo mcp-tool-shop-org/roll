@@ -11,43 +11,10 @@
   <a href="https://www.npmjs.com/package/@mcptoolshop/roll"><img src="https://img.shields.io/npm/v/@mcptoolshop/roll" alt="npm version"></a>
 </p>
 
-<p align="center">RPG dice engine with probability analysis, loot tables, and beautiful terminal output.</p>
+<p align="center">Universal RPG dice engine — full notation, probability analysis, game tables, and engine integration.</p>
 
 ```
-npx @mcptoolshop/roll 4d6dl1 --analyze
-```
-
-```
-  Distribution
-
-   3    0.08%
-   4 █   0.31%
-   5 ███   0.77%
-   6 ███████   1.62%
-   7 █████████████   2.93%
-   8 ██████████████████████   4.78%
-   9 ████████████████████████████████   7.02%
-  10 ███████████████████████████████████████████   9.41%
-  11 ████████████████████████████████████████████████████  11.42%
-  12 ██████████████████████████████████████████████████████████  12.89%
-  13 ████████████████████████████████████████████████████████████  13.27%
-  14 ████████████████████████████████████████████████████████  12.35%
-  15 ██████████████████████████████████████████████  10.11%
-  16 █████████████████████████████████   7.25%
-  17 ███████████████████   4.17%
-  18 ███████   1.62%
-
-┌─ Statistics ─────────────────────────────────┐
-│ Mean:    12.24                                │
-│ Median:  12                                   │
-│ Mode:    13                                   │
-│ Std Dev: 2.85                                 │
-│ Range:   3–18                                 │
-│ Entropy: 3.53 bits                            │
-│                                               │
-│ Percentiles:                                  │
-│   p10:8  p25:10  p50:12  p75:14  p90:16  p95:17│
-└───────────────────────────────────────────────┘
+npx @mcptoolshop/roll 8d6cs>=5 --analyze
 ```
 
 ## Install
@@ -56,142 +23,143 @@ npx @mcptoolshop/roll 4d6dl1 --analyze
 npm install @mcptoolshop/roll
 ```
 
-Requires Node.js >= 22.
-
-## CLI Usage
-
-### Roll dice
-
-```bash
-roll 2d6+3
-roll d20+5
-roll 4d6kh3
-roll 1d6!
-roll d%
-roll 4dF
-roll "(2d6+3)*2"
-```
-
-### Analyze probability
-
-```bash
-roll 2d6 --analyze          # Full distribution + statistics
-roll d20+5 --at-least 15    # P(result >= 15)
-```
-
-### Compare distributions
-
-```bash
-roll --compare "4d6dl1" "3d6"
-```
-
-Side-by-side stats (mean, median, mode, stddev, range, entropy) with diff column, plus both histograms.
-
-### Loot tables
-
-```bash
-roll --loot treasure.json
-```
-
-JSON format:
-
-```json
-{
-  "tables": [
-    {
-      "table": "Treasure",
-      "items": [
-        { "name": "Gold", "weight": 40, "roll": "2d6*10" },
-        { "name": "Potion of Healing", "weight": 30 },
-        { "name": "Scroll", "weight": 15, "quantity": "1d3" },
-        { "name": "Rare Item", "weight": 5, "table": "Rare Weapons" }
-      ]
-    },
-    {
-      "table": "Rare Weapons",
-      "items": [
-        { "name": "Vorpal Blade", "weight": 5 },
-        { "name": "Frost Brand", "weight": 25 }
-      ]
-    }
-  ]
-}
-```
-
-Features: weighted selection, nested table references, dice expressions for quantity and value.
-
-### Other flags
-
-```bash
-roll 2d6+3 --times 5       # Roll 5 times
-roll 2d6+3 --json           # Machine-readable output
-roll --help                 # Full usage
-roll --version              # Version
-```
+Requires Node.js >= 22. Zero runtime dependencies.
 
 ## Dice Notation
+
+Roll supports the full Roll20/VTT notation standard covering D&D, World of Darkness, Shadowrun, Savage Worlds, Fate, and more.
 
 | Notation | Meaning |
 |----------|---------|
 | `2d6` | Roll 2 six-sided dice |
-| `d20` | Roll 1 twenty-sided die |
+| `d20+5` | Roll d20, add modifier |
 | `4d6kh3` | Roll 4d6, keep highest 3 |
 | `4d6dl1` | Roll 4d6, drop lowest 1 |
-| `1d6!` | Exploding d6 (reroll on max, add) |
+| `1d6!` | Exploding (reroll on max, add) |
 | `1d6!>4` | Explode on 4 or higher |
-| `d%` | Percentile die (1-100) |
-| `4dF` | Fate/Fudge dice (-1, 0, +1 each) |
+| `1d6!!` | Compounding (sum explosions into same die) |
+| `1d6!p` | Penetrating (explosions subtract 1) |
+| `2d6r<2` | Reroll values less than 2 (unlimited) |
+| `2d6ro=1` | Reroll 1s once |
+| `2d6min3` | Floor: no die below 3 |
+| `2d6max5` | Ceiling: no die above 5 |
+| `8d6cs>=5` | Count successes (dice >= 5) |
+| `8d6cs>=5cf<=1` | Successes minus failures |
+| `1d20cs>19cf<2` | Critical success/failure marking |
+| `4d6sa` / `4d6sd` | Sort ascending / descending |
+| `d%` | Percentile (1-100) |
+| `4dF` | Fate/Fudge dice |
 | `(2d6+3)*2` | Arithmetic with grouping |
-| `2d6+1d4+3` | Chained expressions |
+
+## CLI Usage
+
+```bash
+roll 2d6+3                        # Basic roll
+roll 8d6cs>=5                     # WoD-style dice pool
+roll 4d6r<2min2kh3                # Complex modifier chain
+roll 2d6 --analyze                # Full distribution + statistics
+roll d20+5 --at-least 15          # P(result >= 15)
+roll --compare "4d6dl1" "3d6"     # Side-by-side distributions
+roll --loot treasure.json         # Loot table
+roll 2d6+3 --times 5              # Multiple rolls
+roll 2d6+3 --json                 # Machine-readable output
+```
+
+## Game Tables
+
+V2 introduces a universal game table system for encounters, criticals, loot, status effects, and more.
+
+```typescript
+import { rollGameTable } from '@mcptoolshop/roll';
+import type { GameTableCollection } from '@mcptoolshop/roll';
+
+const collection: GameTableCollection = {
+  version: "2.0",
+  tables: [{
+    table: "critical_hits",
+    kind: "critical",
+    entries: [
+      { name: "Devastating Blow", weight: 1, roll: "2d6", conditions: [{ type: "nat", operator: "=", value: 20 }] },
+      { name: "Solid Hit", weight: 3, conditions: [{ type: "compare", operator: ">=", value: 15 }] },
+      { name: "Glancing Blow", weight: 5 },
+    ],
+  }],
+};
+
+const results = rollGameTable(collection, "critical_hits", { triggerNat: 20, triggerRoll: 25 });
+```
+
+Features: 8 table kinds, weighted selection, conditions (compare, nat, tag, context), level filtering, nested tables, table chaining, dice expressions for quantity/roll/duration, rarity tiers, validation with circular reference detection.
 
 ## Library API
 
 ```typescript
-import { roll, analyze, parse, evaluate, computeDistribution } from '@mcptoolshop/roll';
+import { roll, analyze } from '@mcptoolshop/roll';
 
-// Quick roll
-const result = roll('4d6kh3');
-console.log(result.total);        // 14
-console.log(result.groups[0].dice); // per-die breakdown
+// Roll with any V2 notation
+const result = roll('8d6cs>=5');
+console.log(result.total);                    // 3 (successes)
+console.log(result.groups[0].resultMode);     // "success_count"
+console.log(result.groups[0].dice);           // per-die breakdown with .critical markers
 
-// Full analysis
-const analysis = analyze('2d6+3');
-console.log(analysis.stats.mean);                  // 10
-console.log(analysis.stats.percentiles[95]);        // 14
-console.log(analysis.probabilityAtLeast(12));       // 0.2778
+// Probability analysis — exact, not Monte Carlo
+const analysis = analyze('8d6cs>=5');
+console.log(analysis.stats.mean);             // 2.67
+console.log(analysis.probabilityAtLeast(4));  // P(4+ successes)
 
-// Low-level: parse → AST → evaluate
-import { seededRng } from '@mcptoolshop/roll';
-const ast = parse('4d6dl1');
-const r = evaluate(ast, seededRng(42));  // deterministic
-
-// Loot tables
-import { rollLootTable } from '@mcptoolshop/roll';
-const tables = [{ table: "Loot", items: [{ name: "Gold", weight: 50, roll: "2d6*10" }] }];
-const drops = rollLootTable(tables);
+// Seeded deterministic rolls
+import { seededRng, parse, evaluate } from '@mcptoolshop/roll';
+const ast = parse('4d6kh3');
+const r = evaluate(ast, seededRng(42));       // reproducible
 ```
+
+## JSON Bridge (Godot / Unreal / Rust)
+
+Roll includes a JSON-RPC 2.0 bridge for game engine integration via child process:
+
+```bash
+# Stdio mode (pipe JSON in, get JSON out)
+echo '{"jsonrpc":"2.0","id":1,"method":"roll","params":{"expression":"4d6kh3","seed":42}}' | roll-bridge
+
+# HTTP mode
+roll-bridge --http --port 3947
+curl -X POST http://localhost:3947/rpc -d '{"jsonrpc":"2.0","id":1,"method":"roll","params":{"expression":"2d6+3"}}'
+```
+
+Methods: `roll`, `roll_batch`, `analyze`, `at_least`, `compare`, `table_roll`, `table_load`, `table_list`, `seed`, `ping`, `shutdown`.
+
+## MCP Server
+
+Roll ships as an MCP server for Claude integration during game design:
+
+```json
+{
+  "mcpServers": {
+    "roll": {
+      "command": "node",
+      "args": ["node_modules/@mcptoolshop/roll/dist/mcp/server.js"]
+    }
+  }
+}
+```
+
+5 tools: `roll_dice`, `analyze_dice`, `compare_dice`, `roll_table`, `query_table`.
 
 ## Probability Engine
 
 - **Exact distributions** via polynomial convolution for basic NdM
 - **Full enumeration** for keep/drop mechanics (4d6 = 1,296 states)
-- **Truncated recursion** for exploding dice (capped at 10 explosions)
+- **Analytical reroll** — redistributes probability mass over non-matching faces
+- **Analytical min/max** — truncates distribution and piles mass at clamp
+- **Analytical success counting** — maps faces to +1/0/-1, convolves N times
+- **Truncated recursion** for exploding/compounding/penetrating dice
 - **Monte Carlo fallback** (100k samples) when exact computation exceeds 10M states
 
-## Zero Dependencies
-
-Built entirely on Node.js 22+ builtins:
-- `util.styleText` for terminal colors
-- `util.parseArgs` for CLI argument parsing
-- `crypto.randomInt` for cryptographically secure dice rolls
+Every modifier has exact probability analysis — not just simulation.
 
 ## Security & Trust
 
-`@mcptoolshop/roll` processes dice expressions and nothing else. It makes no network requests, writes no files, and collects no data. The only filesystem access is the `--loot` flag, which reads a single user-specified JSON file.
-
-There is no telemetry, no analytics, and no tracking of any kind. No secrets, tokens, or credentials are involved in any operation.
-
-All dice rolls use `crypto.randomInt` from the Node.js `crypto` module, providing cryptographically secure randomness suitable for fair outcomes.
+Processes dice expressions and nothing else. No network requests, no file writes (except `--loot` reads one JSON), no telemetry, no secrets. All dice rolls use `crypto.randomInt` for cryptographic randomness.
 
 See [SECURITY.md](./SECURITY.md) for the vulnerability reporting policy.
 
