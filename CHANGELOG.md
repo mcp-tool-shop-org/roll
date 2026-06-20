@@ -2,31 +2,82 @@
 
 ## [Unreleased]
 
-Stage A hardening — input caps, probability correctness, boundary security, and CLI robustness.
+## 2.1.0
+
+A full health-pass + feature-pass release. Hardening across the engine and the
+two wire surfaces, an honesty pass on the probability claims, and a new family
+of analysis capabilities for game-balance work. Test suite grew 226 → 509.
+
+### Added
+
+- **Table analysis** — `analyzeTable` / `analyzeCollection` compute a loot/encounter
+  table's *exact* outcome distribution: each entry's real selection probability
+  (after weights, level filtering, and conditions, matching what `weightedSelect`
+  actually rolls), the value mean/distribution of `roll`/`quantity` fields, and the
+  excluded entries with the reason. Surfaced as the MCP `analyze_table` tool and the
+  bridge `table_analyze` method.
+- **Comparison as probability** — `compareDistributions` and `--compare` now answer
+  "which build wins?": `P(A>B)`, `P(tie)`, `P(B>A)`, and the full `A − B` margin
+  distribution. Also on the bridge (`compare`) and MCP (`compare_dice`).
+- **Probability query family** — `probabilityAtMost` / `probabilityExactly` /
+  `probabilityInRange` alongside the existing `probabilityAtLeast`, plus
+  `cumulativeDistribution` (CDF), `survivalDistribution`, and `targetForProbability`
+  (the break-even DC solver: "what target succeeds 65% of the time?"). CLI flags
+  `--at-most` / `--exactly` / `--between lo..hi` / `--target-for p`; bridge methods
+  `at_most` / `exactly` / `between`; MCP `analyze_dice` query block.
+- **`analyze()` reports its method** — the return value now carries
+  `method: "exact" | "monte-carlo"` (+ `samples`), so callers can tell exact
+  probabilities from sampled estimates. The CLI labels Monte-Carlo results
+  (`~ estimated via Monte Carlo (N samples) — not exact`).
+- **CLI `--seed <int>`** — reproducible rolls (the engine, bridge, and MCP already
+  supported seeds; the CLI now does too). One PRNG is threaded through `--times`.
+- **CLI `--no-color`** flag (in addition to honoring `NO_COLOR`).
+- **Bridge/MCP observability** — an injectable logger seam, an opt-in `--verbose` /
+  `ROLL_BRIDGE_DEBUG` per-request log, and per-item resilient `roll_batch`.
 
 ### Security
 
-- **ANSI/terminal-control injection blocked** — externally-sourced strings (loot item names, table names, dice/validation echoes from `--loot` files) are now sanitized of C0 control characters, including raw `ESC` bytes, before display. A malicious loot JSON can no longer hijack the terminal of anyone who runs `roll --loot evil.json`.
-- **Input caps (DoS prevention)** — crafted expressions can no longer force unbounded work; dice count, die sides, and expression length are capped at parse time and rejected with a clean error.
+- **ANSI/terminal-control injection blocked** — externally-sourced strings (loot item
+  names, table names, dice/validation echoes from `--loot` files) are sanitized of C0
+  control characters, including raw `ESC` bytes, before display.
+- **Input caps (DoS prevention)** — dice count, die sides, and expression length are
+  capped at parse time; the *analysis* path is independently bounded (an AST dice
+  budget plus a convolution compute-cost guard) so a ~15-byte expression like
+  `analyze("10000d1000000")` returns a clean error in ~1 ms instead of exhausting memory.
+- **Trust boundary** — the bridge/MCP catch-all no longer leaks internal exception text
+  (generic "Internal error" to the client, detail to stderr); the HTTP transport caps
+  the body, adds request/socket timeouts, and binds `127.0.0.1` by default; `roll_batch`
+  expression count, `table_roll` count, and the CLI `--times × dice` product are bounded.
+- **All npm advisories cleared** (4 → 0) and `npm audit --audit-level=high` now runs in CI.
 
 ### Fixed
 
-- **CLI error handling** — unknown flags, bad option values, and invalid expressions now print a single clean `Error: …` line plus a `--help` hint instead of dumping a raw Node stack trace with internal frames.
-- **`--times` validation** — `--times abc`, `--times 0`, and `--times=-5` now exit `1` with a clear message instead of silently becoming `1` or a no-op; values are capped at 10,000 so the terminal can't be flooded.
-- **Mode flag without expression** — `--at-least`, `--analyze`, or `--json` with no dice expression now errors with an example instead of silently printing help and exiting `0`.
-- **Histogram crash on degenerate input** — `--analyze` no longer throws on an all-zero-probability distribution (NaN bar-length guard in the histogram and sparkline renderers).
-- **Probability correctness** — multiple analytical-distribution fixes so exact analysis matches the engine across V2 modifiers.
+- **Probability correctness** — the exact-distribution analyzer now honors explosion
+  compare *operators* (`d10!>5` explodes on 6–10, not 5–10); keep/drop combined with
+  explosion/reroll falls back to Monte Carlo instead of silently dropping those
+  modifiers; degenerate always-reroll and truncated-mass cases are handled; Monte Carlo
+  uses one continuous generator stream.
+- **Published binaries run under `npm i -g`** — the entry-point detection is now
+  symlink-robust (`realpath` both sides), so the global `roll` / `roll-bridge` /
+  `roll-mcp` bins no longer silently no-op on macOS/Linux.
+- **CLI error handling** — unknown flags, bad option values, and invalid expressions
+  print a clean `Error: …` line + a `--help` hint instead of a raw Node stack trace;
+  `--times` is validated and capped; a mode flag with no expression errors instead of
+  silently printing help; the histogram no longer crashes on an all-zero distribution.
+- **Table consistency** — `weightedSelect` guards zero/fractional total weight; V1 loot
+  quantity is clamped to ≥1 like the V2 engine; circular-reference reports are deduped.
+- **MCP `serverInfo.version`** is read from `package.json` instead of a hardcoded literal.
 
 ### Changed
 
-- **`--help` documents the full V2 notation** — success/failure counting (`cs>=N`/`cf<=N`), compounding (`!!`), penetrating (`!p`), reroll (`r`/`ro`), `min`/`max` clamping, and sorting (`sa`/`sd`), mirroring the README notation table.
-- **`SECURITY.md`** now lists the 2.0.x line as supported (latest-major policy).
-- **CLI is now testable in-process** via an exported `run(argv, io)` that returns an exit code, enabling end-to-end CLI tests without spawning child processes.
-
-### Tests
-
-- New `tests/cli.test.ts` and `tests/display.test.ts` cover the previously-untested CLI and terminal display layer (help/version, exit codes, `--times` validation, mode-flag-without-expression, `--loot` ENOENT, sanitization end-to-end, histogram NaN guard, JSON shape, colorless output).
-- `vitest.config.ts` now emits coverage reports (v8, text + html) over `src/`.
+- **`--help` documents the full V2 notation** and all new flags.
+- **`noUncheckedIndexedAccess`** enabled; test files are now type-checked
+  (`tsconfig.test.json`), folded into `verify`.
+- **Exhaustiveness guards** — adding a new dice modifier kind now forces a compile error
+  in the analyzer's classifier and the expression serializer, instead of silently
+  mis-modeling it.
+- **Histogram legend** — the mode/median row markers (`M`/`*`/`~`) now carry a key.
+- **CLI is testable in-process** via an exported `run(argv, io)` returning an exit code.
 
 ## 2.0.0 (2026-04-11)
 

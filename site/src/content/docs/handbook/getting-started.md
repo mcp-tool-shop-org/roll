@@ -178,6 +178,52 @@ The assessment categories are:
 | 5%+ | Unlikely |
 | Below 5% | Very unlikely |
 
+### More probability questions
+
+`--at-least` is one shape of question. There is a whole family, each printing one clean line:
+
+```bash
+roll 2d6 --at-most 7          # P(result <= 7)
+roll 2d6 --exactly 7          # P(result == 7)
+roll 2d6 --between 6..8       # P(6 <= result <= 8)
+roll 1d20+5 --target-for 0.65 # the largest DC you can still beat 65% of the time
+```
+
+And to settle "which build wins?", `--compare` now prints a **Versus** verdict — P(A wins), P(tie), P(B wins), and the mean margin — on top of the side-by-side stats:
+
+```bash
+roll --compare "2d6+5" "1d12+6"
+```
+
+The full set is documented in the [Probability Engine](/handbook/probability-engine/) guide.
+
+## Reproducible rolls
+
+By default every roll uses cryptographic randomness, so results vary each time. Pass `--seed <int>` to make a roll — or a whole `--times N` sequence — byte-for-byte reproducible:
+
+```bash
+roll 4d6kh3 --seed 42          # same result every run
+roll 1d20 --seed 7 --times 5   # a fixed, reproducible sequence of 5 rolls
+```
+
+The seed must be a finite integer; a bad seed errors and exits 1. To pass a **negative** seed, use the `=` form so the leading dash isn't mistaken for another flag:
+
+```bash
+roll 2d6 --seed=-3             # negative seeds need the = form
+```
+
+With `--json`, the output echoes the `seed` so the record shows exactly what produced it. This is the same determinism the library, bridge, and MCP server already had — now on the CLI.
+
+## Turning off color
+
+Color is on by default. Disable it for a single run with `--no-color`, or set the `NO_COLOR` environment variable (honored per the [NO_COLOR](https://no-color.org/) standard):
+
+```bash
+roll 2d6 --analyze --no-color
+```
+
+Useful when piping output to a file, a log, or a tool that doesn't strip ANSI escape codes.
+
 ## Rolling multiple times
 
 Use `--times` to repeat a roll:
@@ -230,6 +276,8 @@ console.log(result.total); // e.g., 10
 const analysis = analyze('2d6+3');
 console.log(analysis.stats.mean);            // 10
 console.log(analysis.probabilityAtLeast(12)); // 0.2778
+console.log(analysis.probabilityAtMost(7));   // 0.0833
+console.log(analysis.method);                 // "exact"
 ```
 
 For the full library API, see the [API Reference](/handbook/api-reference/).

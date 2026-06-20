@@ -84,6 +84,28 @@ Cases that trigger Monte Carlo:
 
 The Monte Carlo results are approximate but reliable at 100k samples. Standard error is typically under 0.5% for any single outcome probability.
 
+### Exact vs. Monte Carlo is now visible
+
+The fallback used to be silent: a sampled estimate looked identical to an exact result. As of v2.1.0 it is labeled everywhere.
+
+`analyze()` returns a `method` field — `"exact"` for a closed-form result, or `"monte-carlo"` (with a `samples` count) when the expression was too complex or too large for exact computation and was estimated by sampling:
+
+```typescript
+import { analyze } from '@mcptoolshop/roll';
+
+analyze('2d6').method;       // "exact"
+analyze('2d6*1d4').method;   // "monte-carlo"
+analyze('2d6*1d4').samples;  // 100000  (present only on the sampled path)
+```
+
+On the CLI, `--analyze` and the threshold queries print a one-line note under the result so you always know which path produced the numbers:
+
+```
+~ estimated via Monte Carlo (100000 samples) — not exact
+```
+
+Exact results are noted as such. The `--json` output carries the same `method` field (and `samples` when sampled), so machine consumers can honor the exact-probabilities contract too. Don't treat a sampled estimate as ground truth for a balance decision — re-derive it analytically or raise the sample count if the margin is tight.
+
 ## Arithmetic on distributions
 
 When dice expressions are combined with arithmetic, Roll operates on the distributions directly:
@@ -168,6 +190,63 @@ Computes P(result >= target) and displays it as a visual probability bar with a 
 
 This is useful for answering game-design questions like "can the fighter hit AC 18?" or "what are the odds of making this saving throw?"
 
+### The probability query family
+
+`--at-least` answers one shape of question. v2.1.0 adds the rest of the family. Each prints a single clean line and honors the same exact/Monte-Carlo labeling as `--analyze`:
+
+```bash
+roll d20+5 --at-least 15      # P(result >= 15)
+roll 2d6 --at-most 7          # P(result <= 7)
+roll 2d6 --exactly 7          # P(result == 7)
+roll 2d6 --between 6..8       # P(6 <= result <= 8), inclusive
+roll 1d20+5 --target-for 0.65 # break-even target solver (see below)
+```
+
+| Flag | Answers |
+|------|---------|
+| `--at-least N` | P(result ≥ N) |
+| `--at-most N` | P(result ≤ N) |
+| `--exactly N` | P(result = N) |
+| `--between L..H` | P(L ≤ result ≤ H), inclusive — also accepts `L,H` |
+| `--target-for P` | The largest target T such that P(result ≥ T) ≥ P |
+
+### Break-even target solver: --target-for
+
+`--target-for P` inverts the question. Instead of "what are the odds of beating this DC?" it answers "what DC can I set and still succeed P of the time?":
+
+```bash
+roll 1d20+5 --target-for 0.65
+```
+
+This returns the largest target T for which P(result ≥ T) ≥ 0.65 — the break-even DC for a 65%-or-better success rate. Use it to set difficulty by intent: pick the success rate you want, read off the number to put on the page. The probability argument is a decimal in (0, 1].
+
+### Comparison as probability: the Versus verdict
+
+The classic question for any two builds is "which one wins?" — not "which has a higher mean," which can mislead when variance differs. `--compare` now answers it directly with a **Versus** verdict layered on top of the two stat blocks:
+
+```bash
+roll --compare "2d6+5" "1d12+6"
+```
+
+The verdict reports four numbers:
+
+- **P(A wins)** — probability the first expression rolls strictly higher
+- **P(tie)** — probability they roll equal
+- **P(B wins)** — probability the second rolls strictly higher
+- **Mean margin** — E[A − B], the average lead of A over B (positive favors A)
+
+So even when two damage builds have nearly identical means, the verdict tells you which one actually comes out ahead more often and by how much. With `--json`, the comparison carries a `comparison` object with `pAGreater`, `pEqual`, `pBGreater`, and `meanMargin`. This is the flagship balance workflow — see the worked example below.
+
+#### Worked example: which damage build wins?
+
+You are tuning a fighter. Build A is a steady greatsword (`2d6+5`, mean 12.0); Build B is a swingy greataxe with a higher modifier (`1d12+6`, mean 12.5). B has the higher average — so it's better, right?
+
+```bash
+roll --compare "2d6+5" "1d12+6"
+```
+
+The Versus verdict tells the real story: B's higher mean is dragged up by its long tail, but A's tighter `2d6` curve wins the head-to-head more often than the 0.5-point mean gap suggests. Read `P(A wins)` vs. `P(B wins)` to settle it, and `meanMargin` to size the gap. If you only compared means you'd pick B; the win-probability says look closer. That is the entire point of treating the comparison as a probability rather than a pair of averages.
+
 ### Distribution comparison: --compare
 
 ```bash
@@ -179,6 +258,8 @@ Computes both distributions and prints:
 1. **Comparison table** -- side-by-side stats (mean, median, mode, stddev, min, max, entropy) with a diff column showing the delta. Positive diffs are green; negative are red.
 
 2. **Both histograms** -- rendered one after the other so you can visually compare the shapes.
+
+As of v2.1.0 a third block appears above the histograms: the **Versus** verdict described under [Comparison as probability](#comparison-as-probability-the-versus-verdict). The comparison table tells you which distribution has the higher mean; the Versus verdict tells you which one actually wins more often.
 
 This is invaluable for game design decisions: comparing advantage vs. flat bonuses, evaluating house rules, or tuning encounter difficulty.
 
@@ -196,7 +277,43 @@ Returns a JSON object with the expression, full stats, and the distribution as a
 roll d20+5 --at-least 15 --json
 ```
 
-Returns the expression, target, and probability as a decimal.
+Returns the expression, target, and probability as a decimal. The point/range queries (`--at-most`, `--exactly`, `--between`) and the break-even solver (`--target-for`) all support `--json` as well, each carrying the same `method` field so a script can detect a sampled estimate. `--compare --json` carries a `comparison` object (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`) alongside the two stat blocks.
+
+## Programmatic queries
+
+Everything the CLI does is available from the library. The object returned by `analyze()` carries the whole query family as closures over the computed distribution, so you never re-thread the distribution yourself:
+
+```typescript
+import { analyze } from '@mcptoolshop/roll';
+
+const a = analyze('2d6+3');
+
+a.probabilityAtLeast(12);     // P(X >= 12)
+a.probabilityAtMost(7);       // P(X <= 7)
+a.probabilityExactly(10);     // P(X == 10)
+a.probabilityInRange(8, 12);  // P(8 <= X <= 12)
+a.targetForProbability(0.65); // break-even target for P(X >= T) >= 0.65
+a.cdf;                        // Map<value, P(X <= value)> — the cumulative distribution
+a.method;                     // "exact" | "monte-carlo"
+```
+
+For the head-to-head comparison, `compareDistributions(a, b)` takes two distributions and returns the contest:
+
+```typescript
+import { parse, computeDistribution, compareDistributions } from '@mcptoolshop/roll';
+
+const a = computeDistribution(parse('2d6+5'));   // steady greatsword
+const b = computeDistribution(parse('1d12+6'));  // swingy greataxe
+
+const v = compareDistributions(a, b);
+console.log(v.pAGreater);  // P(A wins)
+console.log(v.pEqual);     // P(tie)
+console.log(v.pBGreater);  // P(B wins)
+// v.margin is the full A - B margin distribution (a Map):
+// keys > 0 mean A wins by that much, < 0 means B wins, 0 is a tie.
+```
+
+The raw stats functions (`probabilityAtMost`, `probabilityExactly`, `probabilityInRange`, `cumulativeDistribution`, `survivalDistribution`, `targetForProbability`) are also exported if you are working with a `Distribution` directly. See the [API Reference](/handbook/api-reference/) for full signatures.
 
 ## Performance characteristics
 

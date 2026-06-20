@@ -75,6 +75,13 @@ function analyze(expression: string): {
   distribution: Distribution;
   stats: DistributionStats;
   probabilityAtLeast: (target: number) => number;
+  probabilityAtMost: (x: number) => number;
+  probabilityExactly: (x: number) => number;
+  probabilityInRange: (lo: number, hi: number) => number;
+  cdf: Map<number, number>;
+  targetForProbability: (p: number, direction?: "atLeast" | "atMost") => number;
+  method: "exact" | "monte-carlo";
+  samples?: number; // present only on the monte-carlo path
 };
 ```
 
@@ -84,13 +91,22 @@ function analyze(expression: string): {
 |------|------|-------------|
 | `expression` | `string` | Dice expression to analyze |
 
-**Returns:** An object with three fields:
+**Returns:** An object carrying the distribution, stats, the full probability query family as closures, the cumulative distribution, and the method used:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `distribution` | `Distribution` | Map from outcome value to probability |
 | `stats` | `DistributionStats` | Computed statistics |
-| `probabilityAtLeast` | `(target: number) => number` | Convenience function for P(result >= target) |
+| `probabilityAtLeast` | `(target: number) => number` | P(result >= target) |
+| `probabilityAtMost` | `(x: number) => number` | P(result <= x) |
+| `probabilityExactly` | `(x: number) => number` | P(result == x) |
+| `probabilityInRange` | `(lo: number, hi: number) => number` | P(lo <= result <= hi), inclusive |
+| `cdf` | `Map<number, number>` | Cumulative distribution: value → P(result <= value) |
+| `targetForProbability` | `(p, direction?) => number` | Break-even target solver (see [`targetForProbability`](#targetforprobabilitydist-p-direction)) |
+| `method` | `"exact" \| "monte-carlo"` | How the distribution was produced |
+| `samples` | `number?` | Sample count — present only when `method` is `"monte-carlo"` |
+
+The `method` field lets callers honor the exact-probabilities contract: a `"monte-carlo"` result is a sampled estimate, not a closed-form answer. The query functions are closures over the computed distribution, so you don't re-thread it yourself.
 
 **Example:**
 
@@ -109,10 +125,20 @@ console.log(a.stats.max);            // 15
 console.log(a.stats.entropy);        // 3.27
 console.log(a.stats.percentiles[95]); // 14
 
-// Probability queries
+// Probability query family
 console.log(a.probabilityAtLeast(12)); // 0.2778 (27.78%)
-console.log(a.probabilityAtLeast(5));  // 1.0    (100%)
-console.log(a.probabilityAtLeast(16)); // 0.0    (impossible)
+console.log(a.probabilityAtMost(7));   // 0.0833 (8.33%)
+console.log(a.probabilityExactly(10)); // 0.1250 (12.50%)
+console.log(a.probabilityInRange(8, 12)); // P(8 <= X <= 12)
+console.log(a.targetForProbability(0.65)); // break-even target for P(X >= T) >= 0.65
+
+// Method honesty
+console.log(a.method);                 // "exact"
+console.log(analyze('2d6*1d4').method); // "monte-carlo"
+console.log(analyze('2d6*1d4').samples); // 100000
+
+// Cumulative distribution
+console.log(a.cdf.get(10));            // P(result <= 10)
 
 // Raw distribution
 for (const [value, prob] of a.distribution) {
@@ -373,6 +399,124 @@ console.log(probabilityAtLeast(dist, 6));  // 1.0  (100% — minimum is 6)
 console.log(probabilityAtLeast(dist, 26)); // 0.0  (impossible — max is 25)
 ```
 
+### probabilityAtMost(dist, x) / probabilityExactly(dist, x) / probabilityInRange(dist, lo, hi)
+
+The rest of the point/range query family. Each mirrors `probabilityAtLeast`: a small linear sum over the distribution map, making no normalization assumption.
+
+```typescript
+function probabilityAtMost(dist: Distribution, x: number): number;     // P(result <= x)
+function probabilityExactly(dist: Distribution, x: number): number;    // P(result == x)
+function probabilityInRange(dist: Distribution, lo: number, hi: number): number; // P(lo <= result <= hi)
+```
+
+**Example:**
+
+```typescript
+import { parse, computeDistribution, probabilityAtMost, probabilityExactly, probabilityInRange } from '@mcptoolshop/roll';
+
+const dist = computeDistribution(parse('2d6'));
+
+console.log(probabilityAtMost(dist, 7));      // 0.5833 (cumulative through 7)
+console.log(probabilityExactly(dist, 7));     // 0.1667 (1 in 6)
+console.log(probabilityInRange(dist, 6, 8));  // 0.4444 (6, 7, and 8 combined)
+```
+
+`probabilityExactly` returns 0 for any value outside the distribution's support.
+
+### cumulativeDistribution(dist) / survivalDistribution(dist)
+
+Build the cumulative distribution function (CDF) or its complement (the survival function) as a value-keyed map.
+
+```typescript
+function cumulativeDistribution(dist: Distribution): Map<number, number>; // value → P(X <= value)
+function survivalDistribution(dist: Distribution): Map<number, number>;   // value → P(X >= value)
+```
+
+Both walk the support in ascending order. For `cumulativeDistribution`, the last entry equals the total mass (~1 for a normalized distribution). For `survivalDistribution`, the first entry equals the total mass.
+
+```typescript
+import { parse, computeDistribution, cumulativeDistribution, survivalDistribution } from '@mcptoolshop/roll';
+
+const dist = computeDistribution(parse('2d6'));
+const cdf = cumulativeDistribution(dist);
+const surv = survivalDistribution(dist);
+
+console.log(cdf.get(7));   // P(X <= 7)
+console.log(surv.get(7));  // P(X >= 7)
+```
+
+### targetForProbability(dist, p, direction?)
+
+The break-even / "what number do I need" solver. Finds the target T such that the requested-direction probability still clears the threshold `p`.
+
+```typescript
+function targetForProbability(
+  dist: Distribution,
+  p: number,
+  direction?: "atLeast" | "atMost"
+): number;
+```
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `dist` | `Distribution` | -- | A probability distribution |
+| `p` | `number` | -- | The probability threshold (0–1) |
+| `direction` | `"atLeast" \| "atMost"` | `"atLeast"` | Whether T bounds P(X >= T) or P(X <= T) |
+
+**Returns:** For `"atLeast"`, the largest value T for which P(X >= T) >= p — "the highest DC you can require and still succeed with probability at least p." For `"atMost"`, the smallest value T for which P(X <= T) >= p. Empty distributions return 0.
+
+**Example:**
+
+```typescript
+import { parse, computeDistribution, targetForProbability } from '@mcptoolshop/roll';
+
+const dist = computeDistribution(parse('1d20+5'));
+
+// "What DC can the +5 character beat at least 65% of the time?"
+console.log(targetForProbability(dist, 0.65)); // the break-even target
+```
+
+### compareDistributions(a, b)
+
+Compare two independent distributions as a head-to-head contest. Builds the margin distribution of (A − B) and reads off the three outcome probabilities. This is the engine behind the CLI `--compare` Versus verdict and the MCP `compare_dice` tool.
+
+```typescript
+function compareDistributions(a: Distribution, b: Distribution): DistributionComparison;
+
+interface DistributionComparison {
+  pAGreater: number;   // P(A > B)
+  pEqual: number;      // P(A === B) — the tie mass
+  pBGreater: number;   // P(B > A)
+  margin: Distribution; // distribution of (A − B): key > 0 ⇒ A wins by that much
+}
+```
+
+The three probabilities sum to the total mass of A×B (≈ 1 for normalized inputs).
+
+**Example:**
+
+```typescript
+import { parse, computeDistribution, compareDistributions } from '@mcptoolshop/roll';
+
+// Which damage build wins head-to-head?
+const a = computeDistribution(parse('2d6+5'));   // steady greatsword
+const b = computeDistribution(parse('1d12+6'));  // swingy greataxe (higher mean)
+
+const v = compareDistributions(a, b);
+console.log(v.pAGreater); // P(steady wins)
+console.log(v.pEqual);    // P(tie)
+console.log(v.pBGreater); // P(swingy wins)
+
+// Mean margin E[A − B] — positive favors A despite B's higher mean
+let mean = 0;
+for (const [margin, prob] of v.margin) mean += margin * prob;
+console.log(mean);
+```
+
+A related helper, `negateDistribution(dist)`, maps every value `v → -v` (the distribution of −X) — exported and used internally by `compareDistributions`.
+
 ### monteCarloDistribution(ast, samples?)
 
 Force Monte Carlo simulation for a distribution. This is the fallback used internally when exact computation is not feasible. You can call it directly if you want to control the sample count.
@@ -534,6 +678,105 @@ console.log(errors);
 // ]
 ```
 
+## Table analysis
+
+Compute the *exact* outcome distribution of a game table without rolling it: each entry's real selection probability, the value distribution of its dice, and the entries excluded by level or condition gates. See the [Loot Tables](/handbook/loot-tables/#table-analysis) guide for the full walkthrough.
+
+### analyzeTable(table, context?, collection?)
+
+Analyze a single `GameTable` for a given context.
+
+```typescript
+function analyzeTable(
+  table: GameTable,
+  context?: TableContext,
+  collection?: GameTableCollection
+): TableAnalysis;
+```
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `table` | `GameTable` | -- | The table to analyze |
+| `context` | `TableContext` | `{}` | Play context: `{ level?, tags?, variables?, triggerRoll?, triggerNat? }` |
+| `collection` | `GameTableCollection` | -- | Required only to expand nested table refs one level deep |
+
+**Returns:** `TableAnalysis`
+
+```typescript
+interface TableAnalysis {
+  entries: AnalyzedEntry[];   // eligible entries with probabilities
+  excluded: ExcludedEntry[];  // filtered-out entries with reasons
+}
+
+interface AnalyzedEntry {
+  entry: TableEntry;
+  probability: number;          // real selection probability (0–1), after weights/level/conditions
+  valueMean?: number;           // mean of the entry's roll/quantity dice, if any
+  valueDistribution?: Distribution; // full value distribution, if any
+}
+
+interface ExcludedEntry {
+  entry: TableEntry;
+  reason: string;  // e.g. "level (minLevel 12, context level 8)"
+}
+```
+
+Probabilities use the same integer weight scaling the engine rolls against, so they match real drop proportions. A nested table ref (`entry.table`) is expanded one level deep when a `collection` is supplied, multiplying parent probability by child probability.
+
+**Example:**
+
+```typescript
+import { analyzeTable } from '@mcptoolshop/roll';
+import type { GameTableCollection } from '@mcptoolshop/roll';
+
+const collection: GameTableCollection = {
+  version: "2.0",
+  tables: [{
+    table: "Boss Drops",
+    kind: "loot",
+    entries: [
+      { name: "Gold", weight: 60, roll: "3d6*10" },
+      { name: "Legendary", weight: 2 },
+      { name: "Dragon Scale", weight: 8, minLevel: 12 },
+    ],
+  }],
+};
+
+const analysis = analyzeTable(collection.tables[0], { level: 8 });
+
+for (const e of analysis.entries) {
+  console.log(`${e.entry.name}: ${(e.probability * 100).toFixed(1)}%`);
+}
+for (const x of analysis.excluded) {
+  console.log(`${x.entry.name}: 0% — ${x.reason}`);
+  // Dragon Scale: 0% — level (minLevel 12, context level 8)
+}
+```
+
+### analyzeCollection(collection, tableName, context?)
+
+Analyze a table within a collection by name. Mirrors `rollGameTable(collection, tableName, context)` and resolves the collection so nested refs expand.
+
+```typescript
+function analyzeCollection(
+  collection: GameTableCollection,
+  tableName: string,
+  context?: TableContext
+): TableAnalysis;
+```
+
+**Throws:** `Error` if `tableName` is not found in the collection.
+
+**Example:**
+
+```typescript
+import { analyzeCollection } from '@mcptoolshop/roll';
+
+const analysis = analyzeCollection(collection, "Boss Drops", { level: 15 });
+```
+
 ## Random number generators
 
 ### cryptoRng
@@ -647,6 +890,49 @@ const tokens = tokenize('4d6kh3+5');
 // ]
 ```
 
+## MCP server
+
+Roll ships an MCP server (`dist/mcp/server.js`) exposing six tools for Claude-driven game design. The `serverInfo.version` is read from `package.json` at startup, so it tracks the package version automatically rather than drifting on a hardcoded literal.
+
+| Tool | Purpose |
+|------|---------|
+| `roll_dice` | Roll an expression. Params: `expression`, optional `times`, optional `seed`. |
+| `analyze_dice` | Distribution + stats for an expression. Carries a `method` field (`"exact"` / `"monte-carlo"` with `samples`). Optional `at_least`, `at_most`, `exactly`, and `between` ([lo, hi]) add a `query` block to the result. |
+| `compare_dice` | Stats for two expressions PLUS a `versus` verdict — P(A>B), P(tie), P(B>A), and the mean margin (A − B). Params: `expression_a`, `expression_b`. |
+| `analyze_table` | Analyze a game table: each eligible entry's selection probability + value distribution, plus excluded entries with reasons. Params: `table_name`, `collection`, optional `context`. The headline tool for AI balance work. |
+| `roll_table` | Roll on a game table. Params: `table_name`, `collection`, optional `context`, optional `count`. |
+| `query_table` | Inspect a table's entries, conditions, and metadata without rolling. |
+
+The `analyze_dice` query block and the `compare_dice` versus verdict are the v2.1.0 additions on the MCP surface; `analyze_table` is new.
+
+## JSON bridge
+
+The bridge (`roll-bridge`) is a JSON-RPC 2.0 server for game-engine integration over stdio or HTTP. Use the exported `BridgeHandler` class to call methods in-process, or run the binary as a child process.
+
+**Methods:** `roll`, `roll_batch`, `analyze`, `at_least`, `at_most`, `exactly`, `between`, `compare`, `table_roll`, `table_load`, `table_list`, `table_analyze`, `seed`, `ping`, `shutdown`.
+
+The v2.1.0 additions and enhancements:
+
+| Method | Notes |
+|--------|-------|
+| `at_most` | P(result <= target). Params: `expression`, `target`. |
+| `exactly` | P(result == target). Params: `expression`, `target`. |
+| `between` | P(lo <= result <= hi). Params: `expression`, `lo`, `hi`. |
+| `table_analyze` | Table analysis — mirrors `table_roll`'s `table` + `context` params, minus `count`. |
+| `compare` | Now attaches a `versus` block (`pAGreater`, `pEqual`, `pBGreater`, `marginMean`) to each of the two returned entries. |
+| `roll_batch` | Per-item resilient: one bad expression returns a `{ expression, error }` element instead of voiding the whole batch. |
+
+### Observability
+
+The bridge and MCP server share an injectable logger seam (a `Logger` with `info` and `error` channels) so a host can silence or redirect logs and tests can inject a no-op sink. Request tracing is **off by default**; enable one structured log line per request with the `--verbose` flag or the `ROLL_BRIDGE_DEBUG` environment variable (both transports honor the same env name):
+
+```bash
+roll-bridge --verbose                 # one structured line per request
+ROLL_BRIDGE_DEBUG=1 roll-bridge       # same, via env
+```
+
+Internal-error detail is logged through the `error` channel server-side and never crosses the wire — the client sees a generic message, the detail stays on stderr.
+
 ## Error types
 
 ### ParseError
@@ -698,11 +984,23 @@ import type {
   // Analysis
   Distribution,
   DistributionStats,
+  DistributionMethod,
+  DistributionWithMethod,
+  DistributionComparison,
 
   // Loot
   LootTable,
   LootItem,
   LootDrop,
   LootTableCollection,
+
+  // Game tables + table analysis
+  GameTable,
+  GameTableCollection,
+  TableEntry,
+  TableContext,
+  AnalyzedEntry,
+  ExcludedEntry,
+  TableAnalysis,
 } from '@mcptoolshop/roll';
 ```

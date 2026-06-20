@@ -21,13 +21,17 @@ There are plenty of dice-rolling packages on npm, but most only handle the basic
 
 **Dice rolling** -- Every notation a tabletop player expects: `2d6`, `4d6kh3`, `1d6!`, `d%`, `4dF`, and full arithmetic with parentheses. All rolls use `crypto.randomInt` for fair outcomes.
 
-**Probability engine** -- Computes exact distributions via polynomial convolution for basic rolls, full enumeration for keep/drop mechanics, and truncated recursion for exploding dice. Falls back to Monte Carlo (100k samples) only when exact computation would exceed 10 million states.
+**Probability engine** -- Computes exact distributions via polynomial convolution for basic rolls, full enumeration for keep/drop mechanics, and truncated recursion for exploding dice. Falls back to Monte Carlo (100k samples) only when exact computation would exceed 10 million states -- and labels which path produced every result, so a sampled estimate is never mistaken for an exact answer.
 
 **Statistics** -- Mean, median, mode, standard deviation, min/max range, Shannon entropy, and percentiles (p10 through p95) for any dice expression.
 
-**Distribution comparison** -- Side-by-side stats with diff column for two expressions, plus both histograms rendered in the terminal.
+**Probability queries** -- A full query family for the questions a designer actually asks: P(≥N), P(≤N), P(=N), P(L≤x≤H), and a break-even target solver ("what DC succeeds 65% of the time?").
+
+**Which build wins?** -- Compare two expressions as a probability contest, not just a pair of means: P(A wins), P(tie), P(B wins), and the mean margin. The flagship balance workflow.
 
 **Loot tables** -- Define weighted item tables in JSON with dice expressions for value and quantity, plus nested table references for tiered drops.
+
+**Table analysis** -- Read every entry's real selection probability without rolling -- including excluded entries and *why* they were excluded ("Dragon: 0% (minLevel 12)"). Wired to the MCP server and JSON bridge for AI- and engine-driven balance work.
 
 **Library API** -- Every internal function is exported with full TypeScript types: parse to AST, evaluate with pluggable RNG, compute distributions, analyze stats, and roll loot tables.
 
@@ -53,11 +57,17 @@ npx @mcptoolshop/roll 4d6dl1 --analyze
 # What are the odds of rolling 15 or higher?
 npx @mcptoolshop/roll 4d6dl1 --at-least 15
 
-# Compare two methods of rolling stats
-npx @mcptoolshop/roll --compare "4d6dl1" "3d6"
+# What DC can a +5 character beat 65% of the time?
+npx @mcptoolshop/roll 1d20+5 --target-for 0.65
+
+# Which damage build wins head-to-head?
+npx @mcptoolshop/roll --compare "2d6+5" "1d12+6"
 
 # Roll on a loot table
 npx @mcptoolshop/roll --loot treasure.json
+
+# Reproduce an exact roll with a seed
+npx @mcptoolshop/roll 4d6kh3 --seed 42
 ```
 
 ## Security and trust

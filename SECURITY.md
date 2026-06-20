@@ -6,8 +6,8 @@ Security fixes target the latest major release line.
 
 | Version | Supported |
 |---------|-----------|
-| 2.0.x   | Yes       |
-| < 2.0   | No        |
+| 2.1.x   | Yes       |
+| < 2.1   | No        |
 
 ## Reporting a Vulnerability
 

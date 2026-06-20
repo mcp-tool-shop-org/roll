@@ -36,6 +36,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
+      # Dependency vulnerability scan (gate D). The shipped package has zero
+      # runtime deps; this guards the dev-tooling tree. Fails CI on a high/
+      # critical advisory so it surfaces in PR rather than at publish time.
+      - run: npm audit --audit-level=high
       - run: npm run verify
       # Smoke-test that the built binary actually resolves and runs (catches a
       # broken shebang / bad entry path that the test suite, which imports

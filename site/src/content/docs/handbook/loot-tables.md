@@ -258,6 +258,94 @@ Drop probabilities cascade through the chain. The chance of getting Excalibur fr
 10% (Equipment) * 20% (Rare Equipment) * 5% (Excalibur) = 0.1%
 ```
 
+## Table analysis
+
+Rolling a table tells you what dropped *this time*. **Table analysis tells you the odds of everything that could drop** — without rolling. This is the headline analysis feature for balance work: read the real selection probability of every entry, the value distribution of its dice, and the entries that were excluded and why.
+
+The analysis runs against the V2 game-table system (`GameTableCollection`), which adds weights, level filtering, and conditions on top of the V1 loot schema. `analyzeTable` computes each eligible entry's probability using the *same* integer weight scaling the engine actually rolls against, so the numbers match real drop proportions — not the raw float weights.
+
+```typescript
+import { analyzeTable } from '@mcptoolshop/roll';
+import type { GameTableCollection } from '@mcptoolshop/roll';
+
+const collection: GameTableCollection = {
+  version: "2.0",
+  tables: [{
+    table: "Boss Drops",
+    kind: "loot",
+    entries: [
+      { name: "Gold",      weight: 60, roll: "3d6*10" },
+      { name: "Potion",    weight: 30 },
+      { name: "Legendary", weight: 2 },
+      { name: "Dragon Scale", weight: 8, minLevel: 12 },
+    ],
+  }],
+};
+
+const analysis = analyzeTable(collection.tables[0], { level: 8 });
+```
+
+Reading the result:
+
+```typescript
+for (const e of analysis.entries) {
+  const pct = (e.probability * 100).toFixed(1);
+  const value = e.valueMean !== undefined ? ` (mean value ${e.valueMean})` : '';
+  console.log(`${e.entry.name}: ${pct}%${value}`);
+}
+// Gold: 65.2% (mean value 105)
+// Potion: 32.6%
+// Legendary: 2.2%
+
+for (const x of analysis.excluded) {
+  console.log(`${x.entry.name}: 0% — ${x.reason}`);
+}
+// Dragon Scale: 0% — level (minLevel 12, context level 8)
+```
+
+A designer reads this at a glance: **"Legendary: 2% / Dragon Scale: 0% (minLevel 12)."** The `Legendary` entry can drop but is rare; the `Dragon Scale` entry is impossible at this level because of its `minLevel` gate, and the analysis says so explicitly rather than silently omitting it. Pass a higher `level` and `Dragon Scale` moves from `excluded` to `entries` with a real probability.
+
+### What the analysis returns
+
+`analyzeTable(table, context?, collection?)` returns a `TableAnalysis`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `entries` | `AnalyzedEntry[]` | Each eligible entry with its real selection probability and value distribution |
+| `excluded` | `ExcludedEntry[]` | Each filtered-out entry with the reason it was excluded |
+
+Each `AnalyzedEntry` carries:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `entry` | `TableEntry` | The original table entry |
+| `probability` | `number` | Real selection probability after weights, level filtering, and conditions (0–1) |
+| `valueMean` | `number?` | Mean of the entry's value dice (`roll`, else `quantity`), when present |
+| `valueDistribution` | `Distribution?` | Full value distribution of the entry's dice, when present |
+
+Each `ExcludedEntry` carries the `entry` and a human-readable `reason` — e.g. `"level (minLevel 12, context level 8)"` or `"condition (one or more conditions not met)"` — designed so a UI can render `"Dragon Scale: 0% (minLevel 12)"` directly.
+
+### Analyzing a collection by name
+
+When your tables reference each other by name, use `analyzeCollection` — the natural mirror of `rollGameTable(collection, tableName, context)`. It resolves the collection so nested table references can be expanded one level deep, multiplying parent probability by child probability:
+
+```typescript
+import { analyzeCollection } from '@mcptoolshop/roll';
+
+const analysis = analyzeCollection(collection, "Boss Drops", { level: 15 });
+```
+
+The context is optional. With no context (`{}`), every level-gated and condition-gated entry that has no unmet requirement is eligible; supply `level`, `tags`, `variables`, `triggerRoll`, or `triggerNat` to analyze the table under specific play conditions.
+
+### From the MCP server and bridge
+
+Table analysis is wired to both wire surfaces, so an AI assistant or a game engine can pull the odds without a roll:
+
+- **MCP:** the `analyze_table` tool — pass `table_name`, `collection`, and an optional `context`. It returns each eligible entry's probability and value distribution plus the excluded entries with reasons. This is the headline tool for AI-driven balance review.
+- **Bridge:** the `table_analyze` JSON-RPC method — mirrors `table_roll`'s `table` + `context` params (minus `count`, since analysis is over the whole table).
+
+See the [API Reference](/handbook/api-reference/) for the full MCP and bridge surface.
+
 ## Validation
 
 Roll validates loot table files before rolling on them. The validator checks for:
