@@ -4,15 +4,24 @@
  * Communicates via stdio using JSON-RPC 2.0 (MCP transport).
  */
 import { createInterface } from "node:readline";
+import { createRequire } from "node:module";
 import { isMainModule } from "../entry.js";
 import { TOOLS } from "./tools.js";
 import { parse, ParseError } from "../parser/parser.js";
 import { LexerError } from "../parser/lexer.js";
 import { evaluate } from "../engine/roller.js";
 import { computeDistributionWithMethod } from "../analyze/distribution.js";
-import { computeStats, probabilityAtLeast } from "../analyze/stats.js";
+import {
+  computeStats,
+  probabilityAtLeast,
+  probabilityAtMost,
+  probabilityExactly,
+  probabilityInRange,
+} from "../analyze/stats.js";
 import { seededRng, cryptoRng } from "../engine/random.js";
 import { rollGameTable } from "../tables/engine.js";
+import { analyzeCollection } from "../tables/analyze.js";
+import { serializeTableAnalysis, makeVersus } from "../bridge/handler.js";
 import type { RngFn } from "../engine/random.js";
 import type { GameTableCollection, TableContext } from "../tables/schema.js";
 // P-BND-007: one shared error taxonomy. Both transports speak the same JSON-RPC
@@ -99,6 +108,28 @@ function optionalNumber(args: Record<string, unknown>, key: string): number | un
   return v;
 }
 
+/** Validate an optional [lo, hi] numeric pair (for the `between` query arg).
+ *  Returns undefined when absent. Throws ToolValidationError (→ a clean isError
+ *  response) when the shape is wrong. (FT-ANA-003) */
+function optionalPair(
+  args: Record<string, unknown>,
+  key: string,
+): [number, number] | undefined {
+  const v = args[key];
+  if (v === undefined || v === null) return undefined;
+  if (
+    !Array.isArray(v) ||
+    v.length !== 2 ||
+    typeof v[0] !== "number" ||
+    typeof v[1] !== "number" ||
+    !Number.isFinite(v[0]) ||
+    !Number.isFinite(v[1])
+  ) {
+    throw new ToolValidationError(`Parameter "${key}" must be a [lo, hi] pair of numbers`);
+  }
+  return [v[0], v[1]];
+}
+
 /** Validate a GameTableCollection's shape at the boundary. Only structural
  *  checks — the engine guards roll-time invariants (zero-weight, etc.). */
 function requireCollection(
@@ -129,9 +160,16 @@ function requireCollection(
 
 // ─── Server info ─────────────────────────────────────────────────────────────
 
+// FT-INT-008: read the version from package.json (the single source of truth)
+// the same way bin.ts does — via createRequire on a relative path. A hardcoded
+// literal silently drifts on every version bump; reading it here makes the MCP
+// serverInfo.version track the package automatically.
+const require = createRequire(import.meta.url);
+const { version: PKG_VERSION } = require("../../package.json") as { version: string };
+
 const SERVER_INFO = {
   name: "roll",
-  version: "2.0.0",
+  version: PKG_VERSION,
 };
 
 const CAPABILITIES = {
@@ -198,6 +236,29 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
         result.atLeastProbability = probabilityAtLeast(dist, atLeast);
         result.atLeastTarget = atLeast;
       }
+
+      // FT-ANA-003: surface the rest of the query family additively, so an LLM
+      // gets P(<=x) / P(==x) / P(lo<=x<=hi) in the SAME call (no extra round
+      // trips). Only the requested members appear; absent args add nothing, so
+      // a plain analyze_dice is byte-for-byte unchanged.
+      const atMost = optionalNumber(args, "at_most");
+      const exactly = optionalNumber(args, "exactly");
+      const between = optionalPair(args, "between");
+      const query: Record<string, unknown> = {};
+      if (atMost !== undefined) {
+        query.atMost = { target: atMost, probability: probabilityAtMost(dist, atMost) };
+      }
+      if (exactly !== undefined) {
+        query.exactly = { target: exactly, probability: probabilityExactly(dist, exactly) };
+      }
+      if (between !== undefined) {
+        query.between = {
+          lo: between[0],
+          hi: between[1],
+          probability: probabilityInRange(dist, between[0], between[1]),
+        };
+      }
+      if (Object.keys(query).length > 0) result.query = query;
       return result;
     }
 
@@ -208,10 +269,25 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
       const analyze = (expr: string) => {
         const ast = parse(expr);
         const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
-        return { expression: expr, stats: computeStats(dist), ...methodFields(method, samples) };
+        return {
+          dist,
+          entry: { expression: expr, stats: computeStats(dist), ...methodFields(method, samples) },
+        };
       };
 
-      return [analyze(exprA), analyze(exprB)];
+      const a = analyze(exprA);
+      const b = analyze(exprB);
+
+      // FT-ANA-002: the result is the EXISTING [statsA, statsB] array (length 2,
+      // positional fields untouched). The `versus` win-probability verdict is
+      // attached to EACH entry — a stray array property would be dropped by the
+      // JSON.stringify the dispatch wraps tool results in, so it must live on the
+      // array elements to reach the client.
+      const versus = makeVersus(a.dist, b.dist);
+      return [
+        { ...a.entry, versus },
+        { ...b.entry, versus },
+      ];
     }
 
     case "roll_table": {
@@ -233,6 +309,25 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
       const table = collection.tables.find((t) => t.table === tableName);
       if (!table) throw new ToolValidationError(`Table not found: ${tableName}`);
       return table;
+    }
+
+    case "analyze_table": {
+      // FT-INT-002 / FT-ANA-001: per-entry probabilities + value means + excluded
+      // entries. Validates args the same way roll_table/query_table do (reusing
+      // requireString + requireCollection). analyzeCollection throws a plain Error
+      // for an unknown table name; translate it to a ToolValidationError so it
+      // returns a clean isError response instead of leaking as an internal fault.
+      const tableName = requireString(args, "table_name");
+      const collection = requireCollection(args, "collection");
+      const context = (args.context ?? {}) as TableContext;
+      if (!collection.tables.some((t) => t.table === tableName)) {
+        throw new ToolValidationError(`Table not found: ${tableName}`);
+      }
+      const analysis = analyzeCollection(collection, tableName, context);
+      // Convert the value-distribution Maps to JSON-serializable tuple arrays so
+      // no Map leaks as `{}` through JSON.stringify. Shared serializer with the
+      // bridge so both transports emit the identical wire shape.
+      return serializeTableAnalysis(analysis);
     }
 
     default:

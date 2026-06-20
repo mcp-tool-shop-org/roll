@@ -101,6 +101,20 @@ export interface AtLeastParams {
   target: number;
 }
 
+/** Shared param shape for the point-query family (`at_most`, `exactly`).
+ *  Mirrors {@link AtLeastParams}. (FT-ANA-003) */
+export interface AtMostParams {
+  expression: string;
+  target: number;
+}
+
+/** Param shape for the inclusive range query (`between`). (FT-ANA-003) */
+export interface BetweenParams {
+  expression: string;
+  lo: number;
+  hi: number;
+}
+
 export interface CompareParams {
   expressions: [string, string];
 }
@@ -108,6 +122,14 @@ export interface CompareParams {
 export interface TableRollParams {
   table: string;
   count?: number;
+  context?: Record<string, unknown>;
+}
+
+/** Param shape for `table_analyze` — mirrors {@link TableRollParams}'s
+ *  `table` + `context`, minus `count` (analysis is over the whole table).
+ *  (FT-INT-002 / FT-ANA-001) */
+export interface TableAnalyzeParams {
+  table: string;
   context?: Record<string, unknown>;
 }
 
@@ -126,10 +148,14 @@ export type BridgeMethod =
   | "roll_batch"
   | "analyze"
   | "at_least"
+  | "at_most"
+  | "exactly"
+  | "between"
   | "compare"
   | "table_roll"
   | "table_load"
   | "table_list"
+  | "table_analyze"
   | "seed"
   | "ping"
   | "shutdown";

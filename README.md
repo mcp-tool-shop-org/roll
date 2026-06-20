@@ -59,11 +59,40 @@ roll 8d6cs>=5                     # WoD-style dice pool
 roll 4d6r<2min2kh3                # Complex modifier chain
 roll 2d6 --analyze                # Full distribution + statistics
 roll d20+5 --at-least 15          # P(result >= 15)
-roll --compare "4d6dl1" "3d6"     # Side-by-side distributions
+roll 2d6 --at-most 7              # P(result <= 7)
+roll 2d6 --exactly 7              # P(result == 7)
+roll 2d6 --between 6..8           # P(6 <= result <= 8)
+roll 1d20+5 --target-for 0.65     # Largest target T with P(result >= T) >= 0.65
+roll --compare "4d6dl1" "3d6"     # Side-by-side + P(A>B) verdict
 roll --loot treasure.json         # Loot table
 roll 2d6+3 --times 5              # Multiple rolls
+roll 4d6kh3 --seed 42             # Deterministic, reproducible rolls
 roll 2d6+3 --json                 # Machine-readable output
 roll 2d6 --analyze --no-color     # Disable ANSI color for this run
+```
+
+### Probability queries
+
+Beyond `--at-least`, four flags answer the questions a designer actually asks. Each prints one clean line and honors the same exact/Monte-Carlo labeling as `--analyze`:
+
+| Flag | Answers |
+|------|---------|
+| `--at-least N` | P(result ≥ N) |
+| `--at-most N` | P(result ≤ N) |
+| `--exactly N` | P(result = N) |
+| `--between L..H` | P(L ≤ result ≤ H) — also accepts `L,H` |
+| `--target-for P` | The largest target T such that P(result ≥ T) ≥ P ("to hit 65% of the time, target ≤ T") |
+
+`--compare A B` now adds a **Versus** verdict on top of the two stat blocks — P(A wins), P(tie), P(B wins), and the mean margin E[A−B] — so you can settle the balance question directly. With `--json` it carries a `comparison` object (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
+
+### Deterministic rolls (`--seed`)
+
+`--seed <int>` seeds the RNG so a roll (or a whole `--times N` sequence) is byte-for-byte reproducible — the determinism the engine, bridge, and MCP already had, now on the CLI. The seed must be a finite integer; a bad seed errors and exits 1. To pass a **negative** seed, use the `=` form (`--seed=-3`), since a space-separated leading-dash value is ambiguous to the argument parser. `--json` echoes the `seed` so the output records exactly what produced it.
+
+```bash
+roll 4d6kh3 --seed 42             # same result every time
+roll 1d20 --seed 7 --times 5      # a fixed, reproducible sequence of 5 rolls
+roll 2d6 --seed 99 --json         # output includes "seed": 99
 ```
 
 ### Color

@@ -1,5 +1,6 @@
 import type { RollResult, DiceGroupResult, DieResult } from "../engine/roller.js";
 import type { DistributionStats } from "../analyze/stats.js";
+import type { DistributionComparison } from "../analyze/distribution.js";
 import { bold, dim, red, green, yellow, cyan, boldGreen, boldRed, boldYellow, magenta } from "./color.js";
 import { drawBox } from "./box.js";
 
@@ -170,10 +171,76 @@ export function formatComparison(
   return drawBox(lines, "Comparison");
 }
 
-/** Format roll result as JSON. */
-export function formatJson(result: RollResult, expression: string): string {
+/**
+ * Format the head-to-head verdict of a `--compare A B` as a compact "Versus"
+ * block (FT-ANA-002). The per-expression stat table answers "what does each roll
+ * look like"; this answers the balance question directly: "who wins, how often,
+ * and by how much". `meanMargin` is E[A−B] — positive ⇒ A is ahead on average.
+ */
+export function formatVersus(
+  exprA: string,
+  exprB: string,
+  cmp: DistributionComparison,
+  meanMargin: number,
+): string {
+  const pct = (p: number) => `${(p * 100).toFixed(1)}%`;
+  const lines: string[] = [];
+
+  lines.push(`${bold(cyan(exprA))} ${dim("vs")} ${bold(cyan(exprB))}`);
+  lines.push("");
+  lines.push(
+    `${dim("P(A wins)")} ${boldGreen(pct(cmp.pAGreater))}` +
+      `   ${dim("P(tie)")} ${boldYellow(pct(cmp.pEqual))}` +
+      `   ${dim("P(B wins)")} ${boldRed(pct(cmp.pBGreater))}`,
+  );
+
+  // Mean margin: E[A − B]. Sign tells you who is favored on average.
+  const marginStr =
+    meanMargin > 0
+      ? green(`+${meanMargin.toFixed(2)}`)
+      : meanMargin < 0
+        ? red(meanMargin.toFixed(2))
+        : dim("0");
+  lines.push(`${dim("mean margin (E[A−B])")} ${marginStr}`);
+
+  return drawBox(lines, "Versus");
+}
+
+/**
+ * One-line answer for a probability point/range query (FT-ANA-003): renders the
+ * predicate (e.g. `P(2d6 <= 7)`) and its probability, mirroring the clean
+ * single-answer UX of `--at-least`. `predicate` is the already-built middle of
+ * the parenthesis (e.g. `2d6 <= 7`, `2d6 = 7`, `6 <= 2d6 <= 8`).
+ */
+export function formatProbabilityQuery(predicate: string, probability: number): string {
+  const pct = (probability * 100).toFixed(2);
+  return `${bold("P(")}${predicate}${bold(")")} ${dim("=")} ${boldYellow(pct + "%")}`;
+}
+
+/**
+ * Break-even answer for `--target-for <p>` (FT-ANA-005): the largest target T
+ * such that P(X >= T) >= p. Phrased as actionable guidance for a designer
+ * setting a DC / to-hit number.
+ */
+export function formatTargetFor(
+  expression: string,
+  p: number,
+  target: number,
+): string {
+  const pct = (p * 100).toFixed(1);
+  return (
+    `To hit ${boldYellow(pct + "%")} of the time with ${bold(expression)}: ` +
+    `${dim("target ≤")} ${boldGreen(String(target))}  ${dim(`(P(${expression} ≥ ${target}) ≥ ${pct}%)`)}`
+  );
+}
+
+/** Format roll result as JSON. When `seed` is provided (FT-INT-001), it is
+ *  echoed so the output records exactly which seed produced these rolls;
+ *  omitted entirely for an unseeded (cryptoRng) roll. */
+export function formatJson(result: RollResult, expression: string, seed?: number): string {
   return JSON.stringify({
     expression,
+    ...(seed !== undefined ? { seed } : {}),
     total: result.total,
     groups: result.groups.map((g) => ({
       expression: g.expression,

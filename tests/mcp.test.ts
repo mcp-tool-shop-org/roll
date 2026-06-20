@@ -6,8 +6,9 @@ import { TOOLS } from "../src/mcp/tools.js";
 // and tool definitions, since the MCP server is a thin stdio wrapper.
 
 describe("MCP tool definitions", () => {
-  it("exports exactly 5 tools", () => {
-    expect(TOOLS).toHaveLength(5);
+  it("exports exactly 6 tools", () => {
+    // 6th tool: analyze_table (FT-INT-002 / FT-ANA-001 — table analysis on the wire).
+    expect(TOOLS).toHaveLength(6);
   });
 
   it("all tools have required fields", () => {

@@ -5,9 +5,12 @@ import type {
   RollBatchParams,
   AnalyzeParams,
   AtLeastParams,
+  AtMostParams,
+  BetweenParams,
   CompareParams,
   TableRollParams,
   TableLoadParams,
+  TableAnalyzeParams,
   SeedParams,
   Logger,
 } from "./protocol.js";
@@ -22,13 +25,22 @@ import {
 import { parse, ParseError } from "../parser/parser.js";
 import { LexerError } from "../parser/lexer.js";
 import { evaluate } from "../engine/roller.js";
-import { computeDistributionWithMethod } from "../analyze/distribution.js";
+import { computeDistributionWithMethod, compareDistributions } from "../analyze/distribution.js";
 import type { DistributionWithMethod } from "../analyze/distribution.js";
-import { computeStats, probabilityAtLeast } from "../analyze/stats.js";
+import {
+  computeStats,
+  probabilityAtLeast,
+  probabilityAtMost,
+  probabilityExactly,
+  probabilityInRange,
+} from "../analyze/stats.js";
 import { cryptoRng, seededRng } from "../engine/random.js";
 import { rollGameTable } from "../tables/engine.js";
+import { analyzeCollection } from "../tables/analyze.js";
 import type { RngFn } from "../engine/random.js";
 import type { GameTableCollection, TableContext } from "../tables/schema.js";
+import type { TableAnalysis } from "../tables/analyze.js";
+import type { Distribution } from "../analyze/distribution.js";
 
 export class BridgeHandler {
   private rng: RngFn = cryptoRng;
@@ -211,17 +223,65 @@ export class BridgeHandler {
           return ok(id, { probability, target: p.target, ...methodFields(method, samples) });
         }
 
+        // FT-ANA-003: point-query family. `at_most`/`exactly` mirror `at_least`'s
+        // {expression, target} shape; `between` takes an inclusive {lo, hi}. Each
+        // reuses the same method-aware distribution primitive, so an over-complex
+        // expression still throws ParseError → INVALID_PARAMS (the catch below).
+        case "at_most": {
+          const p = params as unknown as AtMostParams;
+          if (!p?.expression || typeof p?.target !== "number") {
+            return err(id, RPC_INVALID_PARAMS, "Missing expression or target parameter");
+          }
+          const ast = parse(p.expression);
+          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const probability = probabilityAtMost(dist, p.target);
+          return ok(id, { probability, target: p.target, ...methodFields(method, samples) });
+        }
+
+        case "exactly": {
+          const p = params as unknown as AtMostParams;
+          if (!p?.expression || typeof p?.target !== "number") {
+            return err(id, RPC_INVALID_PARAMS, "Missing expression or target parameter");
+          }
+          const ast = parse(p.expression);
+          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const probability = probabilityExactly(dist, p.target);
+          return ok(id, { probability, target: p.target, ...methodFields(method, samples) });
+        }
+
+        case "between": {
+          const p = params as unknown as BetweenParams;
+          if (!p?.expression || typeof p?.lo !== "number" || typeof p?.hi !== "number") {
+            return err(id, RPC_INVALID_PARAMS, "Missing expression, lo, or hi parameter");
+          }
+          const ast = parse(p.expression);
+          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const probability = probabilityInRange(dist, p.lo, p.hi);
+          return ok(id, { probability, lo: p.lo, hi: p.hi, ...methodFields(method, samples) });
+        }
+
         case "compare": {
           const p = params as unknown as CompareParams;
           if (!p?.expressions || p.expressions.length !== 2) {
             return err(id, RPC_INVALID_PARAMS, "Need exactly 2 expressions");
           }
+          // Per-expression stats (the EXISTING shape — the top-level array of two
+          // entries, preserved positionally so existing clients are unbroken).
+          const dists: Distribution[] = [];
           const results = p.expressions.map((expr) => {
             const ast = parse(expr);
             const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+            dists.push(dist);
             return { expression: expr, stats: computeStats(dist), ...methodFields(method, samples) };
           });
-          return ok(id, results);
+          // FT-ANA-002: ADD the head-to-head win probabilities additively. The
+          // `versus` block is attached to EACH of the two entries (not as a stray
+          // array property — those are dropped by JSON.stringify over the wire),
+          // so it survives serialization while the array length stays 2 and every
+          // existing per-entry field is untouched. dists has exactly 2 entries.
+          const versus = makeVersus(dists[0]!, dists[1]!);
+          const out = results.map((r) => ({ ...r, versus }));
+          return ok(id, out);
         }
 
         case "table_load": {
@@ -265,6 +325,25 @@ export class BridgeHandler {
           return ok(id, results);
         }
 
+        // FT-INT-002 / FT-ANA-001: table analysis on the wire. Mirrors
+        // table_roll's lookup-by-name on the loaded collection, but returns the
+        // per-entry selection probabilities + value means + excluded entries from
+        // analyzeCollection. The value distributions (Maps) are converted to
+        // JSON-serializable tuple arrays so no Map silently serializes to `{}`.
+        case "table_analyze": {
+          const p = params as unknown as TableAnalyzeParams;
+          if (!p?.table) {
+            return err(id, RPC_INVALID_PARAMS, "Missing table parameter");
+          }
+          const collection = this.tables.get(p.table);
+          if (!collection) {
+            return err(id, RPC_INVALID_PARAMS, `Table "${p.table}" not loaded`);
+          }
+          const context = (p.context ?? {}) as TableContext;
+          const analysis = analyzeCollection(collection, p.table, context);
+          return ok(id, serializeTableAnalysis(analysis));
+        }
+
         default:
           return err(id, RPC_METHOD_NOT_FOUND, `Unknown method: ${method}`);
       }
@@ -306,6 +385,84 @@ function methodFields(
   samples: DistributionWithMethod["samples"],
 ): { method: DistributionWithMethod["method"]; samples?: number } {
   return samples !== undefined ? { method, samples } : { method };
+}
+
+/** Mean of a distribution (Σ v·p). Used for the `compare` margin mean. */
+function distributionMean(dist: Distribution): number {
+  let mean = 0;
+  for (const [v, p] of dist) mean += v * p;
+  return mean;
+}
+
+/** The head-to-head win-probability verdict for two distributions. Same shape
+ *  on both transports. (FT-ANA-002) */
+export interface Versus {
+  /** P(A > B). */
+  pAGreater: number;
+  /** P(A === B) — the tie mass. */
+  pEqual: number;
+  /** P(B > A). */
+  pBGreater: number;
+  /** Mean of the margin distribution (A − B). > 0 ⇒ A favored on average. */
+  marginMean: number;
+}
+
+/** Compute the {@link Versus} verdict from two distributions via
+ *  {@link compareDistributions}. Shared by the bridge `compare` method and the
+ *  MCP `compare_dice` tool so both transports report identical win odds. */
+export function makeVersus(a: Distribution, b: Distribution): Versus {
+  const cmp = compareDistributions(a, b);
+  return {
+    pAGreater: cmp.pAGreater,
+    pEqual: cmp.pEqual,
+    pBGreater: cmp.pBGreater,
+    marginMean: distributionMean(cmp.margin),
+  };
+}
+
+/**
+ * Convert a {@link Distribution} (a Map) into a JSON-serializable, value-sorted
+ * array of `[value, probability]` tuples — the SAME wire shape the `analyze`
+ * method already uses for its `distribution`. Without this, JSON.stringify(Map)
+ * silently yields `{}` and the distribution leaks as an empty object. (FT-ANA-001)
+ */
+export function serializeDistribution(dist: Distribution): [number, number][] {
+  return [...dist.entries()].sort((a, b) => a[0] - b[0]);
+}
+
+/** One entry of a serialized table analysis — same as {@link AnalyzedEntry} but
+ *  with the `valueDistribution` Map flattened to tuples. */
+export interface SerializedAnalyzedEntry {
+  entry: unknown;
+  probability: number;
+  valueMean?: number;
+  valueDistribution?: [number, number][];
+}
+
+/** The JSON-serializable shape of a {@link TableAnalysis}. */
+export interface SerializedTableAnalysis {
+  entries: SerializedAnalyzedEntry[];
+  excluded: TableAnalysis["excluded"];
+}
+
+/**
+ * Make a {@link TableAnalysis} JSON-serializable: every `valueDistribution` Map
+ * becomes a sorted tuple array (so it does not stringify to `{}`). Shared by the
+ * bridge `table_analyze` method and the MCP `analyze_table` tool so the wire
+ * shape is identical on both transports. (FT-INT-002 / FT-ANA-001)
+ */
+export function serializeTableAnalysis(analysis: TableAnalysis): SerializedTableAnalysis {
+  return {
+    entries: analysis.entries.map((e) => {
+      const out: SerializedAnalyzedEntry = { entry: e.entry, probability: e.probability };
+      if (e.valueMean !== undefined) out.valueMean = e.valueMean;
+      if (e.valueDistribution !== undefined) {
+        out.valueDistribution = serializeDistribution(e.valueDistribution);
+      }
+      return out;
+    }),
+    excluded: analysis.excluded,
+  };
 }
 
 /** Upper bound on repeat-count style params at the boundary. */

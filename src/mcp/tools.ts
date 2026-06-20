@@ -37,7 +37,7 @@ export const TOOLS: McpToolDefinition[] = [
   {
     name: "analyze_dice",
     description:
-      "Compute the probability distribution and statistics for a dice expression. Returns mean, median, mode, std dev, percentiles, entropy, the full distribution, and a `method` field (\"exact\" for a closed-form result, or \"monte-carlo\" with a `samples` count when the expression is too complex for exact analysis and was sampled). Optionally computes P(result >= target).",
+      "Compute the probability distribution and statistics for a dice expression. Returns mean, median, mode, std dev, percentiles, entropy, the full distribution, and a `method` field (\"exact\" for a closed-form result, or \"monte-carlo\" with a `samples` count when the expression is too complex for exact analysis and was sampled). Optionally computes P(result >= target), P(result <= target), P(result == target), and P(lo <= result <= hi) so you get the whole query family in one call.",
     inputSchema: {
       type: "object",
       properties: {
@@ -49,6 +49,18 @@ export const TOOLS: McpToolDefinition[] = [
           type: "number",
           description: "Optional target — returns P(result >= target)",
         },
+        at_most: {
+          type: "number",
+          description: "Optional target — adds query.atMost = P(result <= target)",
+        },
+        exactly: {
+          type: "number",
+          description: "Optional target — adds query.exactly = P(result == target)",
+        },
+        between: {
+          type: "array",
+          description: "Optional [lo, hi] — adds query.between = P(lo <= result <= hi), inclusive",
+        },
       },
       required: ["expression"],
     },
@@ -56,7 +68,7 @@ export const TOOLS: McpToolDefinition[] = [
   {
     name: "compare_dice",
     description:
-      "Compare two dice expressions side by side. Returns statistics for both including mean, median, mode, std dev, range, and entropy.",
+      "Compare two dice expressions side by side. Returns statistics for both (mean, median, mode, std dev, range, entropy) PLUS a `versus` verdict: P(A>B), P(tie), P(B>A), and the mean margin (A - B) — the win-probability head-to-head.",
     inputSchema: {
       type: "object",
       properties: {
@@ -70,6 +82,29 @@ export const TOOLS: McpToolDefinition[] = [
         },
       },
       required: ["expression_a", "expression_b"],
+    },
+  },
+  {
+    name: "analyze_table",
+    description:
+      "Analyze a game table for a given context: returns each ELIGIBLE entry's real selection probability (matching the engine's weighted rolls), the value mean + full value distribution of any roll/quantity dice, and the EXCLUDED entries with the reason each was filtered out (level gate / condition). The headline tool for AI-driven balance work — see the odds of every drop without rolling.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        table_name: {
+          type: "string",
+          description: "Name of the table to analyze",
+        },
+        collection: {
+          type: "object",
+          description: "GameTableCollection JSON with version and tables array",
+        },
+        context: {
+          type: "object",
+          description: "Optional context: {level?, tags?, variables?, triggerRoll?, triggerNat?}",
+        },
+      },
+      required: ["table_name", "collection"],
     },
   },
   {

@@ -8,10 +8,32 @@ import { isMainModule } from "./entry.js";
 import { parse } from "./parser/parser.js";
 import type { ASTNode } from "./parser/ast.js";
 import { evaluate } from "./engine/roller.js";
-import { computeDistribution, computeDistributionWithMethod } from "./analyze/distribution.js";
-import { computeStats, probabilityAtLeast } from "./analyze/stats.js";
+import { seededRng } from "./engine/random.js";
+import {
+  computeDistribution,
+  computeDistributionWithMethod,
+  compareDistributions,
+} from "./analyze/distribution.js";
+import {
+  computeStats,
+  probabilityAtLeast,
+  probabilityAtMost,
+  probabilityExactly,
+  probabilityInRange,
+  targetForProbability,
+} from "./analyze/stats.js";
 import { rollLootTable, validateLootTables, type LootTable } from "./loot/table.js";
-import { formatRollResult, formatStats, formatAtLeast, formatComparison, formatJson, formatMethodNote } from "./display/format.js";
+import {
+  formatRollResult,
+  formatStats,
+  formatAtLeast,
+  formatComparison,
+  formatVersus,
+  formatProbabilityQuery,
+  formatTargetFor,
+  formatJson,
+  formatMethodNote,
+} from "./display/format.js";
 import { renderHistogram } from "./display/histogram.js";
 import { bold, cyan, dim, red, green, boldYellow, setColorEnabled } from "./display/color.js";
 import { drawBox, sanitize } from "./display/box.js";
@@ -66,9 +88,14 @@ ${bold("Usage:")}
   ${cyan("roll")} <expression>              Roll dice
   ${cyan("roll")} <expression> ${dim("--analyze")}   Show probability distribution
   ${cyan("roll")} <expression> ${dim("--at-least")} N  P(result >= N)
-  ${cyan("roll")} ${dim("--compare")} "expr1" "expr2"  Compare two distributions
+  ${cyan("roll")} <expression> ${dim("--at-most")} N   P(result <= N)
+  ${cyan("roll")} <expression> ${dim("--exactly")} N   P(result == N)
+  ${cyan("roll")} <expression> ${dim("--between")} L..H P(L <= result <= H)
+  ${cyan("roll")} <expression> ${dim("--target-for")} P  Break-even target for P(>=T) >= P
+  ${cyan("roll")} ${dim("--compare")} "expr1" "expr2"  Compare two distributions (with verdict)
   ${cyan("roll")} ${dim("--loot")} table.json         Roll on a loot table
   ${cyan("roll")} <expression> ${dim("--times")} N    Roll N times
+  ${cyan("roll")} <expression> ${dim("--seed")} N     Deterministic, reproducible rolls
 
 ${bold("Core Notation:")}
   2d6         Roll two six-sided dice
@@ -93,15 +120,20 @@ ${bold("Extended Notation (V2):")}
   4d6sa       Sort ascending  (4d6sd = descending)
 
 ${bold("Flags:")}
-  --analyze    Show full probability distribution + statistics
-  --at-least N Show probability of rolling >= N
-  --compare    Compare two dice expressions side by side
-  --loot FILE  Roll on a JSON loot table
-  --times N    Roll multiple times (default: 1, max ${MAX_TIMES})
-  --json       Output as JSON
-  --no-color   Disable ANSI color for this run (NO_COLOR env also honored)
-  --help       Show this help
-  --version    Show version
+  --analyze      Show full probability distribution + statistics
+  --at-least N   Show probability of rolling >= N
+  --at-most N    Show probability of rolling <= N
+  --exactly N    Show probability of rolling exactly N
+  --between L..H Show probability of L <= result <= H (also accepts L,H)
+  --target-for P Largest target T with P(result >= T) >= P (e.g. 0.65)
+  --compare      Compare two dice expressions, with a P(A>B) verdict
+  --loot FILE    Roll on a JSON loot table
+  --times N      Roll multiple times (default: 1, max ${MAX_TIMES})
+  --seed N       Seed the RNG for reproducible rolls (finite integer)
+  --json         Output as JSON
+  --no-color     Disable ANSI color for this run (NO_COLOR env also honored)
+  --help         Show this help
+  --version      Show version
 
 ${bold("Exit codes:")}
   0  Success
@@ -130,6 +162,92 @@ function parseTimes(raw: string, io: IO): number {
     throw new CliExit(1);
   }
   return n;
+}
+
+/**
+ * Parse `--seed` into a finite integer. Mirrors the strictness of parseTimes:
+ * rejects anything that isn't an optionally-signed run of digits (so `abc`,
+ * `1.5`, `5abc`, `` all error + exit 1) rather than letting parseInt silently
+ * coerce. Negative seeds are allowed (the mulberry32 PRNG `state = seed | 0`
+ * accepts them). The seed must be a SAFE integer so the echoed value round-trips
+ * through JSON unchanged.
+ */
+function parseSeed(raw: string, io: IO): number {
+  const trimmed = raw.trim();
+  if (!/^-?\d+$/.test(trimmed)) {
+    io.err(red("Error: --seed requires a finite integer"));
+    throw new CliExit(1);
+  }
+  const n = Number(trimmed);
+  if (!Number.isSafeInteger(n)) {
+    io.err(red("Error: --seed requires a finite integer"));
+    throw new CliExit(1);
+  }
+  return n;
+}
+
+/**
+ * Parse a single query value for --at-most / --exactly into a finite number.
+ * `label` names the flag for the error message. Accepts negatives and decimals
+ * (a distribution can carry negative values, e.g. 4dF or `1d6-10`); rejects
+ * non-numeric junk and NaN/Infinity.
+ */
+function parseQueryValue(raw: string, label: string, io: IO): number {
+  const n = Number(raw.trim());
+  if (raw.trim() === "" || !Number.isFinite(n)) {
+    io.err(red(`Error: ${label} requires a number`));
+    throw new CliExit(1);
+  }
+  return n;
+}
+
+/**
+ * Parse `--between` into an inclusive [lo, hi] pair. parseArgs gives one string
+ * per option occurrence, so we accept a single token carrying both bounds in
+ * either `lo..hi` (range) or `lo,hi` (comma) form. Errors (exit 1) on a missing
+ * separator, a non-numeric bound, or lo > hi.
+ */
+function parseRange(raw: string, io: IO): [number, number] {
+  const trimmed = raw.trim();
+  // Split on `..` (range) first, then a comma. Exactly two parts required.
+  const parts = trimmed.includes("..")
+    ? trimmed.split("..")
+    : trimmed.split(",");
+  if (parts.length !== 2) {
+    io.err(red("Error: --between requires two numbers as lo..hi or lo,hi"));
+    io.err(dim("  Example: roll 2d6 --between 6..8"));
+    throw new CliExit(1);
+  }
+  const lo = Number(parts[0]!.trim());
+  const hi = Number(parts[1]!.trim());
+  if (
+    parts[0]!.trim() === "" ||
+    parts[1]!.trim() === "" ||
+    !Number.isFinite(lo) ||
+    !Number.isFinite(hi)
+  ) {
+    io.err(red("Error: --between requires two numbers as lo..hi or lo,hi"));
+    io.err(dim("  Example: roll 2d6 --between 6..8"));
+    throw new CliExit(1);
+  }
+  if (lo > hi) {
+    io.err(red(`Error: --between lo must be <= hi (got ${lo}..${hi})`));
+    throw new CliExit(1);
+  }
+  return [lo, hi];
+}
+
+/**
+ * Parse `--target-for <p>` into a probability in (0, 1]. Accepts a decimal like
+ * `0.65`. Errors (exit 1) on non-numeric input or a value outside (0, 1].
+ */
+function parseProbability(raw: string, io: IO): number {
+  const p = Number(raw.trim());
+  if (raw.trim() === "" || !Number.isFinite(p) || p <= 0 || p > 1) {
+    io.err(red("Error: --target-for requires a probability between 0 and 1 (e.g. 0.65)"));
+    throw new CliExit(1);
+  }
+  return p;
 }
 
 /**
@@ -189,9 +307,14 @@ function dispatch(argv: string[], io: IO): void {
     options: {
       analyze: { type: "boolean", default: false },
       "at-least": { type: "string" },
+      "at-most": { type: "string" },
+      exactly: { type: "string" },
+      between: { type: "string" },
+      "target-for": { type: "string" },
       compare: { type: "boolean", default: false },
       loot: { type: "string" },
       times: { type: "string", default: "1" },
+      seed: { type: "string" },
       json: { type: "boolean", default: false },
       "no-color": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
@@ -234,11 +357,32 @@ function dispatch(argv: string[], io: IO): void {
   const expression = positionals.join("");
 
   // A mode flag with no expression used to silently fall through to help and
-  // exit 0, discarding the user's intent. Treat it as the error it is.
+  // exit 0, discarding the user's intent. Treat it as the error it is. Each
+  // analysis/query mode and --json needs an expression to act on.
   if (positionals.length === 0) {
     if (values["at-least"] !== undefined) {
       io.err(red("Error: no dice expression given"));
       io.err(dim("  Example: roll d20+5 --at-least 15"));
+      throw new CliExit(1);
+    }
+    if (values["at-most"] !== undefined) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll 2d6 --at-most 7"));
+      throw new CliExit(1);
+    }
+    if (values.exactly !== undefined) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll 2d6 --exactly 7"));
+      throw new CliExit(1);
+    }
+    if (values.between !== undefined) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll 2d6 --between 6..8"));
+      throw new CliExit(1);
+    }
+    if (values["target-for"] !== undefined) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll 1d20+5 --target-for 0.65"));
       throw new CliExit(1);
     }
     if (values.analyze) {
@@ -257,9 +401,12 @@ function dispatch(argv: string[], io: IO): void {
   }
 
   const times = parseTimes(values.times!, io);
+  // Validate --seed up front (strict, like --times) so a bad seed errors in any
+  // mode it could apply to. Undefined when the flag is absent.
+  const seed = values.seed !== undefined ? parseSeed(values.seed, io) : undefined;
 
   // At-least mode
-  if (values["at-least"]) {
+  if (values["at-least"] !== undefined) {
     const target = parseInt(values["at-least"], 10);
     if (isNaN(target)) {
       io.err(red("Error: --at-least requires a number"));
@@ -268,13 +415,37 @@ function dispatch(argv: string[], io: IO): void {
     return handleAtLeast(expression, target, values.json!, io);
   }
 
+  // At-most mode: P(X <= x)
+  if (values["at-most"] !== undefined) {
+    const x = parseQueryValue(values["at-most"], "--at-most", io);
+    return handleQuery(expression, "at-most", x, undefined, values.json!, io);
+  }
+
+  // Exactly mode: P(X = x)
+  if (values.exactly !== undefined) {
+    const x = parseQueryValue(values.exactly, "--exactly", io);
+    return handleQuery(expression, "exactly", x, undefined, values.json!, io);
+  }
+
+  // Between mode: P(lo <= X <= hi)
+  if (values.between !== undefined) {
+    const [lo, hi] = parseRange(values.between, io);
+    return handleQuery(expression, "between", lo, hi, values.json!, io);
+  }
+
+  // Target-for mode: break-even target T for P(X >= T) >= p
+  if (values["target-for"] !== undefined) {
+    const p = parseProbability(values["target-for"], io);
+    return handleTargetFor(expression, p, values.json!, io);
+  }
+
   // Analyze mode
   if (values.analyze) {
     return handleAnalyze(expression, values.json!, io);
   }
 
   // Roll mode
-  handleRoll(expression, times, values.json!, io);
+  handleRoll(expression, times, seed, values.json!, io);
 }
 
 /**
@@ -296,7 +467,13 @@ function estimateDiceCount(node: ASTNode): number {
   }
 }
 
-function handleRoll(expression: string, times: number, json: boolean, io: IO): void {
+function handleRoll(
+  expression: string,
+  times: number,
+  seed: number | undefined,
+  json: boolean,
+  io: IO,
+): void {
   const ast = parse(expression);
 
   // Each individual cap (MAX_TIMES, MAX_DICE_COUNT) can be satisfied while their
@@ -313,12 +490,17 @@ function handleRoll(expression: string, times: number, json: boolean, io: IO): v
     throw new CliExit(1);
   }
 
+  // FT-INT-001: when seeded, build ONE PRNG and thread it through every
+  // evaluate() call so a `--times N` run is a single deterministic SEQUENCE
+  // (not N identical rolls). Unseeded, evaluate() defaults to cryptoRng.
+  const rng = seed !== undefined ? seededRng(seed) : undefined;
+
   for (let i = 0; i < times; i++) {
-    const result = evaluate(ast);
+    const result = evaluate(ast, rng);
     result.expression = expression;
 
     if (json) {
-      io.out(formatJson(result, expression));
+      io.out(formatJson(result, expression, seed));
     } else {
       if (times > 1) {
         io.out(dim(`--- Roll ${i + 1} of ${times} ---`));
@@ -388,13 +570,36 @@ function handleCompare(expr1: string, expr2: string, json: boolean, io: IO): voi
   const stats1 = computeStats(dist1);
   const stats2 = computeStats(dist2);
 
+  // FT-ANA-002: the head-to-head verdict — P(A>B), P(tie), P(B>A) — and the
+  // mean margin E[A−B] (= mean(A) − mean(B)). This is the balance answer the two
+  // independent stat blocks alone don't give.
+  const cmp = compareDistributions(dist1, dist2);
+  const meanMargin = stats1.mean - stats2.mean;
+
   if (json) {
-    io.out(JSON.stringify({ expressions: [expr1, expr2], stats: [stats1, stats2] }, null, 2));
+    io.out(
+      JSON.stringify(
+        {
+          expressions: [expr1, expr2],
+          stats: [stats1, stats2],
+          comparison: {
+            pAGreater: cmp.pAGreater,
+            pEqual: cmp.pEqual,
+            pBGreater: cmp.pBGreater,
+            meanMargin,
+          },
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
   io.out();
   io.out(formatComparison(expr1, stats1, expr2, stats2));
+  io.out();
+  io.out(formatVersus(expr1, expr2, cmp, meanMargin));
   io.out();
 
   // Show both histograms
@@ -403,6 +608,100 @@ function handleCompare(expr1: string, expr2: string, json: boolean, io: IO): voi
   io.out();
   io.out(bold(cyan(`  ${expr2}`)));
   io.out(renderHistogram(dist2, stats2, 40));
+  io.out();
+}
+
+/**
+ * FT-ANA-003: point/range probability queries — `--at-most x` → P(X ≤ x),
+ * `--exactly x` → P(X = x), `--between lo hi` → P(lo ≤ X ≤ hi). Each mirrors the
+ * `--at-least` one-line UX. Routed through one handler since they differ only in
+ * which stats fn computes the probability and how the predicate reads.
+ */
+function handleQuery(
+  expression: string,
+  kind: "at-most" | "exactly" | "between",
+  a: number,
+  b: number | undefined,
+  json: boolean,
+  io: IO,
+): void {
+  const ast = parse(expression);
+  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+
+  let prob: number;
+  let predicate: string;
+  let jsonExtra: Record<string, number>;
+  switch (kind) {
+    case "at-most":
+      prob = probabilityAtMost(dist, a);
+      predicate = `${expression} <= ${a}`;
+      jsonExtra = { x: a };
+      break;
+    case "exactly":
+      prob = probabilityExactly(dist, a);
+      predicate = `${expression} = ${a}`;
+      jsonExtra = { x: a };
+      break;
+    case "between":
+      // b is always defined for the "between" branch (the caller passes both).
+      prob = probabilityInRange(dist, a, b!);
+      predicate = `${a} <= ${expression} <= ${b!}`;
+      jsonExtra = { lo: a, hi: b! };
+      break;
+  }
+
+  if (json) {
+    io.out(
+      JSON.stringify(
+        {
+          expression,
+          ...jsonExtra,
+          probability: prob,
+          method,
+          ...(samples !== undefined ? { samples } : {}),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  io.out();
+  io.out(formatProbabilityQuery(predicate, prob));
+  io.out(formatMethodNote(method, samples));
+  io.out();
+}
+
+/**
+ * FT-ANA-005: the break-even target solver — `--target-for p` prints the largest
+ * target T such that P(X ≥ T) ≥ p ("to hit p% of the time, target ≤ T").
+ */
+function handleTargetFor(expression: string, p: number, json: boolean, io: IO): void {
+  const ast = parse(expression);
+  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+  const target = targetForProbability(dist, p, "atLeast");
+
+  if (json) {
+    io.out(
+      JSON.stringify(
+        {
+          expression,
+          p,
+          target,
+          method,
+          ...(samples !== undefined ? { samples } : {}),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  io.out();
+  io.out(formatTargetFor(expression, p, target));
+  io.out(formatMethodNote(method, samples));
   io.out();
 }
 
