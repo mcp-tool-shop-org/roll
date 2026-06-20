@@ -9,7 +9,9 @@ export interface JsonRpcRequest {
 
 export interface JsonRpcResponse {
   jsonrpc: "2.0";
-  id: number | string;
+  /** `null` is a legitimate JSON-RPC id (and the required id for parse-error /
+   *  invalid-request responses where the original id is unknown). */
+  id: number | string | null;
   result?: unknown;
   error?: JsonRpcError;
 }

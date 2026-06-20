@@ -12,6 +12,23 @@ export function stripAnsi(s: string): number {
   return s.replace(/\x1b\[[0-9;]*m/g, "").length;
 }
 
+/**
+ * Strip C0 control characters (incl. ESC 0x1b and DEL 0x7f) from
+ * externally-sourced strings before they are rendered in the terminal.
+ *
+ * This blocks ANSI/terminal-control injection: a malicious loot/table JSON
+ * could put raw ESC bytes in an item `name`, hijacking the victim's terminal
+ * when they run `roll --loot evil.json`. Apply ONLY to content that originates
+ * outside this program (file/user input) — never to the color codes our own
+ * display functions add, which are emitted after sanitization.
+ *
+ * Note: `\t`, `\n`, and `\r` (0x09, 0x0a, 0x0d) are intentionally preserved so
+ * legitimate whitespace survives; everything else in C0 plus 0x7f is removed.
+ */
+export function sanitize(s: string): string {
+  return String(s).replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "");
+}
+
 /** Draw a Unicode box around lines of text. */
 export function drawBox(lines: string[], title?: string): string {
   const maxLen = Math.max(...lines.map(stripAnsi), title ? stripAnsi(title) + 2 : 0);

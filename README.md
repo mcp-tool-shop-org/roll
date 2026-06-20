@@ -159,7 +159,7 @@ Every modifier has exact probability analysis — not just simulation.
 
 ## Security & Trust
 
-Processes dice expressions and nothing else. No network requests, no file writes (except `--loot` reads one JSON), no telemetry, no secrets. All dice rolls use `crypto.randomInt` for cryptographic randomness.
+Processes dice expressions and nothing else. No network requests, no file writes (except `--loot` reads one JSON), no telemetry, no secrets. All dice rolls use `crypto.randomInt` for cryptographic randomness. Expressions are capped at parse time (dice count, die sides, length) to prevent resource exhaustion, and any text read from a `--loot` file is stripped of terminal control characters before display so a hostile table can't inject ANSI escape sequences into your terminal.
 
 See [SECURITY.md](./SECURITY.md) for the vulnerability reporting policy.
 

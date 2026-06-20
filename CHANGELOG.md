@@ -1,5 +1,33 @@
 # Changelog
 
+## [Unreleased]
+
+Stage A hardening — input caps, probability correctness, boundary security, and CLI robustness.
+
+### Security
+
+- **ANSI/terminal-control injection blocked** — externally-sourced strings (loot item names, table names, dice/validation echoes from `--loot` files) are now sanitized of C0 control characters, including raw `ESC` bytes, before display. A malicious loot JSON can no longer hijack the terminal of anyone who runs `roll --loot evil.json`.
+- **Input caps (DoS prevention)** — crafted expressions can no longer force unbounded work; dice count, die sides, and expression length are capped at parse time and rejected with a clean error.
+
+### Fixed
+
+- **CLI error handling** — unknown flags, bad option values, and invalid expressions now print a single clean `Error: …` line plus a `--help` hint instead of dumping a raw Node stack trace with internal frames.
+- **`--times` validation** — `--times abc`, `--times 0`, and `--times=-5` now exit `1` with a clear message instead of silently becoming `1` or a no-op; values are capped at 10,000 so the terminal can't be flooded.
+- **Mode flag without expression** — `--at-least`, `--analyze`, or `--json` with no dice expression now errors with an example instead of silently printing help and exiting `0`.
+- **Histogram crash on degenerate input** — `--analyze` no longer throws on an all-zero-probability distribution (NaN bar-length guard in the histogram and sparkline renderers).
+- **Probability correctness** — multiple analytical-distribution fixes so exact analysis matches the engine across V2 modifiers.
+
+### Changed
+
+- **`--help` documents the full V2 notation** — success/failure counting (`cs>=N`/`cf<=N`), compounding (`!!`), penetrating (`!p`), reroll (`r`/`ro`), `min`/`max` clamping, and sorting (`sa`/`sd`), mirroring the README notation table.
+- **`SECURITY.md`** now lists the 2.0.x line as supported (latest-major policy).
+- **CLI is now testable in-process** via an exported `run(argv, io)` that returns an exit code, enabling end-to-end CLI tests without spawning child processes.
+
+### Tests
+
+- New `tests/cli.test.ts` and `tests/display.test.ts` cover the previously-untested CLI and terminal display layer (help/version, exit codes, `--times` validation, mode-flag-without-expression, `--loot` ENOENT, sanitization end-to-end, histogram NaN guard, JSON shape, colorless output).
+- `vitest.config.ts` now emits coverage reports (v8, text + html) over `src/`.
+
 ## 2.0.0 (2026-04-11)
 
 Universal game infrastructure release.

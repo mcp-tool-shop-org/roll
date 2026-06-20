@@ -4,8 +4,10 @@
  * Communicates via stdio using JSON-RPC 2.0 (MCP transport).
  */
 import { createInterface } from "node:readline";
+import { pathToFileURL } from "node:url";
 import { TOOLS } from "./tools.js";
-import { parse } from "../parser/parser.js";
+import { parse, ParseError } from "../parser/parser.js";
+import { LexerError } from "../parser/lexer.js";
 import { evaluate } from "../engine/roller.js";
 import { computeDistribution } from "../analyze/distribution.js";
 import { computeStats, probabilityAtLeast } from "../analyze/stats.js";
@@ -25,9 +27,92 @@ interface McpRequest {
 
 interface McpResponse {
   jsonrpc: "2.0";
-  id: number | string;
+  id: number | string | null;
   result?: unknown;
   error?: { code: number; message: string; data?: unknown };
+}
+
+// ─── Validation ──────────────────────────────────────────────────────────────
+
+/**
+ * Thrown by argument validation at the trust boundary. Carries a curated,
+ * user-facing message that is SAFE to return to the client (unlike unexpected
+ * internal exceptions, whose text must never cross the boundary).
+ */
+class ToolValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ToolValidationError";
+  }
+}
+
+/** Upper bound on repeat-count style args (times / count). Dice are tiny; a
+ *  caller asking for a million rolls is abuse, not a use case. */
+const MAX_TOOL_COUNT = 1000;
+
+function requireString(args: Record<string, unknown>, key: string): string {
+  const v = args[key];
+  if (typeof v !== "string" || v.length === 0) {
+    throw new ToolValidationError(`Parameter "${key}" must be a non-empty string`);
+  }
+  return v;
+}
+
+/** Validate an optional count/times arg: must be a finite positive integer
+ *  within the cap. Returns the default when absent. */
+function optionalCount(
+  args: Record<string, unknown>,
+  key: string,
+  def: number,
+): number {
+  const v = args[key];
+  if (v === undefined || v === null) return def;
+  if (typeof v !== "number" || !Number.isFinite(v) || !Number.isInteger(v) || v < 1) {
+    throw new ToolValidationError(`Parameter "${key}" must be a positive integer`);
+  }
+  if (v > MAX_TOOL_COUNT) {
+    throw new ToolValidationError(
+      `Parameter "${key}" (${v}) exceeds maximum of ${MAX_TOOL_COUNT}`,
+    );
+  }
+  return v;
+}
+
+function optionalNumber(args: Record<string, unknown>, key: string): number | undefined {
+  const v = args[key];
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    throw new ToolValidationError(`Parameter "${key}" must be a number`);
+  }
+  return v;
+}
+
+/** Validate a GameTableCollection's shape at the boundary. Only structural
+ *  checks — the engine guards roll-time invariants (zero-weight, etc.). */
+function requireCollection(
+  args: Record<string, unknown>,
+  key: string,
+): GameTableCollection {
+  const c = args[key];
+  if (typeof c !== "object" || c === null) {
+    throw new ToolValidationError(`Parameter "${key}" must be a table collection object`);
+  }
+  const tables = (c as { tables?: unknown }).tables;
+  if (!Array.isArray(tables)) {
+    throw new ToolValidationError(`Parameter "${key}.tables" must be an array`);
+  }
+  for (const t of tables) {
+    if (typeof t !== "object" || t === null) {
+      throw new ToolValidationError(`Each table in "${key}.tables" must be an object`);
+    }
+    if (typeof (t as { table?: unknown }).table !== "string") {
+      throw new ToolValidationError(`Each table requires a string "table" name`);
+    }
+    if (!Array.isArray((t as { entries?: unknown }).entries)) {
+      throw new ToolValidationError(`Table "${(t as { table?: unknown }).table}" requires an "entries" array`);
+    }
+  }
+  return c as GameTableCollection;
 }
 
 // ─── Server info ─────────────────────────────────────────────────────────────
@@ -46,9 +131,10 @@ const CAPABILITIES = {
 function handleToolCall(name: string, args: Record<string, unknown>): unknown {
   switch (name) {
     case "roll_dice": {
-      const expression = args.expression as string;
-      const times = (args.times as number) ?? 1;
-      const rng: RngFn = args.seed !== undefined ? seededRng(args.seed as number) : cryptoRng;
+      const expression = requireString(args, "expression");
+      const times = optionalCount(args, "times", 1);
+      const seed = optionalNumber(args, "seed");
+      const rng: RngFn = seed !== undefined ? seededRng(seed) : cryptoRng;
 
       const results = [];
       for (let i = 0; i < times; i++) {
@@ -61,23 +147,24 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
     }
 
     case "analyze_dice": {
-      const expression = args.expression as string;
+      const expression = requireString(args, "expression");
       const ast = parse(expression);
       const dist = computeDistribution(ast);
       const stats = computeStats(dist);
       const distribution = [...dist.entries()].sort((a, b) => a[0] - b[0]);
 
       const result: Record<string, unknown> = { stats, distribution };
-      if (args.at_least !== undefined) {
-        result.atLeastProbability = probabilityAtLeast(dist, args.at_least as number);
-        result.atLeastTarget = args.at_least;
+      const atLeast = optionalNumber(args, "at_least");
+      if (atLeast !== undefined) {
+        result.atLeastProbability = probabilityAtLeast(dist, atLeast);
+        result.atLeastTarget = atLeast;
       }
       return result;
     }
 
     case "compare_dice": {
-      const exprA = args.expression_a as string;
-      const exprB = args.expression_b as string;
+      const exprA = requireString(args, "expression_a");
+      const exprB = requireString(args, "expression_b");
 
       const analyze = (expr: string) => {
         const ast = parse(expr);
@@ -89,10 +176,10 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
     }
 
     case "roll_table": {
-      const tableName = args.table_name as string;
-      const collection = args.collection as GameTableCollection;
+      const tableName = requireString(args, "table_name");
+      const collection = requireCollection(args, "collection");
       const context = (args.context ?? {}) as TableContext;
-      const count = (args.count as number) ?? 1;
+      const count = optionalCount(args, "count", 1);
 
       const results = [];
       for (let i = 0; i < count; i++) {
@@ -102,21 +189,21 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
     }
 
     case "query_table": {
-      const tableName = args.table_name as string;
-      const collection = args.collection as GameTableCollection;
+      const tableName = requireString(args, "table_name");
+      const collection = requireCollection(args, "collection");
       const table = collection.tables.find((t) => t.table === tableName);
-      if (!table) throw new Error(`Table not found: ${tableName}`);
+      if (!table) throw new ToolValidationError(`Table not found: ${tableName}`);
       return table;
     }
 
     default:
-      throw new Error(`Unknown tool: ${name}`);
+      throw new ToolValidationError(`Unknown tool: ${name}`);
   }
 }
 
 // ─── MCP dispatch ────────────────────────────────────────────────────────────
 
-function handleRequest(request: McpRequest): McpResponse {
+export function handleRequest(request: McpRequest): McpResponse {
   const { id, method, params } = request;
 
   try {
@@ -180,16 +267,88 @@ function handleRequest(request: McpRequest): McpResponse {
         };
     }
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    // Known, user-facing validation errors carry safe, curated text that is
+    // intended to reach the client (e.g. "Dice count exceeds maximum of 10000").
+    // Anything else is an unexpected internal fault: log the detail server-side
+    // and return a GENERIC message so internal exception text never crosses the
+    // trust boundary. (F-BM-003 / M3)
+    if (e instanceof ParseError || e instanceof LexerError || e instanceof ToolValidationError) {
+      return {
+        jsonrpc: "2.0",
+        id,
+        result: {
+          content: [{ type: "text", text: `Error: ${e.message}` }],
+          isError: true,
+        },
+      };
+    }
+
+    const detail = e instanceof Error ? e.stack ?? e.message : String(e);
+    process.stderr.write(`[roll-mcp] internal error: ${detail}\n`);
     return {
       jsonrpc: "2.0",
       id,
       result: {
-        content: [{ type: "text", text: `Error: ${message}` }],
+        content: [{ type: "text", text: "Error: Internal error" }],
         isError: true,
       },
     };
   }
+}
+
+/**
+ * Pure dispatch entry point: parse a raw JSON-RPC line into a response (or an
+ * array of responses for a batch). Returns `null` for inputs that produce no
+ * response (notifications, or a batch of only notifications). Exported so the
+ * dispatch layer can be unit-tested without spawning a process — the stdio
+ * `main()` loop is a thin wrapper around this. (F-BM-006 + test seam)
+ */
+export function dispatch(raw: string): McpResponse | McpResponse[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // Preserve a null id per JSON-RPC 2.0 (id unknown on parse failure).
+    return { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } };
+  }
+
+  // JSON-RPC 2.0 batch: an array of requests. Process each element, dropping
+  // notification (no-id) responses; an all-notification batch yields nothing.
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 0) {
+      return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request: empty batch" } };
+    }
+    const responses: McpResponse[] = [];
+    for (const item of parsed) {
+      const r = dispatchOne(item);
+      if (r !== null) responses.push(r);
+    }
+    return responses.length > 0 ? responses : null;
+  }
+
+  return dispatchOne(parsed);
+}
+
+/** Dispatch a single (already-parsed) request object. Returns null for
+ *  notifications (requests with no id). */
+function dispatchOne(parsed: unknown): McpResponse | null {
+  if (typeof parsed !== "object" || parsed === null) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request" } };
+  }
+  const request = parsed as McpRequest;
+
+  // Notifications (no id) get no response.
+  if (request.id === undefined || request.id === null) return null;
+
+  if (typeof request.method !== "string") {
+    return {
+      jsonrpc: "2.0",
+      id: request.id,
+      error: { code: -32600, message: "Invalid request: missing method" },
+    };
+  }
+
+  return handleRequest(request);
 }
 
 // ─── Stdio transport ─────────────────────────────────────────────────────────
@@ -201,27 +360,17 @@ function main(): void {
     const trimmed = line.trim();
     if (!trimmed) return;
 
-    let request: McpRequest;
-    try {
-      request = JSON.parse(trimmed);
-    } catch {
-      const res: McpResponse = {
-        jsonrpc: "2.0",
-        id: 0,
-        error: { code: -32700, message: "Parse error" },
-      };
-      process.stdout.write(JSON.stringify(res) + "\n");
-      return;
-    }
-
-    // Skip notifications (no id)
-    if (request.id === undefined || request.id === null) return;
-
-    const response = handleRequest(request);
+    const response = dispatch(trimmed);
+    // `null` → notification(s) with no response; emit nothing.
+    if (response === null) return;
     process.stdout.write(JSON.stringify(response) + "\n");
   });
 
   rl.on("close", () => process.exit(0));
 }
 
-main();
+// Only run the stdio loop when invoked as a binary, not when imported in tests.
+// (pathToFileURL normalizes drive-letter casing + slashes across platforms.)
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

@@ -15,6 +15,10 @@ export function renderHistogram(
   if (entries.length === 0) return "";
 
   const maxProb = Math.max(...entries.map(([, p]) => p));
+  // Guard against an all-zero-probability distribution: dividing by 0 yields
+  // NaN, and `"█".repeat(NaN)` throws (RangeError). Fall back to 1 so every
+  // bar renders empty rather than crashing.
+  const denom = maxProb || 1;
   const lines: string[] = [];
 
   // Header
@@ -27,7 +31,7 @@ export function renderHistogram(
 
   for (const [value, prob] of entries) {
     const label = String(value).padStart(maxLabel);
-    const barLen = Math.round((prob / maxProb) * barWidth);
+    const barLen = Math.round((prob / denom) * barWidth);
     const bar = FULL_BLOCK.repeat(barLen);
     const pctStr = (prob * 100).toFixed(2).padStart(6) + "%";
 
@@ -55,7 +59,9 @@ export function renderSparkline(dist: Distribution): string {
   if (entries.length === 0) return "";
 
   const maxProb = Math.max(...entries.map(([, p]) => p));
+  // Same all-zero guard as renderHistogram: avoid NaN index into BLOCKS.
+  const denom = maxProb || 1;
   return entries
-    .map(([, p]) => BLOCKS[Math.round((p / maxProb) * 8)])
+    .map(([, p]) => BLOCKS[Math.round((p / denom) * 8)])
     .join("");
 }

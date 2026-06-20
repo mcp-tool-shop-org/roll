@@ -70,7 +70,7 @@ describe("bridge roll", () => {
   it("returns error for invalid expression", () => {
     const res = handler.handle(req("roll", { expression: "not a roll" }));
     expect(res.error).toBeDefined();
-    expect(res.error!.code).toBe(-32603); // INTERNAL_ERROR
+    expect(res.error!.code).toBe(-32602); // INVALID_PARAMS: malformed expression is client input, not a server fault
   });
 
   it("handles roll_batch", () => {

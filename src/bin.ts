@@ -3,6 +3,7 @@
 import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
 import { parse } from "./parser/parser.js";
 import { evaluate } from "./engine/roller.js";
@@ -11,11 +12,42 @@ import { computeStats, probabilityAtLeast } from "./analyze/stats.js";
 import { rollLootTable, validateLootTables, type LootTable } from "./loot/table.js";
 import { formatRollResult, formatStats, formatAtLeast, formatComparison, formatJson } from "./display/format.js";
 import { renderHistogram } from "./display/histogram.js";
-import { bold, cyan, dim, red, yellow, green, boldYellow } from "./display/color.js";
-import { drawBox } from "./display/box.js";
+import { bold, cyan, dim, red, green, boldYellow } from "./display/color.js";
+import { drawBox, sanitize } from "./display/box.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
+
+/** Upper bound on `--times` so a single command can't flood the terminal. */
+const MAX_TIMES = 10_000;
+
+/**
+ * Sink for normal/error output. Defaults to the real console but is overridable
+ * by `run()` so the CLI can be driven in-process by tests (capturing output and
+ * asserting exit codes) without spawning a child process.
+ */
+interface IO {
+  out: (line?: string) => void;
+  err: (line?: string) => void;
+}
+
+const consoleIO: IO = {
+  out: (line = "") => console.log(line),
+  err: (line = "") => console.error(line),
+};
+
+/**
+ * Internal signal used to unwind out of a handler with a specific exit code,
+ * instead of calling `process.exit()` mid-flight. `run()` catches it and
+ * returns the code so the process boundary stays in one place (and tests don't
+ * kill the test runner).
+ */
+class CliExit extends Error {
+  constructor(public code: number) {
+    super(`CliExit(${code})`);
+    this.name = "CliExit";
+  }
+}
 
 const USAGE = `
 ${bold("@mcptoolshop/roll")} ${dim(`v${version}`)} — RPG dice engine
@@ -28,7 +60,7 @@ ${bold("Usage:")}
   ${cyan("roll")} ${dim("--loot")} table.json         Roll on a loot table
   ${cyan("roll")} <expression> ${dim("--times")} N    Roll N times
 
-${bold("Dice Notation:")}
+${bold("Core Notation:")}
   2d6         Roll two six-sided dice
   d20+5       Roll d20, add 5
   4d6kh3      Roll 4d6, keep highest 3
@@ -39,19 +71,100 @@ ${bold("Dice Notation:")}
   4dF         Four Fate/Fudge dice (-1, 0, +1)
   (2d6+3)*2   Grouped arithmetic
 
+${bold("Extended Notation (V2):")}
+  8d6cs>=5    Count successes (dice >= 5)
+  8d6cf<=1    Subtract failures from success count
+  1d6!!       Compounding (sum explosions into one die)
+  1d6!p       Penetrating (explosions subtract 1)
+  2d6r<2      Reroll values < 2 (unlimited)
+  2d6ro=1     Reroll 1s once
+  2d6min3     Floor: no die below 3
+  2d6max5     Ceiling: no die above 5
+  4d6sa       Sort ascending  (4d6sd = descending)
+
 ${bold("Flags:")}
   --analyze    Show full probability distribution + statistics
   --at-least N Show probability of rolling >= N
   --compare    Compare two dice expressions side by side
   --loot FILE  Roll on a JSON loot table
-  --times N    Roll multiple times (default: 1)
+  --times N    Roll multiple times (default: 1, max ${MAX_TIMES})
   --json       Output as JSON
   --help       Show this help
   --version    Show version
 `;
 
-function main() {
+/**
+ * Parse `--times` into a validated positive integer. Throws CliExit(1) with a
+ * friendly message on anything that isn't a positive integer (e.g. `abc`, `0`,
+ * `-5`, `1.5`) and caps the value at MAX_TIMES so the terminal can't be flooded.
+ */
+function parseTimes(raw: string, io: IO): number {
+  // Reject anything that isn't a run of digits. parseInt would silently accept
+  // "5abc" → 5 and turn "abc" → NaN, so validate the shape strictly first.
+  if (!/^\d+$/.test(raw.trim())) {
+    io.err(red("Error: --times requires a positive integer"));
+    throw new CliExit(1);
+  }
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1) {
+    io.err(red("Error: --times requires a positive integer"));
+    throw new CliExit(1);
+  }
+  if (n > MAX_TIMES) {
+    io.err(red(`Error: --times capped at ${MAX_TIMES} (got ${n})`));
+    throw new CliExit(1);
+  }
+  return n;
+}
+
+/**
+ * Run the CLI in-process. Returns the would-be process exit code (0 = success,
+ * 1 = error) instead of calling `process.exit()`, so it is safe to import and
+ * call from tests. The real entry point (below) maps the return into a process
+ * exit.
+ */
+export function run(argv: string[], io: IO = consoleIO): number {
+  try {
+    dispatch(argv, io);
+    return 0;
+  } catch (e) {
+    if (e instanceof CliExit) return e.code;
+
+    // Friendly handling for parseArgs failures (unknown/dangling options),
+    // which otherwise surface as raw Node stack traces with internal frames.
+    const code = (e as { code?: string }).code;
+    if (code === "ERR_PARSE_ARGS_UNKNOWN_OPTION") {
+      io.err(red(`Error: ${friendlyUnknownOption(e as Error)}`));
+      io.err(dim("  Run 'roll --help' to see available options."));
+      return 1;
+    }
+    if (
+      code === "ERR_PARSE_ARGS_INVALID_OPTION_VALUE" ||
+      code === "ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL"
+    ) {
+      io.err(red(`Error: ${(e as Error).message}`));
+      io.err(dim("  Run 'roll --help' to see usage."));
+      return 1;
+    }
+
+    // Anything else (parser/engine ParseError, file errors, etc.): one clean
+    // line plus a hint — never a stack trace.
+    io.err(red(`Error: ${(e as Error).message}`));
+    io.err(dim("  Run 'roll --help' for usage."));
+    return 1;
+  }
+}
+
+/** Extract a clean "Unknown option '--x'" message from a parseArgs error. */
+function friendlyUnknownOption(e: Error): string {
+  const m = e.message.match(/'([^']+)'/);
+  if (m) return `Unknown option ${m[1]}`;
+  return e.message;
+}
+
+function dispatch(argv: string[], io: IO): void {
   const { values, positionals } = parseArgs({
+    args: argv,
     allowPositionals: true,
     options: {
       analyze: { type: "boolean", default: false },
@@ -66,223 +179,238 @@ function main() {
   });
 
   if (values.help) {
-    console.log(USAGE);
+    io.out(USAGE);
     return;
   }
 
   if (values.version) {
-    console.log(`@mcptoolshop/roll v${version}`);
+    io.out(`@mcptoolshop/roll v${version}`);
     return;
   }
 
   // Loot table mode
   if (values.loot) {
-    return handleLoot(values.loot, values.json!);
+    return handleLoot(values.loot, values.json!, io);
   }
 
   // Compare mode
   if (values.compare) {
     if (positionals.length < 2) {
-      console.error(red("Error: --compare requires two dice expressions"));
-      console.error(dim('  Example: roll --compare "4d6dl1" "3d6"'));
-      process.exit(1);
+      io.err(red("Error: --compare requires two dice expressions"));
+      io.err(dim('  Example: roll --compare "4d6dl1" "3d6"'));
+      throw new CliExit(1);
     }
-    return handleCompare(positionals[0], positionals[1], values.json!);
-  }
-
-  // Need at least one expression
-  if (positionals.length === 0) {
-    console.log(USAGE);
-    return;
+    return handleCompare(positionals[0], positionals[1], values.json!, io);
   }
 
   const expression = positionals.join("");
-  const times = parseInt(values.times!, 10) || 1;
+
+  // A mode flag with no expression used to silently fall through to help and
+  // exit 0, discarding the user's intent. Treat it as the error it is.
+  if (positionals.length === 0) {
+    if (values["at-least"] !== undefined) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll d20+5 --at-least 15"));
+      throw new CliExit(1);
+    }
+    if (values.analyze) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll 2d6 --analyze"));
+      throw new CliExit(1);
+    }
+    if (values.json) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll 2d6+3 --json"));
+      throw new CliExit(1);
+    }
+    // Genuine no-args invocation: show help.
+    io.out(USAGE);
+    return;
+  }
+
+  const times = parseTimes(values.times!, io);
 
   // At-least mode
   if (values["at-least"]) {
     const target = parseInt(values["at-least"], 10);
     if (isNaN(target)) {
-      console.error(red("Error: --at-least requires a number"));
-      process.exit(1);
+      io.err(red("Error: --at-least requires a number"));
+      throw new CliExit(1);
     }
-    return handleAtLeast(expression, target, values.json!);
+    return handleAtLeast(expression, target, values.json!, io);
   }
 
   // Analyze mode
   if (values.analyze) {
-    return handleAnalyze(expression, values.json!);
+    return handleAnalyze(expression, values.json!, io);
   }
 
   // Roll mode
-  handleRoll(expression, times, values.json!);
+  handleRoll(expression, times, values.json!, io);
 }
 
-function handleRoll(expression: string, times: number, json: boolean) {
-  try {
-    const ast = parse(expression);
+function handleRoll(expression: string, times: number, json: boolean, io: IO): void {
+  const ast = parse(expression);
 
-    for (let i = 0; i < times; i++) {
-      const result = evaluate(ast);
-      result.expression = expression;
-
-      if (json) {
-        console.log(formatJson(result, expression));
-      } else {
-        if (times > 1) {
-          console.log(dim(`--- Roll ${i + 1} of ${times} ---`));
-        }
-        console.log(formatRollResult(result, expression));
-        if (i < times - 1) console.log();
-      }
-    }
-
-    if (times > 1 && !json) {
-      // Show summary for multiple rolls
-      const totals: number[] = [];
-      const summaryAst = parse(expression);
-      for (let i = 0; i < times; i++) {
-        totals.push(evaluate(summaryAst).total);
-      }
-      // Already printed above — just totals were from different RNG calls
-    }
-  } catch (e) {
-    console.error(red(`Error: ${(e as Error).message}`));
-    process.exit(1);
-  }
-}
-
-function handleAnalyze(expression: string, json: boolean) {
-  try {
-    const ast = parse(expression);
-    const dist = computeDistribution(ast);
-    const stats = computeStats(dist);
+  for (let i = 0; i < times; i++) {
+    const result = evaluate(ast);
+    result.expression = expression;
 
     if (json) {
-      const entries = [...dist.entries()].sort((a, b) => a[0] - b[0]);
-      console.log(JSON.stringify({ expression, stats, distribution: entries }, null, 2));
-      return;
-    }
-
-    console.log();
-    console.log(renderHistogram(dist, stats));
-    console.log();
-    console.log(formatStats(stats));
-    console.log();
-  } catch (e) {
-    console.error(red(`Error: ${(e as Error).message}`));
-    process.exit(1);
-  }
-}
-
-function handleAtLeast(expression: string, target: number, json: boolean) {
-  try {
-    const ast = parse(expression);
-    const dist = computeDistribution(ast);
-    const prob = probabilityAtLeast(dist, target);
-
-    if (json) {
-      console.log(JSON.stringify({ expression, target, probability: prob }, null, 2));
-      return;
-    }
-
-    console.log();
-    console.log(formatAtLeast(target, prob, expression));
-    console.log();
-  } catch (e) {
-    console.error(red(`Error: ${(e as Error).message}`));
-    process.exit(1);
-  }
-}
-
-function handleCompare(expr1: string, expr2: string, json: boolean) {
-  try {
-    const ast1 = parse(expr1);
-    const ast2 = parse(expr2);
-    const dist1 = computeDistribution(ast1);
-    const dist2 = computeDistribution(ast2);
-    const stats1 = computeStats(dist1);
-    const stats2 = computeStats(dist2);
-
-    if (json) {
-      console.log(JSON.stringify({ expressions: [expr1, expr2], stats: [stats1, stats2] }, null, 2));
-      return;
-    }
-
-    console.log();
-    console.log(formatComparison(expr1, stats1, expr2, stats2));
-    console.log();
-
-    // Show both histograms
-    console.log(bold(cyan(`  ${expr1}`)));
-    console.log(renderHistogram(dist1, stats1, 40));
-    console.log();
-    console.log(bold(cyan(`  ${expr2}`)));
-    console.log(renderHistogram(dist2, stats2, 40));
-    console.log();
-  } catch (e) {
-    console.error(red(`Error: ${(e as Error).message}`));
-    process.exit(1);
-  }
-}
-
-function handleLoot(filePath: string, json: boolean) {
-  try {
-    const raw = readFileSync(filePath, "utf-8");
-    const data = JSON.parse(raw);
-
-    // Accept either { tables: [...] } or [...] or a single table object
-    let tables: LootTable[];
-    if (Array.isArray(data)) {
-      tables = data;
-    } else if (data.tables) {
-      tables = data.tables;
-    } else if (data.table && data.items) {
-      tables = [data];
+      io.out(formatJson(result, expression));
     } else {
-      console.error(red("Error: Invalid loot table format"));
-      process.exit(1);
-      return;
-    }
-
-    const errors = validateLootTables(tables);
-    if (errors.length > 0) {
-      console.error(red("Loot table validation errors:"));
-      for (const err of errors) console.error(red(`  - ${err}`));
-      process.exit(1);
-    }
-
-    const drops = rollLootTable(tables);
-
-    if (json) {
-      console.log(JSON.stringify(drops, null, 2));
-      return;
-    }
-
-    const lines: string[] = [];
-    for (const drop of drops) {
-      let line = boldYellow(drop.item);
-      if (drop.quantity > 1) line += dim(` x${drop.quantity}`);
-      if (drop.rollValue !== undefined) {
-        line += ` ${dim("(")}${green(String(drop.rollValue))}${dim(")")}`;
-        if (drop.rollExpression) line += dim(` [${drop.rollExpression}]`);
+      if (times > 1) {
+        io.out(dim(`--- Roll ${i + 1} of ${times} ---`));
       }
-      lines.push(line);
+      io.out(formatRollResult(result, expression));
+      if (i < times - 1) io.out();
     }
-    lines.push("");
-    lines.push(dim(`from: ${drops[0]?.fromTable ?? "unknown"}`));
+  }
+}
 
-    console.log();
-    console.log(drawBox(lines, "Loot Drop"));
-    console.log();
+function handleAnalyze(expression: string, json: boolean, io: IO): void {
+  const ast = parse(expression);
+  const dist = computeDistribution(ast);
+  const stats = computeStats(dist);
+
+  if (json) {
+    const entries = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+    io.out(JSON.stringify({ expression, stats, distribution: entries }, null, 2));
+    return;
+  }
+
+  io.out();
+  io.out(renderHistogram(dist, stats));
+  io.out();
+  io.out(formatStats(stats));
+  io.out();
+}
+
+function handleAtLeast(expression: string, target: number, json: boolean, io: IO): void {
+  const ast = parse(expression);
+  const dist = computeDistribution(ast);
+  const prob = probabilityAtLeast(dist, target);
+
+  if (json) {
+    io.out(JSON.stringify({ expression, target, probability: prob }, null, 2));
+    return;
+  }
+
+  io.out();
+  io.out(formatAtLeast(target, prob, expression));
+  io.out();
+}
+
+function handleCompare(expr1: string, expr2: string, json: boolean, io: IO): void {
+  const ast1 = parse(expr1);
+  const ast2 = parse(expr2);
+  const dist1 = computeDistribution(ast1);
+  const dist2 = computeDistribution(ast2);
+  const stats1 = computeStats(dist1);
+  const stats2 = computeStats(dist2);
+
+  if (json) {
+    io.out(JSON.stringify({ expressions: [expr1, expr2], stats: [stats1, stats2] }, null, 2));
+    return;
+  }
+
+  io.out();
+  io.out(formatComparison(expr1, stats1, expr2, stats2));
+  io.out();
+
+  // Show both histograms
+  io.out(bold(cyan(`  ${expr1}`)));
+  io.out(renderHistogram(dist1, stats1, 40));
+  io.out();
+  io.out(bold(cyan(`  ${expr2}`)));
+  io.out(renderHistogram(dist2, stats2, 40));
+  io.out();
+}
+
+function handleLoot(filePath: string, json: boolean, io: IO): void {
+  let raw: string;
+  try {
+    raw = readFileSync(filePath, "utf-8");
   } catch (e) {
     if ((e as { code?: string }).code === "ENOENT") {
-      console.error(red(`Error: File not found: ${filePath}`));
+      io.err(red(`Error: File not found: ${sanitize(filePath)}`));
     } else {
-      console.error(red(`Error: ${(e as Error).message}`));
+      io.err(red(`Error: ${sanitize((e as Error).message)}`));
     }
-    process.exit(1);
+    throw new CliExit(1);
   }
+
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    io.err(red(`Error: Invalid JSON in loot file: ${sanitize((e as Error).message)}`));
+    throw new CliExit(1);
+  }
+
+  // Accept either { tables: [...] } or [...] or a single table object
+  let tables: LootTable[];
+  const d = data as { tables?: LootTable[]; table?: unknown; items?: unknown };
+  if (Array.isArray(data)) {
+    tables = data;
+  } else if (d.tables) {
+    tables = d.tables;
+  } else if (d.table && d.items) {
+    tables = [data as LootTable];
+  } else {
+    io.err(red("Error: Invalid loot table format"));
+    throw new CliExit(1);
+  }
+
+  const errors = validateLootTables(tables);
+  if (errors.length > 0) {
+    io.err(red("Loot table validation errors:"));
+    // Validation messages echo table/item names from the file — sanitize.
+    for (const err of errors) io.err(red(`  - ${sanitize(err)}`));
+    throw new CliExit(1);
+  }
+
+  const drops = rollLootTable(tables);
+
+  if (json) {
+    io.out(JSON.stringify(drops, null, 2));
+    return;
+  }
+
+  const lines: string[] = [];
+  for (const drop of drops) {
+    // drop.item / fromTable / rollExpression all originate from the loot JSON;
+    // sanitize before applying our color codes so no ESC bytes reach the
+    // terminal (ANSI-injection defense).
+    let line = boldYellow(sanitize(drop.item));
+    if (drop.quantity > 1) line += dim(` x${drop.quantity}`);
+    if (drop.rollValue !== undefined) {
+      line += ` ${dim("(")}${green(String(drop.rollValue))}${dim(")")}`;
+      if (drop.rollExpression) line += dim(` [${sanitize(drop.rollExpression)}]`);
+    }
+    lines.push(line);
+  }
+  lines.push("");
+  lines.push(dim(`from: ${sanitize(drops[0]?.fromTable ?? "unknown")}`));
+
+  io.out();
+  io.out(drawBox(lines, "Loot Drop"));
+  io.out();
 }
 
-main();
+// Only auto-execute when invoked as the CLI entry point. Importing this module
+// (e.g. from tests) must NOT run the CLI.
+const isEntry = (() => {
+  if (!process.argv[1]) return false;
+  try {
+    // Compare resolved filesystem paths (handles Windows drive-letter and
+    // slash differences that string-comparing the URLs would miss).
+    return fileURLToPath(import.meta.url) === process.argv[1];
+  } catch {
+    return false;
+  }
+})();
+
+if (isEntry) {
+  process.exit(run(process.argv.slice(2)));
+}
