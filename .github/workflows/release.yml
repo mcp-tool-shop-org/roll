@@ -1,0 +1,107 @@
+name: Release
+
+# Publishes @mcptoolshop/roll to npm via OIDC trusted publishing (NO token) and
+# creates the GitHub Release. The npm Trusted Publisher is bound to THIS file
+# name (release.yml) — do not rename it or the binding breaks.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v2.1.0) — must already be pushed'
+        required: true
+
+permissions:
+  contents: write   # for GitHub Release creation
+  id-token: write   # for npm provenance via Sigstore OIDC
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish to npm + GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install npm >=11.5 in a sandbox for OIDC trusted-publishing auth
+        run: |
+          # Node 22 ships npm 10.9, which signs provenance but cannot negotiate
+          # the OIDC auth path (PUT returns a misleading 404). An in-place
+          # `npm i -g npm@latest` races the bundled arborist and breaks — install
+          # npm@latest into a sandbox dir and shadow the system npm via PATH.
+          SANDBOX="$HOME/.npm-cli-sandbox"
+          mkdir -p "$SANDBOX"
+          pushd "$SANDBOX" >/dev/null
+          echo '{"name":"npm-cli-sandbox","version":"0.0.0","private":true}' > package.json
+          npm install --no-save --no-audit --no-fund --silent npm@latest
+          popd >/dev/null
+          echo "$SANDBOX/node_modules/.bin" >> "$GITHUB_PATH"
+          "$SANDBOX/node_modules/.bin/npm" --version
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches package.json version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.tag.outputs.version }}"
+          echo "Tag: ${{ steps.tag.outputs.tag }} -> ${TAG_VERSION} | package.json: ${PKG_VERSION}"
+          if [ "${PKG_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "::error::Tag ${TAG_VERSION} does not match package.json version ${PKG_VERSION}"
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Verify (build + typecheck + test)
+        run: npm run verify
+
+      - name: npm pack dry-run (shape check)
+        run: npm pack --dry-run
+
+      - name: Publish to npm with provenance (OIDC trusted publisher, no token)
+        run: npm publish --provenance --access public
+
+      - name: Extract CHANGELOG section for the release notes
+        id: notes
+        run: |
+          VERSION="${{ steps.tag.outputs.version }}"
+          awk -v ver="$VERSION" '
+            $0 ~ ("^## " ver "( |$)") {flag=1; next}
+            flag && /^## / {exit}
+            flag {print}
+          ' CHANGELOG.md > release-notes.md
+          if [ -s release-notes.md ]; then
+            echo "have_notes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_notes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if [ "${{ steps.notes.outputs.have_notes }}" = "true" ]; then
+            gh release create "$TAG" --title "roll $TAG" --notes-file release-notes.md --verify-tag
+          else
+            gh release create "$TAG" --title "roll $TAG" --generate-notes --verify-tag
+          fi
