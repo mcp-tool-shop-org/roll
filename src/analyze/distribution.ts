@@ -1,10 +1,110 @@
 import type { ASTNode, ComparePoint, DiceNode, DiceModifier, DiceSides } from "../parser/ast.js";
 import { matchesCompare } from "../engine/pipeline.js";
-import { monteCarloDistribution } from "./montecarlo.js";
+import { monteCarloDistribution, DEFAULT_MONTE_CARLO_SAMPLES } from "./montecarlo.js";
 import { ParseError } from "../parser/parser.js";
 
 /** A probability distribution: value → probability (0..1) */
 export type Distribution = Map<number, number>;
+
+/**
+ * Whether a distribution was computed EXACTLY (closed-form convolution /
+ * enumeration) or ESTIMATED by Monte-Carlo sampling. The product is marketed on
+ * "exact probabilities", so callers MUST be able to tell the two apart — a
+ * sampled estimate is not an exact probability. (P-CORE-001)
+ */
+export type DistributionMethod = "exact" | "monte-carlo";
+
+/** A distribution paired with how it was produced. When `method` is
+ *  "monte-carlo", `samples` is the number of Monte-Carlo iterations used; for
+ *  the exact path `samples` is absent. (P-CORE-001) */
+export interface DistributionWithMethod {
+  distribution: Distribution;
+  method: DistributionMethod;
+  samples?: number;
+}
+
+/**
+ * Modifier families used to ROUTE a dice node to an analysis strategy.
+ * (P-CORE-002)
+ *
+ * Every DiceModifier kind maps to exactly one family via the exhaustive
+ * `classifyModifier` switch below. Adding a new kind to the AST union without
+ * adding a case there is a COMPILE error (the `assertNever` default), which is
+ * the whole point: a new modifier can no longer slip through `tryExact` and get
+ * silently analyzed as plain NdM.
+ *
+ *  - "keep-drop"      — kh/kl/dh/dl: change the kept set, handled by enumeration.
+ *  - "explosion"      — explode/compound/penetrate: extra rolls added to a die.
+ *  - "reroll"         — reroll/reroll_once: a face may be re-rolled.
+ *  - "min-max"        — min/max: per-die clamping of the value.
+ *  - "success-count"  — cs_count/cf_count: count successes/failures (net total).
+ *  - "display-only"   — cs_mark/cf_mark/sort_asc/sort_desc: do NOT change the
+ *                       numeric total, so they are IGNORED for analysis. (Sort
+ *                       reorders dice for display; cs/cf MARK annotate criticals
+ *                       without altering the sum.) Documented explicitly so the
+ *                       "no effect on the distribution" decision is intentional.
+ */
+export type ModifierFamily =
+  | "keep-drop"
+  | "explosion"
+  | "reroll"
+  | "min-max"
+  | "success-count"
+  | "display-only";
+
+/** Compile-time exhaustiveness guard: reaching here means a DiceModifier kind
+ *  was added to the AST union without a case in `classifyModifier`. The `never`
+ *  parameter makes that a type error at the call site. */
+function assertNever(value: never): never {
+  throw new Error(`Unhandled modifier kind: ${JSON.stringify(value)}`);
+}
+
+/**
+ * Classify a single modifier into its analysis family via an EXHAUSTIVE switch
+ * over the kind union. (P-CORE-002)
+ *
+ * This replaces the old set of independent `node.modifiers.some(m => m.kind ===
+ * ...)` probes in `tryExact`. Those probes were not exhaustive: a brand-new
+ * DiceModifier kind matched NONE of them and silently fell through to
+ * `convolveDice`, so the analyzer returned a plain-NdM distribution as if the
+ * new modifier did not exist (silent drift from the engine). Routing through one
+ * exhaustive switch means a new kind forces a compile error HERE — at one site —
+ * instead of mis-analyzing at runtime.
+ */
+export function classifyModifier(mod: Pick<DiceModifier, "kind">): ModifierFamily {
+  switch (mod.kind) {
+    case "kh":
+    case "kl":
+    case "dh":
+    case "dl":
+      return "keep-drop";
+    case "explode":
+    case "compound":
+    case "penetrate":
+      return "explosion";
+    case "reroll":
+    case "reroll_once":
+      return "reroll";
+    case "min":
+    case "max":
+      return "min-max";
+    case "cs_count":
+    case "cf_count":
+      return "success-count";
+    case "cs_mark":
+    case "cf_mark":
+    case "sort_asc":
+    case "sort_desc":
+      // Display-only: these never change the numeric total, so analysis ignores
+      // them. cs_mark/cf_mark annotate criticals; sort_asc/sort_desc reorder
+      // dice for presentation. A plain NdM (or whatever the value-affecting
+      // modifiers produce) is the correct distribution.
+      return "display-only";
+    default:
+      // Exhaustiveness: a new DiceModifier kind reaching here is a compile error.
+      return assertNever(mod.kind);
+  }
+}
 
 // ─── Cost bounds (analyze-path DoS prevention) ───────────────────────────────
 // V1-001 / V1-002: the parser caps dice count (<=10000) and sides (<=1000000),
@@ -558,6 +658,25 @@ function divideDistribution(dist: Distribution, divisor: number): Distribution {
  *     throwing.
  */
 export function computeDistribution(ast: ASTNode): Distribution {
+  return computeDistributionWithMethod(ast).distribution;
+}
+
+/**
+ * Like {@link computeDistribution}, but also reports HOW the distribution was
+ * produced: `method:"exact"` for a closed-form result, or
+ * `method:"monte-carlo"` with a `samples` count when the exact path was
+ * abandoned and a sampled estimate was returned instead. (P-CORE-001)
+ *
+ * This is the method-aware primitive; `computeDistribution` is a thin wrapper
+ * over it that returns just `.distribution`, so existing callers and the public
+ * `computeDistribution` export are unbroken (additive change).
+ *
+ * The two cost guards are unchanged (see `computeDistribution`'s contract):
+ * an over-budget dice count still throws a structured ParseError before any
+ * work; an exact support/compute blow-up still falls back to Monte Carlo —
+ * which is exactly the case this function now LABELS as approximate.
+ */
+export function computeDistributionWithMethod(ast: ASTNode): DistributionWithMethod {
   // Guard 1: input-dice budget — reject the truly absurd before any work.
   const totalDice = countTotalDice(ast);
   if (totalDice > MAX_ANALYZE_DICE) {
@@ -581,8 +700,16 @@ export function computeDistribution(ast: ASTNode): Distribution {
       throw e;
     }
   }
-  if (result) return result;
-  return monteCarloDistribution(ast);
+  if (result) return { distribution: result, method: "exact" };
+
+  // Exact path abandoned → sampled estimate. Surface the method + sample count
+  // so callers know these probabilities are approximate, not exact.
+  const samples = DEFAULT_MONTE_CARLO_SAMPLES;
+  return {
+    distribution: monteCarloDistribution(ast, samples),
+    method: "monte-carlo",
+    samples,
+  };
 }
 
 function tryExact(node: ASTNode): Distribution | null {
@@ -591,18 +718,19 @@ function tryExact(node: ASTNode): Distribution | null {
       return new Map([[node.value, 1]]);
 
     case "dice": {
-      const hasKeepDrop = node.modifiers.some(
-        (m) => m.kind === "kh" || m.kind === "kl" || m.kind === "dh" || m.kind === "dl",
-      );
-      const hasExplosion = node.modifiers.some(
-        (m) => m.kind === "explode" || m.kind === "compound" || m.kind === "penetrate",
-      );
-      const hasReroll = node.modifiers.some(
-        (m) => m.kind === "reroll" || m.kind === "reroll_once",
-      );
-      const hasMinMax = node.modifiers.some(
-        (m) => m.kind === "min" || m.kind === "max",
-      );
+      // P-CORE-002: route by an EXHAUSTIVE classification of each modifier kind,
+      // not independent `.some(m => m.kind === ...)` probes. The probes were not
+      // exhaustive — a new DiceModifier kind matched none and silently fell
+      // through to plain convolveDice (a wrong distribution). classifyModifier's
+      // switch forces a compile error for any unhandled kind, so the family set
+      // below can never silently miss a modifier. (display-only families —
+      // sort/cs_mark/cf_mark — intentionally contribute to NONE of these flags
+      // because they do not change the total.)
+      const families = new Set(node.modifiers.map(classifyModifier));
+      const hasKeepDrop = families.has("keep-drop");
+      const hasExplosion = families.has("explosion");
+      const hasReroll = families.has("reroll");
+      const hasMinMax = families.has("min-max");
       const isSuccessCount = node.resultMode === "success_count";
 
       // Success counting pool (no keep/drop, no explosion)

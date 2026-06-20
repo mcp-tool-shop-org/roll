@@ -3,7 +3,14 @@ import { evaluate } from "../engine/roller.js";
 import { seededRng } from "../engine/random.js";
 import type { Distribution } from "./distribution.js";
 
-const DEFAULT_SAMPLES = 100_000;
+/** Default number of Monte-Carlo iterations. Exported so the analyze path can
+ *  REPORT the exact sample count it used when it falls back to sampling
+ *  (computeDistributionWithMethod surfaces this as `samples`). Keeping it the
+ *  single source of truth means the reported count can never drift from the
+ *  count actually run. (P-CORE-001) */
+export const DEFAULT_MONTE_CARLO_SAMPLES = 100_000;
+
+const DEFAULT_SAMPLES = DEFAULT_MONTE_CARLO_SAMPLES;
 
 /** Monte Carlo simulation to estimate distribution.
  *

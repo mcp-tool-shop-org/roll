@@ -89,10 +89,25 @@ function buildExpression(node: DiceNode): string {
       case "sort_desc":
         expr += "sd";
         break;
-      default:
-        // kh, kl, dh, dl
+      // P-CORE-003: keep/drop are EXPLICIT cases (kh/kl/dh/dl serialize as their
+      // kind + count), and the old catch-all `default` is replaced by an
+      // exhaustive `never` guard. Previously the default emitted `mod.kind` as a
+      // raw string for kh/kl/dh/dl; a NEW modifier kind would have silently
+      // serialized as its raw enum name and failed to round-trip. Now an
+      // unhandled kind is a COMPILE error here, forcing every new kind to get an
+      // intentional serialization. (These four kinds' notation IS their kind
+      // name, so the emitted text is unchanged — the round-trip tests still pass.)
+      case "kh":
+      case "kl":
+      case "dh":
+      case "dl":
         expr += mod.kind;
         if (mod.value !== undefined) expr += mod.value;
+        break;
+      default: {
+        const _exhaustive: never = mod.kind;
+        throw new Error(`Unhandled modifier kind in buildExpression: ${_exhaustive}`);
+      }
     }
   }
 

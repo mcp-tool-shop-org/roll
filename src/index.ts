@@ -22,11 +22,11 @@ export { runPipeline, matchesCompare } from "./engine/pipeline.js";
 export type { PipelineDie, PipelineResult } from "./engine/pipeline.js";
 
 // Analysis
-export { computeDistribution } from "./analyze/distribution.js";
-export type { Distribution } from "./analyze/distribution.js";
+export { computeDistribution, computeDistributionWithMethod, classifyModifier } from "./analyze/distribution.js";
+export type { Distribution, DistributionMethod, DistributionWithMethod, ModifierFamily } from "./analyze/distribution.js";
 export { computeStats, probabilityAtLeast } from "./analyze/stats.js";
 export type { DistributionStats } from "./analyze/stats.js";
-export { monteCarloDistribution } from "./analyze/montecarlo.js";
+export { monteCarloDistribution, DEFAULT_MONTE_CARLO_SAMPLES } from "./analyze/montecarlo.js";
 
 // Loot (V1 — unchanged)
 export { rollLootTable, validateLootTables } from "./loot/table.js";
@@ -51,7 +51,7 @@ export type {
 // Convenience functions
 import { parse as _parse } from "./parser/parser.js";
 import { evaluate as _evaluate } from "./engine/roller.js";
-import { computeDistribution as _computeDist } from "./analyze/distribution.js";
+import { computeDistributionWithMethod as _computeDistWithMethod } from "./analyze/distribution.js";
 import { computeStats as _computeStats, probabilityAtLeast as _probAtLeast } from "./analyze/stats.js";
 import type { RollResult } from "./engine/roller.js";
 import type { RngFn } from "./engine/random.js";
@@ -64,14 +64,23 @@ export function roll(expression: string, rng?: RngFn): RollResult {
   return result;
 }
 
-/** Analyze a dice expression — returns distribution, stats, and a P(>=target) function. */
+/** Analyze a dice expression — returns distribution, stats, a P(>=target)
+ *  function, AND the `method` used to produce the distribution: "exact" for a
+ *  closed-form result, or "monte-carlo" (with a `samples` count) when the
+ *  expression was too complex/large for exact computation and was estimated by
+ *  sampling. Surfacing `method` lets callers honor the "exact probabilities"
+ *  contract — they can tell exact numbers from sampled estimates. (P-CORE-001) */
 export function analyze(expression: string) {
   const ast = _parse(expression);
-  const dist = _computeDist(ast);
+  const { distribution: dist, method, samples } = _computeDistWithMethod(ast);
   const stats = _computeStats(dist);
   return {
     distribution: dist,
     stats,
     probabilityAtLeast: (target: number) => _probAtLeast(dist, target),
+    method,
+    // `samples` is present only for the monte-carlo path; omitted (undefined)
+    // for exact so callers can do `"samples" in result`-style checks cleanly.
+    ...(samples !== undefined ? { samples } : {}),
   };
 }
