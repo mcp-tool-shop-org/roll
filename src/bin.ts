@@ -8,12 +8,12 @@ import { isMainModule } from "./entry.js";
 import { parse } from "./parser/parser.js";
 import type { ASTNode } from "./parser/ast.js";
 import { evaluate } from "./engine/roller.js";
-import { computeDistribution } from "./analyze/distribution.js";
+import { computeDistribution, computeDistributionWithMethod } from "./analyze/distribution.js";
 import { computeStats, probabilityAtLeast } from "./analyze/stats.js";
 import { rollLootTable, validateLootTables, type LootTable } from "./loot/table.js";
-import { formatRollResult, formatStats, formatAtLeast, formatComparison, formatJson } from "./display/format.js";
+import { formatRollResult, formatStats, formatAtLeast, formatComparison, formatJson, formatMethodNote } from "./display/format.js";
 import { renderHistogram } from "./display/histogram.js";
-import { bold, cyan, dim, red, green, boldYellow } from "./display/color.js";
+import { bold, cyan, dim, red, green, boldYellow, setColorEnabled } from "./display/color.js";
 import { drawBox, sanitize } from "./display/box.js";
 
 const require = createRequire(import.meta.url);
@@ -99,8 +99,13 @@ ${bold("Flags:")}
   --loot FILE  Roll on a JSON loot table
   --times N    Roll multiple times (default: 1, max ${MAX_TIMES})
   --json       Output as JSON
+  --no-color   Disable ANSI color for this run (NO_COLOR env also honored)
   --help       Show this help
   --version    Show version
+
+${bold("Exit codes:")}
+  0  Success
+  1  Any error (bad expression, validation failure, missing loot file, cap exceeded)
 `;
 
 /**
@@ -188,10 +193,17 @@ function dispatch(argv: string[], io: IO): void {
       loot: { type: "string" },
       times: { type: "string", default: "1" },
       json: { type: "boolean", default: false },
+      "no-color": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
     },
   });
+
+  // Per-invocation color suppression. NO_COLOR (env) still wins inside
+  // setColorEnabled, so this only ever turns color OFF, never forces it on.
+  if (values["no-color"]) {
+    setColorEnabled(false);
+  }
 
   if (values.help) {
     io.out(USAGE);
@@ -319,12 +331,20 @@ function handleRoll(expression: string, times: number, json: boolean, io: IO): v
 
 function handleAnalyze(expression: string, json: boolean, io: IO): void {
   const ast = parse(expression);
-  const dist = computeDistribution(ast);
+  // Use the method-aware primitive so we can tell the user whether these numbers
+  // are exact or a Monte-Carlo estimate (P-CORE-001 consumer side).
+  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
   const stats = computeStats(dist);
 
   if (json) {
     const entries = [...dist.entries()].sort((a, b) => a[0] - b[0]);
-    io.out(JSON.stringify({ expression, stats, distribution: entries }, null, 2));
+    io.out(
+      JSON.stringify(
+        { expression, method, ...(samples !== undefined ? { samples } : {}), stats, distribution: entries },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -332,21 +352,31 @@ function handleAnalyze(expression: string, json: boolean, io: IO): void {
   io.out(renderHistogram(dist, stats));
   io.out();
   io.out(formatStats(stats));
+  // Honest labeling: only call out the estimate when sampled; a quiet "exact"
+  // note otherwise. This is the user-facing half of the exactness win.
+  io.out(formatMethodNote(method, samples));
   io.out();
 }
 
 function handleAtLeast(expression: string, target: number, json: boolean, io: IO): void {
   const ast = parse(expression);
-  const dist = computeDistribution(ast);
+  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
   const prob = probabilityAtLeast(dist, target);
 
   if (json) {
-    io.out(JSON.stringify({ expression, target, probability: prob }, null, 2));
+    io.out(
+      JSON.stringify(
+        { expression, target, probability: prob, method, ...(samples !== undefined ? { samples } : {}) },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
   io.out();
   io.out(formatAtLeast(target, prob, expression));
+  io.out(formatMethodNote(method, samples));
   io.out();
 }
 

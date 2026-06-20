@@ -281,7 +281,7 @@ describe("M4 — HTTP transport hardening", () => {
 
   beforeEach(async () => {
     // Bind to an ephemeral loopback port in-process (no child process).
-    server = runHttp(0, "127.0.0.1");
+    server = runHttp(0, "127.0.0.1", { info: () => {}, error: () => {} });
     await new Promise<void>((resolve) => server.once("listening", resolve));
     const addr = server.address() as AddressInfo;
     base = `http://127.0.0.1:${addr.port}`;

@@ -9,12 +9,24 @@ import { TOOLS } from "./tools.js";
 import { parse, ParseError } from "../parser/parser.js";
 import { LexerError } from "../parser/lexer.js";
 import { evaluate } from "../engine/roller.js";
-import { computeDistribution } from "../analyze/distribution.js";
+import { computeDistributionWithMethod } from "../analyze/distribution.js";
 import { computeStats, probabilityAtLeast } from "../analyze/stats.js";
 import { seededRng, cryptoRng } from "../engine/random.js";
 import { rollGameTable } from "../tables/engine.js";
 import type { RngFn } from "../engine/random.js";
 import type { GameTableCollection, TableContext } from "../tables/schema.js";
+// P-BND-007: one shared error taxonomy. Both transports speak the same JSON-RPC
+// codes — import the named RPC_* constants from the bridge protocol instead of
+// re-hardcoding -32700/-32600/-32601/-32602 as raw literals here.
+import {
+  RPC_PARSE_ERROR,
+  RPC_INVALID_REQUEST,
+  RPC_METHOD_NOT_FOUND,
+  RPC_INVALID_PARAMS,
+  RPC_INTERNAL_ERROR,
+  stderrLogger,
+} from "../bridge/protocol.js";
+import type { Logger } from "../bridge/protocol.js";
 
 // ─── MCP Protocol types ──────────────────────────────────────────────────────
 
@@ -126,6 +138,31 @@ const CAPABILITIES = {
   tools: {},
 };
 
+/** The MCP protocol version this server implements when the client does not
+ *  request one. `initialize` echoes the client's requested version when present
+ *  (P-BND-005) so negotiation is honest. */
+const DEFAULT_PROTOCOL_VERSION = "2024-11-05";
+
+// ─── Logger seam (P-BND-001) ─────────────────────────────────────────────────
+// Internal-error detail was written ad-hoc to process.stderr. Route it through
+// an injectable sink so a host can silence/redirect and tests can capture it
+// (defaults to the shared process.stderr-backed logger).
+let activeLogger: Logger = stderrLogger;
+
+/** Override the MCP server's log sink. Exported as a test/host seam. */
+export function setLogger(logger: Logger): void {
+  activeLogger = logger;
+}
+
+/** Spread-able method/samples fields for analyze-style results (P-CORE-001 wire
+ *  surfacing). `samples` is present ONLY for the monte-carlo path. */
+function methodFields(
+  method: "exact" | "monte-carlo",
+  samples: number | undefined,
+): { method: "exact" | "monte-carlo"; samples?: number } {
+  return samples !== undefined ? { method, samples } : { method };
+}
+
 // ─── Tool handlers ───────────────────────────────────────────────────────────
 
 function handleToolCall(name: string, args: Record<string, unknown>): unknown {
@@ -149,11 +186,13 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
     case "analyze_dice": {
       const expression = requireString(args, "expression");
       const ast = parse(expression);
-      const dist = computeDistribution(ast);
+      const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
       const stats = computeStats(dist);
       const distribution = [...dist.entries()].sort((a, b) => a[0] - b[0]);
 
-      const result: Record<string, unknown> = { stats, distribution };
+      // Surface HOW the probability was produced (exact vs monte-carlo, with the
+      // sample count) so Claude clients know whether it is exact or sampled.
+      const result: Record<string, unknown> = { stats, distribution, ...methodFields(method, samples) };
       const atLeast = optionalNumber(args, "at_least");
       if (atLeast !== undefined) {
         result.atLeastProbability = probabilityAtLeast(dist, atLeast);
@@ -168,8 +207,8 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
 
       const analyze = (expr: string) => {
         const ast = parse(expr);
-        const dist = computeDistribution(ast);
-        return { expression: expr, stats: computeStats(dist) };
+        const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+        return { expression: expr, stats: computeStats(dist), ...methodFields(method, samples) };
       };
 
       return [analyze(exprA), analyze(exprB)];
@@ -208,16 +247,24 @@ export function handleRequest(request: McpRequest): McpResponse {
 
   try {
     switch (method) {
-      case "initialize":
+      case "initialize": {
+        // P-BND-005: honest negotiation — echo the client's requested
+        // protocolVersion when present, falling back to the server default.
+        const requested = params?.protocolVersion;
+        const protocolVersion =
+          typeof requested === "string" && requested.length > 0
+            ? requested
+            : DEFAULT_PROTOCOL_VERSION;
         return {
           jsonrpc: "2.0",
           id,
           result: {
-            protocolVersion: "2024-11-05",
+            protocolVersion,
             serverInfo: SERVER_INFO,
             capabilities: CAPABILITIES,
           },
         };
+      }
 
       case "notifications/initialized":
         // Client acknowledgment — no response needed for notifications
@@ -239,7 +286,7 @@ export function handleRequest(request: McpRequest): McpResponse {
           return {
             jsonrpc: "2.0",
             id,
-            error: { code: -32602, message: "Missing tool name" },
+            error: { code: RPC_INVALID_PARAMS, message: "Missing tool name" },
           };
         }
 
@@ -263,7 +310,7 @@ export function handleRequest(request: McpRequest): McpResponse {
         return {
           jsonrpc: "2.0",
           id,
-          error: { code: -32601, message: `Unknown method: ${method}` },
+          error: { code: RPC_METHOD_NOT_FOUND, message: `Unknown method: ${method}` },
         };
     }
   } catch (e) {
@@ -284,7 +331,7 @@ export function handleRequest(request: McpRequest): McpResponse {
     }
 
     const detail = e instanceof Error ? e.stack ?? e.message : String(e);
-    process.stderr.write(`[roll-mcp] internal error: ${detail}\n`);
+    activeLogger.error(`[roll-mcp] internal error: ${detail}`);
     return {
       jsonrpc: "2.0",
       id,
@@ -309,14 +356,14 @@ export function dispatch(raw: string): McpResponse | McpResponse[] | null {
     parsed = JSON.parse(raw);
   } catch {
     // Preserve a null id per JSON-RPC 2.0 (id unknown on parse failure).
-    return { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } };
+    return { jsonrpc: "2.0", id: null, error: { code: RPC_PARSE_ERROR, message: "Parse error" } };
   }
 
   // JSON-RPC 2.0 batch: an array of requests. Process each element, dropping
   // notification (no-id) responses; an all-notification batch yields nothing.
   if (Array.isArray(parsed)) {
     if (parsed.length === 0) {
-      return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request: empty batch" } };
+      return { jsonrpc: "2.0", id: null, error: { code: RPC_INVALID_REQUEST, message: "Invalid request: empty batch" } };
     }
     const responses: McpResponse[] = [];
     for (const item of parsed) {
@@ -333,7 +380,7 @@ export function dispatch(raw: string): McpResponse | McpResponse[] | null {
  *  notifications (requests with no id). */
 function dispatchOne(parsed: unknown): McpResponse | null {
   if (typeof parsed !== "object" || parsed === null) {
-    return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid request" } };
+    return { jsonrpc: "2.0", id: null, error: { code: RPC_INVALID_REQUEST, message: "Invalid request" } };
   }
   const request = parsed as McpRequest;
 
@@ -344,26 +391,99 @@ function dispatchOne(parsed: unknown): McpResponse | null {
     return {
       jsonrpc: "2.0",
       id: request.id,
-      error: { code: -32600, message: "Invalid request: missing method" },
+      error: { code: RPC_INVALID_REQUEST, message: "Invalid request: missing method" },
     };
   }
 
   return handleRequest(request);
 }
 
+// ─── Observability (P-BND-002) ───────────────────────────────────────────────
+
+/** Opt-in: ON when --verbose or env ROLL_BRIDGE_DEBUG is set. OFF by default
+ *  (quiet operation unchanged). Shared env name with the bridge transport. */
+function isDebugEnabled(flag: boolean): boolean {
+  if (flag) return true;
+  const env = process.env.ROLL_BRIDGE_DEBUG;
+  return env !== undefined && env !== "" && env !== "0" && env.toLowerCase() !== "false";
+}
+
+/**
+ * Emit one structured trace line per request when debug is on (P-BND-002):
+ * method, id, outcome (ok|error), error code. Best-effort; never throws into the
+ * hot path. A batch logs one line per element. Notification-only inputs (a null
+ * dispatch result) log nothing — they produce no response.
+ */
+function traceRequest(
+  logger: Logger,
+  raw: string,
+  response: McpResponse | McpResponse[] | null,
+): void {
+  if (response === null) return;
+  try {
+    const responses = Array.isArray(response) ? response : [response];
+    let requests: unknown[];
+    try {
+      const parsed = JSON.parse(raw);
+      requests = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      requests = [];
+    }
+    responses.forEach((res, i) => {
+      const reqItem = requests[i] as { method?: unknown } | undefined;
+      const method = typeof reqItem?.method === "string" ? reqItem.method : "?";
+      const outcome = res.error ? "error" : "ok";
+      const code = res.error ? ` code=${res.error.code}` : "";
+      logger.info(`[roll-mcp] method=${method} id=${String(res.id)} outcome=${outcome}${code}`);
+    });
+  } catch {
+    // Observability must never break request handling.
+  }
+}
+
 // ─── Stdio transport ─────────────────────────────────────────────────────────
 
 function main(): void {
+  const verbose = process.argv.includes("--verbose");
+  const debug = isDebugEnabled(verbose);
+
+  // P-BND-009: top-level resilience. An uncaught exception / unhandled rejection
+  // is logged via the seam and does NOT tear the server down — the MCP loop is
+  // long-lived; one stray async fault must not stop it serving.
+  process.on("uncaughtException", (e) => {
+    activeLogger.error(`[roll-mcp] uncaughtException: ${e instanceof Error ? e.stack ?? e.message : String(e)}`);
+  });
+  process.on("unhandledRejection", (reason) => {
+    activeLogger.error(`[roll-mcp] unhandledRejection: ${reason instanceof Error ? reason.stack ?? reason.message : String(reason)}`);
+  });
+
   const rl = createInterface({ input: process.stdin, terminal: false });
 
   rl.on("line", (line) => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
+    // P-BND-009: graceful degradation — a fault in handling OR serializing ONE
+    // line must not crash the loop. Emit a generic INTERNAL_ERROR response and
+    // keep serving. (dispatch is already total; this also covers the
+    // JSON.stringify write of any future non-serializable result.)
+    try {
+      const trimmed = line.trim();
+      if (!trimmed) return;
 
-    const response = dispatch(trimmed);
-    // `null` → notification(s) with no response; emit nothing.
-    if (response === null) return;
-    process.stdout.write(JSON.stringify(response) + "\n");
+      const response = dispatch(trimmed);
+      if (debug) traceRequest(activeLogger, trimmed, response);
+      // `null` → notification(s) with no response; emit nothing.
+      if (response === null) return;
+      process.stdout.write(JSON.stringify(response) + "\n");
+    } catch (e) {
+      const detail = e instanceof Error ? e.stack ?? e.message : String(e);
+      activeLogger.error(`[roll-mcp] line handler fault: ${detail}`);
+      try {
+        process.stdout.write(
+          JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: RPC_INTERNAL_ERROR, message: "Internal error" } }) + "\n",
+        );
+      } catch {
+        /* stdout itself failed — keep serving. */
+      }
+    }
   });
 
   rl.on("close", () => process.exit(0));

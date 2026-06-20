@@ -75,6 +75,21 @@ export function formatRollResult(result: RollResult, expression: string): string
   return drawBox(lines, `${cyan("roll")} ${expression}`);
 }
 
+/**
+ * One-line honesty note for analysis output: whether the probabilities are
+ * exact or a Monte-Carlo estimate. The product is marketed on "exact
+ * probabilities", so when the analyzer falls back to sampling we say so plainly
+ * (with the sample count) rather than presenting estimates as exact. For the
+ * exact path we return a quiet "exact" note. (P-CORE-001 consumer side.)
+ */
+export function formatMethodNote(method: "exact" | "monte-carlo", samples?: number): string {
+  if (method === "monte-carlo") {
+    const n = samples !== undefined ? ` (${samples.toLocaleString()} samples)` : "";
+    return dim("~ ") + yellow(`estimated via Monte Carlo${n} — not exact`);
+  }
+  return dim("exact probabilities");
+}
+
 /** Format stats summary for terminal display. */
 export function formatStats(stats: DistributionStats): string {
   const lines: string[] = [];

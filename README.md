@@ -63,7 +63,28 @@ roll --compare "4d6dl1" "3d6"     # Side-by-side distributions
 roll --loot treasure.json         # Loot table
 roll 2d6+3 --times 5              # Multiple rolls
 roll 2d6+3 --json                 # Machine-readable output
+roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 ```
+
+### Color
+
+Color is on by default. Disable it two ways:
+
+- `--no-color` — suppresses ANSI styling for a single invocation
+- `NO_COLOR=1` (environment variable) — honored per the [NO_COLOR](https://no-color.org/) standard
+
+When the analyzer falls back to Monte Carlo for a large or complex expression, `--analyze` and `--at-least` label the result as estimated (with the sample count) instead of presenting sampled numbers as exact. Exact results are noted as such. The `--json` output carries a `method` field (`"exact"` or `"monte-carlo"`, with `samples` when sampled) so machine consumers can tell them apart too.
+
+### Exit codes
+
+Roll follows a deliberate two-code contract — a stability promise scripts can rely on:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Any error — bad expression, validation failure, missing loot file, or a cap exceeded |
+
+Errors always print a single clean line (code/message/hint) to stderr; the CLI never leaks a stack trace.
 
 ## Game Tables
 
@@ -112,6 +133,21 @@ import { seededRng, parse, evaluate } from '@mcptoolshop/roll';
 const ast = parse('4d6kh3');
 const r = evaluate(ast, seededRng(42));       // reproducible
 ```
+
+### Stability
+
+The **high-level API is stable** and follows semver — breaking changes only on a major bump:
+
+- `roll`, `analyze`
+- the loot APIs (`rollLootTable`, `validateLootTables`) and game-table APIs (`rollGameTable`)
+- the `BridgeHandler` JSON-RPC surface
+
+**Low-level parser internals are advanced and may change in minor versions** — use them only if you need to walk the AST yourself, and pin a version if you depend on them:
+
+- `tokenize`, `Token`, `TokenType`
+- `runPipeline`, `matchesCompare`
+
+`analyze` also reports `.method` (`"exact"` | `"monte-carlo"`) and, for the sampled path, `.samples` — so callers can honor the exact-probabilities contract programmatically.
 
 ## JSON Bridge (Godot / Unreal / Rust)
 

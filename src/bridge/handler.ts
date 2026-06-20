@@ -9,6 +9,7 @@ import type {
   TableRollParams,
   TableLoadParams,
   SeedParams,
+  Logger,
 } from "./protocol.js";
 import {
   RPC_METHOD_NOT_FOUND,
@@ -16,11 +17,13 @@ import {
   RPC_INTERNAL_ERROR,
   RPC_PARSE_ERROR,
   RPC_INVALID_REQUEST,
+  stderrLogger,
 } from "./protocol.js";
 import { parse, ParseError } from "../parser/parser.js";
 import { LexerError } from "../parser/lexer.js";
 import { evaluate } from "../engine/roller.js";
-import { computeDistribution } from "../analyze/distribution.js";
+import { computeDistributionWithMethod } from "../analyze/distribution.js";
+import type { DistributionWithMethod } from "../analyze/distribution.js";
 import { computeStats, probabilityAtLeast } from "../analyze/stats.js";
 import { cryptoRng, seededRng } from "../engine/random.js";
 import { rollGameTable } from "../tables/engine.js";
@@ -30,6 +33,18 @@ import type { GameTableCollection, TableContext } from "../tables/schema.js";
 export class BridgeHandler {
   private rng: RngFn = cryptoRng;
   private tables = new Map<string, GameTableCollection>();
+  private readonly logger: Logger;
+
+  /**
+   * @param logger  injectable log sink for internal-error detail (P-BND-001).
+   *   Defaults to the process.stderr-backed sink. A host can silence/redirect
+   *   logs; tests inject a capturing or no-op sink. Internal exception text is
+   *   logged here ONLY — it never crosses the wire (the client gets a generic
+   *   "Internal error").
+   */
+  constructor(logger: Logger = stderrLogger) {
+    this.logger = logger;
+  }
 
   /** Set a deterministic seed for all subsequent rolls. */
   setSeed(seed: number): void {
@@ -151,11 +166,21 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "seed must be a number");
           }
           const rng = p.seed !== undefined ? seededRng(p.seed) : this.rng;
+          // P-BND-008: per-item resilience. One bad expression must NOT void the
+          // whole batch. Each entry is parsed+evaluated in its own try/catch; a
+          // failure yields a `{ expression, error }` entry (with the curated
+          // ParseError/LexerError message) alongside the successful results,
+          // preserving order. Unexpected internal faults still surface a generic
+          // message and are logged server-side (never leaked).
           const results = p.expressions.map((expr) => {
-            const ast = parse(expr);
-            const result = evaluate(ast, rng);
-            result.expression = expr;
-            return result;
+            try {
+              const ast = parse(expr);
+              const result = evaluate(ast, rng);
+              result.expression = expr;
+              return result;
+            } catch (e) {
+              return { expression: expr, error: this.safeItemError(e) };
+            }
           });
           return ok(id, results);
         }
@@ -166,11 +191,13 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression parameter");
           }
           const ast = parse(p.expression);
-          const dist = computeDistribution(ast);
+          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
           const stats = computeStats(dist);
           // Convert Map to array of tuples for JSON serialization
           const distribution = [...dist.entries()].sort((a, b) => a[0] - b[0]);
-          return ok(id, { stats, distribution });
+          // Surface HOW the probability was produced so clients know whether it
+          // is exact or a Monte-Carlo estimate (and how many samples). (Additive.)
+          return ok(id, { stats, distribution, ...methodFields(method, samples) });
         }
 
         case "at_least": {
@@ -179,9 +206,9 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression or target parameter");
           }
           const ast = parse(p.expression);
-          const dist = computeDistribution(ast);
+          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
           const probability = probabilityAtLeast(dist, p.target);
-          return ok(id, { probability, target: p.target });
+          return ok(id, { probability, target: p.target, ...methodFields(method, samples) });
         }
 
         case "compare": {
@@ -191,8 +218,8 @@ export class BridgeHandler {
           }
           const results = p.expressions.map((expr) => {
             const ast = parse(expr);
-            const dist = computeDistribution(ast);
-            return { expression: expr, stats: computeStats(dist) };
+            const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+            return { expression: expr, stats: computeStats(dist), ...methodFields(method, samples) };
           });
           return ok(id, results);
         }
@@ -251,10 +278,34 @@ export class BridgeHandler {
         return err(id, RPC_INVALID_PARAMS, e.message);
       }
       const detail = e instanceof Error ? e.stack ?? e.message : String(e);
-      process.stderr.write(`[roll-bridge] internal error: ${detail}\n`);
+      this.logger.error(`[roll-bridge] internal error: ${detail}`);
       return err(id, RPC_INTERNAL_ERROR, "Internal error");
     }
   }
+
+  /**
+   * Reduce a per-item failure (P-BND-008) to a safe, client-facing message.
+   * ParseError/LexerError carry curated text that is safe to return. Anything
+   * else is an unexpected fault: log the detail server-side (via the seam) and
+   * return a GENERIC message so internal exception text never crosses the wire.
+   */
+  private safeItemError(e: unknown): string {
+    if (e instanceof ParseError || e instanceof LexerError) {
+      return e.message;
+    }
+    const detail = e instanceof Error ? e.stack ?? e.message : String(e);
+    this.logger.error(`[roll-bridge] internal error (batch item): ${detail}`);
+    return "Internal error";
+  }
+}
+
+/** Spread-able method/samples fields for analyze-style results (P-CORE-001 wire
+ *  surfacing). `samples` is present ONLY for the monte-carlo path. */
+function methodFields(
+  method: DistributionWithMethod["method"],
+  samples: DistributionWithMethod["samples"],
+): { method: DistributionWithMethod["method"]; samples?: number } {
+  return samples !== undefined ? { method, samples } : { method };
 }
 
 /** Upper bound on repeat-count style params at the boundary. */
