@@ -29,6 +29,9 @@ export function renderHistogram(
   const maxLabel = Math.max(...entries.map(([v]) => String(v).length));
   const barWidth = Math.min(maxWidth, (process.stdout.columns || 80) - maxLabel - 15);
 
+  let sawMode = false;
+  let sawMedian = false;
+
   for (const [value, prob] of entries) {
     const label = String(value).padStart(maxLabel);
     const barLen = Math.round((prob / denom) * barWidth);
@@ -38,6 +41,8 @@ export function renderHistogram(
     // Highlight mode
     const isMode = value === stats.mode;
     const isMedian = value === stats.median;
+    if (isMode) sawMode = true;
+    if (isMedian) sawMedian = true;
 
     let prefix = "  ";
     if (isMode && isMedian) prefix = bold("M>");
@@ -48,6 +53,17 @@ export function renderHistogram(
     const coloredPct = isMode ? bold(pctStr) : dim(pctStr);
 
     lines.push(`${prefix}${dim(label)} ${coloredBar} ${coloredPct}`);
+  }
+
+  // Legend for the row markers, so M>/*>/~> aren't cryptic. Only show the keys
+  // that actually appear in this chart.
+  if (sawMode || sawMedian) {
+    const keys: string[] = [];
+    if (sawMode && sawMedian) keys.push(`${bold("M")} mode+median`);
+    if (sawMode) keys.push(`${bold("*")} mode`);
+    if (sawMedian) keys.push(`~ median`);
+    lines.push("");
+    lines.push(dim(`  ${keys.join("   ")}`));
   }
 
   return lines.join("\n");

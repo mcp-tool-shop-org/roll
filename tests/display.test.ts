@@ -97,6 +97,33 @@ describe("histogram NaN guard (F-DC-006)", () => {
   });
 });
 
+describe("histogram marker legend (Stage D polish)", () => {
+  it("documents the M/*/~ markers so they are not cryptic", () => {
+    const dist: Distribution = new Map([
+      [1, 0.2],
+      [2, 0.6], // mode + median
+      [3, 0.2],
+    ]);
+    const stats = makeStats({ min: 1, max: 3, median: 2, mode: 2 });
+    // Legend words ("mode"/"median") are plain text, not styled, so a raw
+    // substring check works whether or not color is active.
+    const out = renderHistogram(dist, stats);
+    expect(out).toContain("mode");
+    expect(out).toContain("median");
+  });
+
+  it("omits the legend when there is no mode/median in range", () => {
+    const dist: Distribution = new Map([
+      [1, 0.5],
+      [2, 0.5],
+    ]);
+    // mode/median fall outside the displayed values → no markers, no legend.
+    const stats = makeStats({ min: 1, max: 2, median: 99, mode: 99 });
+    const out = renderHistogram(dist, stats);
+    expect(out).not.toContain("median");
+  });
+});
+
 describe("formatJson stable shape", () => {
   it("emits expression/total/groups with per-die value+kept", () => {
     const result: RollResult = {

@@ -32,11 +32,11 @@ describe("cli: exact-vs-estimate labeling (P-CORE-001 consumer side)", () => {
   it("--analyze 2d6 does NOT claim an estimate (it is exact)", () => {
     const r = cli("--analyze", "2d6");
     expect(r.code).toBe(0);
-    // No Monte-Carlo / estimate language on an exact result.
+    // No Monte-Carlo / estimate language on an exact result. (We check for the
+    // specific estimate wording, not a bare "~" — "~" is also the legitimate
+    // histogram median marker / legend key, which is unrelated to estimation.)
     expect(r.out.toLowerCase()).not.toContain("monte carlo");
     expect(r.out.toLowerCase()).not.toContain("estimat");
-    // And no "~" approximation prefix smuggled in front of stats.
-    expect(r.out).not.toContain("~");
   });
 
   it("--analyze 500d1000 IS labeled as a Monte-Carlo estimate", () => {
