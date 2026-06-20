@@ -114,3 +114,119 @@ export function probabilityAtLeast(dist: Distribution, target: number): number {
   }
   return prob;
 }
+
+// ─── Point / range queries (FT-ANA-003) ──────────────────────────────────────
+// Mirror probabilityAtLeast: each is a small linear sum over the distribution
+// Map. They make no normalization assumption — a truncated exploding-dice
+// distribution that sums to slightly under 1 returns slightly-under-1 mass,
+// matching the raw probabilities the caller holds (the same convention
+// probabilityAtLeast already uses).
+
+/** Compute P(result <= x). */
+export function probabilityAtMost(dist: Distribution, x: number): number {
+  let prob = 0;
+  for (const [v, p] of dist) {
+    if (v <= x) prob += p;
+  }
+  return prob;
+}
+
+/** Compute P(result === x). Zero when x is outside the support. */
+export function probabilityExactly(dist: Distribution, x: number): number {
+  return dist.get(x) ?? 0;
+}
+
+/** Compute P(lo <= result <= hi), inclusive on both ends. */
+export function probabilityInRange(dist: Distribution, lo: number, hi: number): number {
+  let prob = 0;
+  for (const [v, p] of dist) {
+    if (v >= lo && v <= hi) prob += p;
+  }
+  return prob;
+}
+
+// ─── Cumulative / survival distributions (FT-ANA-004) ─────────────────────────
+
+/** Cumulative distribution function: for each value v carrying mass (sorted
+ *  ascending), map v → P(X <= v) as a running sum. The last entry equals the
+ *  total mass (~1 for a normalized distribution). */
+export function cumulativeDistribution(dist: Distribution): Map<number, number> {
+  const sorted = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+  const cdf = new Map<number, number>();
+  let cumulative = 0;
+  for (const [v, p] of sorted) {
+    cumulative += p;
+    cdf.set(v, cumulative);
+  }
+  return cdf;
+}
+
+/** Survival (complementary CDF): for each value v carrying mass (sorted
+ *  ascending), map v → P(X >= v). The first entry equals the total mass. */
+export function survivalDistribution(dist: Distribution): Map<number, number> {
+  const sorted = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  for (const [, p] of sorted) total += p;
+  const surv = new Map<number, number>();
+  let below = 0; // mass strictly below the current value
+  for (const [v, p] of sorted) {
+    surv.set(v, total - below);
+    below += p;
+  }
+  return surv;
+}
+
+// ─── Break-even / target solver (FT-ANA-005) ──────────────────────────────────
+
+/**
+ * Find the smallest target T (a value carrying mass) such that:
+ *   - direction "atLeast": P(X >= T) >= p, or
+ *   - direction "atMost":  P(X <= T) >= p.
+ *
+ * "Break-even" / "what number do I need" solver. Walks the support in sorted
+ * order computing the running (C)CDF, returning the first value that clears the
+ * threshold p.
+ *
+ * For "atLeast" the survival mass DECREASES as T rises, so the smallest
+ * qualifying T is the LARGEST value still meeting the bar — we walk ascending
+ * and keep the highest value whose survival mass is still >= p. For "atMost" the
+ * cumulative mass INCREASES as T rises, so we return the first value whose CDF
+ * reaches p. Empty distributions return 0.
+ */
+export function targetForProbability(
+  dist: Distribution,
+  p: number,
+  direction: "atLeast" | "atMost" = "atLeast",
+): number {
+  const sorted = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+  if (sorted.length === 0) return 0;
+
+  if (direction === "atMost") {
+    // Smallest T with P(X <= T) >= p: first value whose cumulative mass clears p.
+    let cumulative = 0;
+    for (const [v, prob] of sorted) {
+      cumulative += prob;
+      if (cumulative >= p - 1e-12) return v;
+    }
+    // Floating-point shortfall under p (e.g. truncated mass): the max value is
+    // the best achievable target.
+    return sorted[sorted.length - 1]![0];
+  }
+
+  // direction === "atLeast": the break-even target. Survival mass P(X >= v) is
+  // monotonically non-increasing as v rises, so the constraint P(X >= T) >= p is
+  // easiest for small T (the minimum value trivially maximizes survival). The
+  // useful "what number do I need" answer is the LARGEST T still meeting the
+  // bar — the highest value you can require and still clear it with probability
+  // >= p. Walk ascending, keep the highest value whose survival clears p.
+  let answer = sorted[0]![0]; // minimum value: trivially satisfies any p<=total
+  let total = 0;
+  for (const [, prob] of sorted) total += prob;
+  let cumulative = 0;
+  for (const [v, prob] of sorted) {
+    const survival = total - cumulative; // P(X >= v)
+    if (survival >= p - 1e-12) answer = v;
+    cumulative += prob;
+  }
+  return answer;
+}

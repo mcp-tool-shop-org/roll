@@ -826,3 +826,62 @@ function tryExact(node: ASTNode): Distribution | null {
     }
   }
 }
+
+// ─── Distribution comparison (FT-ANA-002) ─────────────────────────────────────
+
+/**
+ * Negate a distribution: map every value v → -v (the distribution of -X).
+ * Public, additive helper used by {@link compareDistributions} to express
+ * A − B as A convolved with (−B). (Internally `scaleDistribution(dist, -1)`
+ * does the same, but it is private; this is the exported, named negate helper.)
+ */
+export function negateDistribution(dist: Distribution): Distribution {
+  const result: Distribution = new Map();
+  for (const [v, p] of dist) {
+    result.set(-v, (result.get(-v) ?? 0) + p);
+  }
+  return result;
+}
+
+/** The result of comparing two distributions as a head-to-head contest. */
+export interface DistributionComparison {
+  /** P(A > B). */
+  pAGreater: number;
+  /** P(A === B) — the tie mass. */
+  pEqual: number;
+  /** P(B > A). */
+  pBGreater: number;
+  /** The distribution of the margin (A − B). Mass at key > 0 ⇒ A wins by that
+   *  much; key < 0 ⇒ B wins; key 0 ⇒ tie. */
+  margin: Distribution;
+}
+
+/**
+ * Compare two independent distributions as a probability contest. Builds the
+ * margin distribution of (A − B) by convolving A with the negation of B, then
+ * reads off the three outcome probabilities from the margin's mass:
+ *   - pAGreater = total mass at keys > 0
+ *   - pEqual    = mass at key 0
+ *   - pBGreater = total mass at keys < 0
+ *
+ * The three probabilities sum to the total mass of A×B (≈ 1 for normalized
+ * inputs). Reuses the module's exact `convolve` (so the margin is computed
+ * exactly when A and B are exact) and the public `negateDistribution`. (FT-ANA-002)
+ */
+export function compareDistributions(
+  a: Distribution,
+  b: Distribution,
+): DistributionComparison {
+  const margin = convolve(a, negateDistribution(b));
+
+  let pAGreater = 0;
+  let pEqual = 0;
+  let pBGreater = 0;
+  for (const [v, p] of margin) {
+    if (v > 0) pAGreater += p;
+    else if (v < 0) pBGreater += p;
+    else pEqual += p;
+  }
+
+  return { pAGreater, pEqual, pBGreater, margin };
+}
