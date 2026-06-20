@@ -36,8 +36,10 @@ export function computeStats(dist: Distribution): DistributionStats {
       ? rawEntries.map(([v, p]) => [v, p / norm])
       : rawEntries;
 
-  const min = entries[0][0];
-  const max = entries[entries.length - 1][0];
+  // entries is non-empty (rawEntries.length === 0 returned early above), so the
+  // first and last elements are always defined.
+  const min = entries[0]![0];
+  const max = entries[entries.length - 1]![0];
 
   // Mean
   let mean = 0;
@@ -46,7 +48,7 @@ export function computeStats(dist: Distribution): DistributionStats {
   }
 
   // Mode (highest probability value)
-  let mode = entries[0][0];
+  let mode = entries[0]![0];
   let modeProbability = 0;
   for (const [v, p] of entries) {
     if (p > modeProbability) {
@@ -67,15 +69,16 @@ export function computeStats(dist: Distribution): DistributionStats {
   const percentiles: Record<number, number> = {};
   let cumulative = 0;
   let percentileIndex = 0;
-  const lastValue = entries[entries.length - 1][0]; // max value carrying mass
+  const lastValue = entries[entries.length - 1]![0]; // max value carrying mass
 
   for (const [v, p] of entries) {
     cumulative += p;
     while (
       percentileIndex < percentileKeys.length &&
-      cumulative >= percentileKeys[percentileIndex] / 100
+      // percentileIndex < percentileKeys.length here, so the key is defined.
+      cumulative >= percentileKeys[percentileIndex]! / 100
     ) {
-      percentiles[percentileKeys[percentileIndex]] = v;
+      percentiles[percentileKeys[percentileIndex]!] = v;
       percentileIndex++;
     }
   }

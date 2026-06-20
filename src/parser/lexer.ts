@@ -123,13 +123,15 @@ export function tokenize(input: string): Token[] {
     }
 
     const pos = i;
-    const ch = input[i];
+    // Guarded by the `while (i < input.length)` loop condition above, so
+    // `input[i]` is always a defined character here.
+    const ch = input[i]!;
 
     // Numbers
     if (ch >= "0" && ch <= "9") {
       let num = "";
-      while (i < input.length && input[i] >= "0" && input[i] <= "9") {
-        num += input[i];
+      while (i < input.length && input[i]! >= "0" && input[i]! <= "9") {
+        num += input[i]!;
         i++;
       }
       tokens.push({ type: TokenType.NUMBER, value: num, position: pos });
@@ -188,10 +190,11 @@ export function tokenize(input: string): Token[] {
         break;
       case "!":
         // Peek ahead: !! = compound, !p = penetrate, ! = explode
+        // `input[i + 1]` is guarded by `i + 1 < input.length` so it's defined.
         if (i + 1 < input.length && input[i + 1] === "!") {
           tokens.push({ type: TokenType.BANG_BANG, value: "!!", position: pos });
           i += 2;
-        } else if (i + 1 < input.length && input[i + 1].toLowerCase() === "p") {
+        } else if (i + 1 < input.length && input[i + 1]!.toLowerCase() === "p") {
           tokens.push({ type: TokenType.BANG_P, value: "!p", position: pos });
           i += 2;
         } else {

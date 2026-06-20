@@ -37,6 +37,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      # Smoke-test that the built binary actually resolves and runs (catches a
+      # broken shebang / bad entry path that the test suite, which imports
+      # modules directly, would miss). `verify` builds dist first.
+      - run: node dist/bin.js --version
 
   publish:
     needs: test

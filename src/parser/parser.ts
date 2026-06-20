@@ -40,11 +40,15 @@ class Parser {
   }
 
   private peek(): Token {
-    return this.tokens[this.pos];
+    // `tokenize` always appends an EOF token, and parsing never advances past
+    // EOF (every advance is gated by a peek check that throws on EOF first), so
+    // `this.pos` stays in bounds. Fall back to the last (EOF) token defensively
+    // rather than returning undefined.
+    return this.tokens[this.pos] ?? this.tokens[this.tokens.length - 1]!;
   }
 
   private advance(): Token {
-    const token = this.tokens[this.pos];
+    const token = this.peek();
     this.pos++;
     return token;
   }
@@ -84,7 +88,10 @@ class Parser {
       [TokenType.EQ]: "=",
     };
 
-    return { operator: operatorMap[token.type], value };
+    // `token.type` is guaranteed to be one of the five COMPARE_TOKENS (checked
+    // above), and operatorMap covers all five, so the lookup is always defined.
+    const operator = operatorMap[token.type]!;
+    return { operator, value };
   }
 
   // expression → term (('+' | '-') term)*

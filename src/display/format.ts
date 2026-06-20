@@ -7,7 +7,8 @@ const DICE_FACES = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 
 function dieFace(value: number, sides: number): string {
   if (sides === 6 && value >= 1 && value <= 6) {
-    return DICE_FACES[value - 1];
+    // value is in [1, 6], so value - 1 indexes a defined DICE_FACES element.
+    return DICE_FACES[value - 1]!;
   }
   return String(value);
 }
@@ -50,7 +51,8 @@ function formatGroup(group: DiceGroupResult): string {
 
 function inferMaxSide(expr: string): number {
   const match = expr.match(/d(\d+)/);
-  if (match) return parseInt(match[1], 10);
+  // Capture group 1 is always present when the regex matches.
+  if (match) return parseInt(match[1]!, 10);
   if (expr.includes("d%")) return 100;
   if (expr.includes("dF")) return 1;
   return 6;

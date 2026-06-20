@@ -651,7 +651,8 @@ function tryExact(node: ASTNode): Distribution | null {
       if (!left || !right) return null;
 
       if (right.size === 1) {
-        const [rv] = [...right.keys()];
+        // right.size === 1, so the single key is always present.
+        const rv = [...right.keys()][0]!;
         switch (node.op) {
           case "+":
             return shiftDistribution(left, rv);
@@ -665,7 +666,8 @@ function tryExact(node: ASTNode): Distribution | null {
       }
 
       if (left.size === 1) {
-        const [lv] = [...left.keys()];
+        // left.size === 1, so the single key is always present.
+        const lv = [...left.keys()][0]!;
         switch (node.op) {
           case "+":
             return shiftDistribution(right, lv);

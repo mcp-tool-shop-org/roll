@@ -215,7 +215,8 @@ function dispatch(argv: string[], io: IO): void {
       io.err(dim('  Example: roll --compare "4d6dl1" "3d6"'));
       throw new CliExit(1);
     }
-    return handleCompare(positionals[0], positionals[1], values.json!, io);
+    // length >= 2 here, so both positionals are defined.
+    return handleCompare(positionals[0]!, positionals[1]!, values.json!, io);
   }
 
   const expression = positionals.join("");

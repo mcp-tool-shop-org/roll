@@ -33,8 +33,9 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.test.json",
     "clean": "rm -rf dist",
-    "verify": "npm run build && npm test",
+    "verify": "npm run build && npm run typecheck && npm test",
     "prepublishOnly": "npm run clean && npm run verify"
   },
   "engines": {

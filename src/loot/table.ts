@@ -67,7 +67,13 @@ export function rollLootTable(
   }
 
   if (!selected) {
+    // Fallback to the last item. `totalWeight > 0` (checked above) guarantees
+    // table.items is non-empty, so this is always defined — but guard
+    // defensively rather than trust the index access.
     selected = table.items[table.items.length - 1];
+  }
+  if (!selected) {
+    throw new Error(`Loot table "${table.table}" has no selectable items`);
   }
 
   // If nested table reference, recurse

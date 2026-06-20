@@ -165,7 +165,9 @@ export function stageExplode(
     const threshold = getExplosionThreshold(mod, maxSide);
     const originalCount = dice.length;
     for (let i = 0; i < originalCount; i++) {
-      const die = dice[i];
+      // i < originalCount <= dice.length (the array only grows via push), so
+      // dice[i] is always in-bounds and defined.
+      const die = dice[i]!;
       if (!die.kept) continue;
       let current = die.value;
       let explosions = 0;
@@ -200,7 +202,9 @@ export function stageExplode(
     const threshold = getExplosionThreshold(mod, maxSide);
     const originalCount = dice.length;
     for (let i = 0; i < originalCount; i++) {
-      const die = dice[i];
+      // i < originalCount <= dice.length (the array only grows via push), so
+      // dice[i] is always in-bounds and defined.
+      const die = dice[i]!;
       if (!die.kept) continue;
       let current = die.value;
       let explosions = 0;
@@ -254,7 +258,8 @@ export function stageKeepDrop(
       case "dh": {
         let dropped = 0;
         for (let i = sorted.length - 1; i >= 0 && dropped < n; i--) {
-          sorted[i].kept = false;
+          // i is bounded to [0, sorted.length), so sorted[i] is defined.
+          sorted[i]!.kept = false;
           dropped++;
         }
         break;
@@ -262,7 +267,8 @@ export function stageKeepDrop(
       case "dl": {
         let dropped = 0;
         for (let i = 0; i < sorted.length && dropped < n; i++) {
-          sorted[i].kept = false;
+          // i < sorted.length, so sorted[i] is defined.
+          sorted[i]!.kept = false;
           dropped++;
         }
         break;

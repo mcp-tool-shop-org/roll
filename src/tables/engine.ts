@@ -80,7 +80,9 @@ export function rollMultiple(
   // Fast path: duplicates allowed — just roll `count` times.
   if (table.allowDuplicates) {
     for (let i = 0; i < count; i++) {
-      results.push(rollGameTable(collection, tableName, context, rng)[0]);
+      // rollGameTable always returns a non-empty array (it throws on no eligible
+      // entries and otherwise returns [result]), so [0] is always defined.
+      results.push(rollGameTable(collection, tableName, context, rng)[0]!);
     }
     return results;
   }
@@ -109,7 +111,9 @@ export function rollMultiple(
   let attempts = 0;
   while (results.length < target && attempts < maxAttempts) {
     attempts++;
-    const entry = rollGameTable(collection, tableName, context, rng)[0];
+    // rollGameTable always returns a non-empty array (see above), so [0] is
+    // always defined.
+    const entry = rollGameTable(collection, tableName, context, rng)[0]!;
     if (seen.has(entry.entry)) continue;
     results.push(entry);
     seen.add(entry.entry);
@@ -157,11 +161,15 @@ function weightedSelect(entries: TableEntry[], rng: RngFn): TableEntry {
 
   let cumulative = 0;
   for (let i = 0; i < entries.length; i++) {
-    cumulative += weights[i];
-    if (roll <= cumulative) return entries[i];
+    // `weights` is `entries.map(...)`, so weights.length === entries.length and
+    // both indexed accesses are in-bounds for i < entries.length.
+    cumulative += weights[i]!;
+    if (roll <= cumulative) return entries[i]!;
   }
 
-  return entries[entries.length - 1];
+  // Callers only invoke weightedSelect with a non-empty entries array, so the
+  // final fallback element always exists.
+  return entries[entries.length - 1]!;
 }
 
 /** Choose an integer scale factor that turns the largest count of decimal
