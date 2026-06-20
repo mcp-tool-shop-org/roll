@@ -78,19 +78,35 @@ function detectCircularRefs(collection: GameTableCollection): string[] {
   const errors: string[] = [];
   const tableMap = new Map(collection.tables.map((t) => [t.table, t]));
 
+  // A fresh DFS runs from every table, so the same cycle is rediscovered once
+  // per table that can reach it. Canonicalize each cycle to the sorted set of
+  // its members and report it only the first time we see that set — otherwise a
+  // single cycle reachable from N tables floods the error list with N copies.
+  const reportedCycles = new Set<string>();
+
   for (const table of collection.tables) {
     const visited = new Set<string>();
-    const stack = new Set<string>();
+    const stack: string[] = [];
+    const stackSet = new Set<string>();
 
     function dfs(name: string): boolean {
-      if (stack.has(name)) {
-        errors.push(`Circular reference detected: ${[...stack, name].join(" → ")}`);
+      if (stackSet.has(name)) {
+        // Extract just the members forming the cycle (from where `name` first
+        // appears on the stack) so the canonical key ignores the lead-in path.
+        const start = stack.indexOf(name);
+        const cycleMembers = stack.slice(start);
+        const key = [...cycleMembers].sort().join("|");
+        if (!reportedCycles.has(key)) {
+          reportedCycles.add(key);
+          errors.push(`Circular reference detected: ${[...cycleMembers, name].join(" → ")}`);
+        }
         return true;
       }
       if (visited.has(name)) return false;
 
       visited.add(name);
-      stack.add(name);
+      stack.push(name);
+      stackSet.add(name);
 
       const t = tableMap.get(name);
       if (t) {
@@ -104,7 +120,8 @@ function detectCircularRefs(collection: GameTableCollection): string[] {
         }
       }
 
-      stack.delete(name);
+      stack.pop();
+      stackSet.delete(name);
       return false;
     }
 

@@ -31,7 +31,14 @@ export function evaluateCondition(
         return String(actual) === condition.value;
       }
 
-      return compareNumeric(Number(actual), condition.operator, condition.value);
+      // Numeric comparison. A context variable may legally be a non-numeric
+      // string (schema allows Record<string, number | string>). Coercing
+      // "high" -> NaN would make every comparison silently false, vanishing the
+      // entry with no signal. Treat a genuine type mismatch as an explicit
+      // non-match instead so the outcome is intentional, not an accident of NaN.
+      const numeric = Number(actual);
+      if (Number.isNaN(numeric)) return false;
+      return compareNumeric(numeric, condition.operator, condition.value);
     }
   }
 }

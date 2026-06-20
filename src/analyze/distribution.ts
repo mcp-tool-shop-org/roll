@@ -1,4 +1,4 @@
-import type { ASTNode, DiceNode, DiceModifier, DiceSides } from "../parser/ast.js";
+import type { ASTNode, ComparePoint, DiceNode, DiceModifier, DiceSides } from "../parser/ast.js";
 import { matchesCompare } from "../engine/pipeline.js";
 import { monteCarloDistribution } from "./montecarlo.js";
 
@@ -272,7 +272,16 @@ function explosionDistribution(node: DiceNode): Distribution | null {
   );
   if (!explodeMod) return null;
 
-  const threshold = explodeMod.compare?.value ?? s;
+  // F-AT-001: honor the FULL compare operator, not just its value. Mirror the
+  // engine's getExplosionThreshold (pipeline.ts): default to {operator:">=",
+  // value:s} when no compare is present so the two code paths cannot drift.
+  // The old code collapsed this to `threshold = compare?.value ?? s` and decided
+  // explosion with `face < threshold` (a hardcoded >=), silently ignoring the
+  // operator — e.g. d10!>5 wrongly exploded on 5-10, d6!=3 wrongly on 3-6.
+  const explodeCompare: ComparePoint = explodeMod.compare ?? {
+    operator: ">=",
+    value: s,
+  };
   const isCompound = explodeMod.kind === "compound";
   const isPenetrate = explodeMod.kind === "penetrate";
   const maxExplosions = 10;
@@ -294,7 +303,11 @@ function explosionDistribution(node: DiceNode): Distribution | null {
           const total = accSum + effectiveFace;
           const p = accProb * pFace;
 
-          if (face < threshold || depth === maxExplosions) {
+          // Explode exactly when the engine would: matchesCompare(face, cp).
+          // Note the threshold check uses the RAW face (pre-penetration), which
+          // matches the engine — penetrate adjusts the added value, not the test.
+          const explodes = matchesCompare(face, explodeCompare);
+          if (!explodes || depth === maxExplosions) {
             dist.set(total, (dist.get(total) ?? 0) + p);
           } else {
             nextAccumulated.set(total, (nextAccumulated.get(total) ?? 0) + p);
@@ -316,12 +329,35 @@ function explosionDistribution(node: DiceNode): Distribution | null {
   return convolveN(single, node.count);
 }
 
+/** Enumerate every face of a die (Fate: -1,0,1; else 1..s). */
+function allFaces(sides: DiceSides): number[] {
+  if (sides === "F") return [-1, 0, 1];
+  const s = sideCount(sides);
+  const faces: number[] = [];
+  for (let i = 1; i <= s; i++) faces.push(i);
+  return faces;
+}
+
 /** Distribution for simple reroll (no keep/drop, no explode). */
 function rerollDistribution(node: DiceNode): Distribution | null {
   const hasReroll = node.modifiers.some(
     (m) => m.kind === "reroll" || m.kind === "reroll_once",
   );
   if (!hasReroll) return null;
+
+  // F-AT-007: if an UNLIMITED reroll compare matches every face (e.g. 1d6r>=1,
+  // 1d6r<7), the exact path cannot terminate — singleDieWithReroll returns the
+  // unmodified base distribution, which disagrees with the engine's capped
+  // behavior (MAX_REROLLS in the pipeline). Return null so we fall back to Monte
+  // Carlo, which reflects what the engine actually rolls. (reroll_once always
+  // terminates after one reroll, so it is exempt.)
+  const faces = allFaces(node.sides);
+  for (const mod of node.modifiers) {
+    if (mod.kind !== "reroll" || !mod.compare) continue;
+    if (faces.every((f) => matchesCompare(f, mod.compare!))) {
+      return null;
+    }
+  }
 
   const single = singleDieWithReroll(node.sides, node.modifiers);
   return convolveN(single, node.count);
@@ -453,7 +489,18 @@ function tryExact(node: ASTNode): Distribution | null {
         return successCountDistribution(node);
       }
 
-      // Keep/drop present — full enumeration (handles reroll + min/max internally)
+      // F-AT-003: keep/drop combined with explosion or reroll cannot be modeled
+      // by enumerateKeepDrop — that function applies only min/max + keep/drop and
+      // would silently return a distribution AS IF the explosion/reroll did not
+      // exist (e.g. 4d6!kh3, 4d6r=1kh3). Return null so computeDistribution falls
+      // back to Monte Carlo, which reflects the engine's real capped behavior.
+      if (hasKeepDrop && (hasExplosion || hasReroll)) {
+        return null;
+      }
+
+      // Keep/drop present (no explosion, no reroll) — full enumeration. This
+      // path applies min/max per die then keep/drop; it does NOT model reroll
+      // or explosion (see the guard above which excludes those cases).
       if (hasKeepDrop) {
         return enumerateKeepDrop(node);
       }

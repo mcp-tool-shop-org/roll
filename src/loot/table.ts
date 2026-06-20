@@ -75,11 +75,13 @@ export function rollLootTable(
     return rollLootTable(tables, selected.table, rng, depth + 1);
   }
 
-  // Resolve quantity
+  // Resolve quantity. Clamp to >= 1 so expressions like "1d4-2" (which can roll
+  // 0 or negative) never yield a non-positive item count — matches the V2 engine
+  // (tables/engine.ts resolveEntry, which applies the same Math.max(1, ...)).
   let quantity = 1;
   if (selected.quantity) {
     const ast = parse(selected.quantity);
-    quantity = evaluate(ast, rng).total;
+    quantity = Math.max(1, evaluate(ast, rng).total);
   }
 
   // Resolve roll value
