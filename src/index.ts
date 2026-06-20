@@ -1,5 +1,11 @@
 // Parser
-export { parse, ParseError } from "./parser/parser.js";
+export {
+  parse,
+  ParseError,
+  MAX_DICE_COUNT,
+  MAX_DIE_SIDES,
+  MAX_EXPRESSION_LENGTH,
+} from "./parser/parser.js";
 export { tokenize, LexerError } from "./parser/lexer.js";
 export type { ASTNode, DiceNode, NumberNode, BinaryOpNode, UnaryMinusNode, DiceModifier, DiceSides, ComparePoint } from "./parser/ast.js";
 export { TokenType } from "./parser/tokens.js";
