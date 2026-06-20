@@ -142,9 +142,8 @@ describe("roller", () => {
     expect(result.total).toBe(3);
   });
 
-  it("division by zero returns 0", () => {
-    const result = roll("5/0");
-    expect(result.total).toBe(0);
+  it("division by zero throws instead of silently returning 0", () => {
+    expect(() => roll("5/0")).toThrow(/division by zero/i);
   });
 
   it("records dice group details", () => {

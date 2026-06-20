@@ -1,4 +1,5 @@
 import type { ASTNode, DiceNode, DiceSides } from "../parser/ast.js";
+import { ParseError } from "../parser/parser.js";
 import { cryptoRng, type RngFn } from "./random.js";
 import { runPipeline, type PipelineDie } from "./pipeline.js";
 
@@ -64,7 +65,10 @@ function buildExpression(node: DiceNode): string {
         if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
         break;
       case "cf_count":
-        expr += "f";
+        // Emit "cf" + the compare (not bare "f", which re-tokenizes as Fate
+        // dice and corrupts the round-trip). cf_count always carries a compare;
+        // the guard keeps serialization total even if that ever changes.
+        expr += "cf";
         if (mod.compare) expr += `${mod.compare.operator}${mod.compare.value}`;
         break;
       case "cs_mark":
@@ -139,7 +143,13 @@ export function evaluate(ast: ASTNode, rng: RngFn = cryptoRng): RollResult {
           case "*":
             return left * right;
           case "/":
-            return right === 0 ? 0 : Math.floor(left / right);
+            // Division by zero is a malformed expression — surface a clear
+            // structured error rather than silently returning 0, which masks
+            // the bug from every downstream consumer. (F-PE-004)
+            if (right === 0) {
+              throw new ParseError("Division by zero", 0);
+            }
+            return Math.floor(left / right);
         }
         break;
       }
@@ -152,4 +162,14 @@ export function evaluate(ast: ASTNode, rng: RngFn = cryptoRng): RollResult {
 
   const total = walk(ast);
   return { expression: "", total, groups };
+}
+
+/**
+ * Test-only hook for the buildExpression serializer round-trip (F-TD-010).
+ * Not part of the public API surface; exported so the round-trip invariant can
+ * be asserted without exposing the internal helper to consumers.
+ * @internal
+ */
+export function buildExpressionForTest(node: DiceNode): string {
+  return buildExpression(node);
 }

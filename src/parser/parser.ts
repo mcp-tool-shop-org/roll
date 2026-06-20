@@ -9,6 +9,20 @@ export class ParseError extends Error {
   }
 }
 
+// ─── Input-size caps (DoS prevention) ────────────────────────────────────────
+// A single crafted expression must never be able to force unbounded work
+// (allocation, iteration, or string scanning). These caps are checked at parse
+// time — before any dice are allocated — and throw the existing ParseError so
+// every downstream consumer's existing catch block produces a clean error.
+// The limits are generous for real RPG/VTT use; they exist only to block abuse.
+
+/** Maximum number of dice in a single group (e.g. the N in `Nd6`). */
+export const MAX_DICE_COUNT = 10_000;
+/** Maximum number of sides on a single die (e.g. the M in `1dM`). */
+export const MAX_DIE_SIDES = 1_000_000;
+/** Maximum length, in characters, of a whole expression string. */
+export const MAX_EXPRESSION_LENGTH = 1_000;
+
 const COMPARE_TOKENS = new Set([
   TokenType.GT,
   TokenType.GTE,
@@ -154,6 +168,15 @@ class Parser {
   // dice → 'd' M [modifier]*
   // Called with count already parsed
   private parseDice(count: number): ASTNode {
+    // Cap dice count before the 'd' is consumed so the error position points at
+    // the count token (the current token is still 'd', positioned right after).
+    if (count > MAX_DICE_COUNT) {
+      throw new ParseError(
+        `Dice count ${count} exceeds maximum of ${MAX_DICE_COUNT}`,
+        this.peek().position,
+      );
+    }
+
     this.expect(TokenType.D);
 
     // Parse sides: number, %, or F
@@ -169,6 +192,12 @@ class Parser {
       sides = parseInt(token.value, 10);
       if (sides < 1) {
         throw new ParseError("Die must have at least 1 side", token.position);
+      }
+      if (sides > MAX_DIE_SIDES) {
+        throw new ParseError(
+          `Die sides ${sides} exceeds maximum of ${MAX_DIE_SIDES}`,
+          token.position,
+        );
       }
     } else {
       throw new ParseError(
@@ -291,8 +320,13 @@ class Parser {
       }
     }
 
-    // Determine result mode: success_count if any cs_count modifier present
-    const hasSuccessCounting = modifiers.some((m) => m.kind === "cs_count");
+    // Determine result mode: success_count if any success/failure COUNT
+    // modifier is present. A pool with only cf_count (e.g. `10d6cf<2`) must
+    // still enter success_count mode so the failure count is reflected in the
+    // total rather than silently ignored in sum mode. (F-PE-005)
+    const hasSuccessCounting = modifiers.some(
+      (m) => m.kind === "cs_count" || m.kind === "cf_count",
+    );
     const resultMode = hasSuccessCounting ? ("success_count" as const) : undefined;
 
     return { type: "dice", count, sides, modifiers, resultMode };
@@ -307,6 +341,15 @@ class Parser {
 }
 
 export function parse(input: string): ASTNode {
+  // Cap expression length before tokenizing so a megabyte-long string can never
+  // force a long scan. Checked first, before any work touches the input.
+  if (input.length > MAX_EXPRESSION_LENGTH) {
+    throw new ParseError(
+      `Expression exceeds maximum length of ${MAX_EXPRESSION_LENGTH} characters`,
+      0,
+    );
+  }
+
   const tokens = tokenize(input);
   const parser = new Parser(tokens);
   const ast = parser.parseExpression();

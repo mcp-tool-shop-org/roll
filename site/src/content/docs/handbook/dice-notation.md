@@ -94,7 +94,7 @@ Division uses integer floor division (rounds down toward negative infinity), con
 roll 3d6/2     # If the 3d6 total is 11, the result is 5
 ```
 
-Division by zero returns 0 instead of throwing an error.
+Division by zero throws a clear `Division by zero` error rather than silently returning 0.
 
 ## Keep highest -- kh
 
