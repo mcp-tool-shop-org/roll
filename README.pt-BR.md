@@ -11,189 +11,222 @@
   <a href="https://www.npmjs.com/package/@mcptoolshop/roll"><img src="https://img.shields.io/npm/v/@mcptoolshop/roll" alt="npm version"></a>
 </p>
 
-<p align="center">RPG dice engine with probability analysis, loot tables, and beautiful terminal output.</p>
+<p align="center">Universal RPG dice engine — full notation, probability analysis, game tables, and engine integration.</p>
 
 ```
-npx @mcptoolshop/roll 4d6dl1 --analyze
+npx @mcptoolshop/roll 8d6cs>=5 --analyze
 ```
 
-```
-  Distribution
-
-   3    0.08%
-   4 █   0.31%
-   5 ███   0.77%
-   6 ███████   1.62%
-   7 █████████████   2.93%
-   8 ██████████████████████   4.78%
-   9 ████████████████████████████████   7.02%
-  10 ███████████████████████████████████████████   9.41%
-  11 ████████████████████████████████████████████████████  11.42%
-  12 ██████████████████████████████████████████████████████████  12.89%
-  13 ████████████████████████████████████████████████████████████  13.27%
-  14 ████████████████████████████████████████████████████████  12.35%
-  15 ██████████████████████████████████████████████  10.11%
-  16 █████████████████████████████████   7.25%
-  17 ███████████████████   4.17%
-  18 ███████   1.62%
-
-┌─ Statistics ─────────────────────────────────┐
-│ Mean:    12.24                                │
-│ Median:  12                                   │
-│ Mode:    13                                   │
-│ Std Dev: 2.85                                 │
-│ Range:   3–18                                 │
-│ Entropy: 3.53 bits                            │
-│                                               │
-│ Percentiles:                                  │
-│   p10:8  p25:10  p50:12  p75:14  p90:16  p95:17│
-└───────────────────────────────────────────────┘
-```
-
-## Instalação
+## Instalar
 
 ```bash
 npm install @mcptoolshop/roll
 ```
 
-Requer Node.js >= 22.
+Requer Node.js >= 22. Sem dependências de tempo de execução.
 
-## Uso da Linha de Comando
+## Notação de dados
 
-### Lançar dados
-
-```bash
-roll 2d6+3
-roll d20+5
-roll 4d6kh3
-roll 1d6!
-roll d%
-roll 4dF
-roll "(2d6+3)*2"
-```
-
-### Analisar probabilidade
-
-```bash
-roll 2d6 --analyze          # Full distribution + statistics
-roll d20+5 --at-least 15    # P(result >= 15)
-```
-
-### Comparar distribuições
-
-```bash
-roll --compare "4d6dl1" "3d6"
-```
-
-Estatísticas lado a lado (média, mediana, moda, desvio padrão, intervalo, entropia) com coluna de diferença, além de ambos os histogramas.
-
-### Tabelas de recompensas
-
-```bash
-roll --loot treasure.json
-```
-
-Formato JSON:
-
-```json
-{
-  "tables": [
-    {
-      "table": "Treasure",
-      "items": [
-        { "name": "Gold", "weight": 40, "roll": "2d6*10" },
-        { "name": "Potion of Healing", "weight": 30 },
-        { "name": "Scroll", "weight": 15, "quantity": "1d3" },
-        { "name": "Rare Item", "weight": 5, "table": "Rare Weapons" }
-      ]
-    },
-    {
-      "table": "Rare Weapons",
-      "items": [
-        { "name": "Vorpal Blade", "weight": 5 },
-        { "name": "Frost Brand", "weight": 25 }
-      ]
-    }
-  ]
-}
-```
-
-Características: seleção ponderada, referências de tabelas aninhadas, expressões de dados para quantidade e valor.
-
-### Outras opções
-
-```bash
-roll 2d6+3 --times 5       # Roll 5 times
-roll 2d6+3 --json           # Machine-readable output
-roll --help                 # Full usage
-roll --version              # Version
-```
-
-## Notação de Dados
+Roll suporta o padrão completo de notação Roll20/VTT, abrangendo D&D, Mundo das Trevas, Shadowrun, Savage Worlds, Fate e muito mais.
 
 | Notação | Significado |
 |----------|---------|
-| `2d6` | Lançar 2 dados de seis lados |
-| `d20` | Lançar 1 dado de vinte lados |
-| `4d6kh3` | Lançar 4d6, manter os 3 maiores |
-| `4d6dl1` | Lançar 4d6, descartar o menor |
-| `1d6!` | Dado explosivo (relançar no máximo, adicionar) |
-| `1d6!>4` | Explodir em 4 ou mais |
-| `d%` | Dado de percentil (1-100) |
-| `4dF` | Dados Fate/Fudge (-1, 0, +1 cada) |
+| `2d6` | Lance 2 dados de seis lados |
+| `d20+5` | Lance d20, adicione o modificador |
+| `4d6kh3` | Lance 4d6, mantenha os 3 mais altos |
+| `4d6dl1` | Lance 4d6, descarte o menor 1 |
+| `1d6!` | Explosivo (relançar no máximo, adicionar) |
+| `1d6!>4` | Explodir em 4 ou superior |
+| `1d6!!` | Composição (somar as explosões no mesmo dado) |
+| `1d6!p` | Penetrante (as explosões subtraem 1) |
+| `2d6r<2` | Relançar valores menores que 2 (ilimitado) |
+| `2d6ro=1` | Relançar 1s uma vez |
+| `2d6min3` | Limite inferior: nenhum dado abaixo de 3 |
+| `2d6max5` | Limite superior: nenhum dado acima de 5 |
+| `8d6cs>=5` | Contar sucessos (dados >= 5) |
+| `8d6cs>=5cf<=1` | Sucessos menos falhas |
+| `1d20cs>19cf<2` | Marcação de sucesso/falha crítica |
+| `4d6sa` / `4d6sd` | Ordenar em ordem crescente/decrescente |
+| `d%` | Percentil (1-100) |
+| `4dF` | Dados Fate/Fudge |
 | `(2d6+3)*2` | Aritmética com agrupamento |
-| `2d6+1d4+3` | Expressões encadeadas |
 
-## API da Biblioteca
+## Uso da CLI
 
-```typescript
-import { roll, analyze, parse, evaluate, computeDistribution } from '@mcptoolshop/roll';
-
-// Quick roll
-const result = roll('4d6kh3');
-console.log(result.total);        // 14
-console.log(result.groups[0].dice); // per-die breakdown
-
-// Full analysis
-const analysis = analyze('2d6+3');
-console.log(analysis.stats.mean);                  // 10
-console.log(analysis.stats.percentiles[95]);        // 14
-console.log(analysis.probabilityAtLeast(12));       // 0.2778
-
-// Low-level: parse → AST → evaluate
-import { seededRng } from '@mcptoolshop/roll';
-const ast = parse('4d6dl1');
-const r = evaluate(ast, seededRng(42));  // deterministic
-
-// Loot tables
-import { rollLootTable } from '@mcptoolshop/roll';
-const tables = [{ table: "Loot", items: [{ name: "Gold", weight: 50, roll: "2d6*10" }] }];
-const drops = rollLootTable(tables);
+```bash
+roll 2d6+3                        # Basic roll
+roll 8d6cs>=5                     # WoD-style dice pool
+roll 4d6r<2min2kh3                # Complex modifier chain
+roll 2d6 --analyze                # Full distribution + statistics
+roll d20+5 --at-least 15          # P(result >= 15)
+roll 2d6 --at-most 7              # P(result <= 7)
+roll 2d6 --exactly 7              # P(result == 7)
+roll 2d6 --between 6..8           # P(6 <= result <= 8)
+roll 1d20+5 --target-for 0.65     # Largest target T with P(result >= T) >= 0.65
+roll --compare "4d6dl1" "3d6"     # Side-by-side + P(A>B) verdict
+roll --loot treasure.json         # Loot table
+roll 2d6+3 --times 5              # Multiple rolls
+roll 4d6kh3 --seed 42             # Deterministic, reproducible rolls
+roll 2d6+3 --json                 # Machine-readable output
+roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 ```
 
-## Motor de Probabilidade
+### Consultas de probabilidade
 
-- **Distribuições exatas** via convolução polinomial para NdM básicos
-- **Enumeração completa** para mecânicas de manter/descartar (4d6 = 1.296 estados)
-- **Recursão truncada** para dados explosivos (limitado a 10 explosões)
-- **Fallback de Monte Carlo** (100 mil amostras) quando o cálculo exato excede 10 milhões de estados
+Além de `--at-least`, quatro flags respondem às perguntas que um designer realmente faz. Cada uma imprime uma linha limpa e respeita a mesma marcação exata/Monte Carlo de `--analyze`:
 
-## Sem Dependências
+| Flag | Respostas |
+|------|---------|
+| `--at-least N` | P(resultado ≥ N) |
+| `--at-most N` | P(resultado ≤ N) |
+| `--exactly N` | P(resultado = N) |
+| `--between L..H` | P(L ≤ resultado ≤ H) — também aceita `L,H` |
+| `--target-for P` | O maior alvo T de modo que P(resultado ≥ T) ≥ P ("para acertar 65% das vezes, alvo ≤ T") |
 
-Construído inteiramente com os recursos nativos do Node.js 22+:
-- `util.styleText` para cores no terminal
-- `util.parseArgs` para análise de argumentos da linha de comando
-- `crypto.randomInt` para geração de números aleatórios criptograficamente seguros
+`--compare A B` agora adiciona um veredicto **Versus** no topo dos dois blocos de estatísticas — P(A vence), P(empate), P(B vence) e a margem média E[A−B] — para que você possa resolver a questão do equilíbrio diretamente. Com `--json`, ele carrega um objeto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
+
+### Lançamentos determinísticos (`--seed`)
+
+`--seed <int>` define a semente do RNG para que um lançamento (ou uma sequência inteira `--times N`) seja reproduzível byte a byte — o determinismo que o motor, a ponte e o MCP já tinham, agora na CLI. A semente deve ser um inteiro finito; uma semente ruim gera um erro e sai com código 1. Para passar uma semente **negativa**, use o formato `=` (`--seed=-3`), pois um valor de hífen inicial separado por espaço é ambíguo para o analisador de argumentos. `--json` ecoa a `seed` para que a saída registre exatamente o que a produziu.
+
+```bash
+roll 4d6kh3 --seed 42             # same result every time
+roll 1d20 --seed 7 --times 5      # a fixed, reproducible sequence of 5 rolls
+roll 2d6 --seed 99 --json         # output includes "seed": 99
+```
+
+### Cor
+
+A cor está ativada por padrão. Desative-a de duas maneiras:
+
+- `--no-color` — suprime o estilo ANSI para uma única invocação
+- `NO_COLOR=1` (variável de ambiente) — respeita o padrão [NO_COLOR](https://no-color.org/)
+
+Quando o analisador recorre ao Monte Carlo para uma expressão grande ou complexa, `--analyze` e `--at-least` rotulam o resultado como estimado (com a contagem de amostras) em vez de apresentar os números amostrados como exatos. Os resultados exatos são indicados como tal. A saída `--json` carrega um campo `method` (`"exact"` ou `"monte-carlo"`, com `samples` quando amostrado), para que os consumidores da máquina também possam diferenciá-los.
+
+### Códigos de saída
+
+Roll segue um contrato deliberado de dois códigos — uma promessa de estabilidade na qual os scripts podem confiar:
+
+| Código | Significado |
+|------|---------|
+| `0` | Sucesso |
+| `1` | Qualquer erro — expressão inválida, falha na validação, arquivo de saque ausente ou limite excedido |
+
+Os erros sempre imprimem uma única linha limpa (código/mensagem/dica) para stderr; a CLI nunca vaza um rastreamento de pilha.
+
+## Tabelas de jogo
+
+A V2 introduz um sistema universal de tabelas de jogo para encontros, sucessos críticos, saques, efeitos de status e muito mais.
+
+```typescript
+import { rollGameTable } from '@mcptoolshop/roll';
+import type { GameTableCollection } from '@mcptoolshop/roll';
+
+const collection: GameTableCollection = {
+  version: "2.0",
+  tables: [{
+    table: "critical_hits",
+    kind: "critical",
+    entries: [
+      { name: "Devastating Blow", weight: 1, roll: "2d6", conditions: [{ type: "nat", operator: "=", value: 20 }] },
+      { name: "Solid Hit", weight: 3, conditions: [{ type: "compare", operator: ">=", value: 15 }] },
+      { name: "Glancing Blow", weight: 5 },
+    ],
+  }],
+};
+
+const results = rollGameTable(collection, "critical_hits", { triggerNat: 20, triggerRoll: 25 });
+```
+
+Recursos: 8 tipos de tabela, seleção ponderada, condições (comparar, nativo, tag, contexto), filtragem de nível, tabelas aninhadas, encadeamento de tabelas, expressões de dados para quantidade/lançamento/duração, níveis de raridade, validação com detecção de referência circular.
+
+## API da biblioteca
+
+```typescript
+import { roll, analyze } from '@mcptoolshop/roll';
+
+// Roll with any V2 notation
+const result = roll('8d6cs>=5');
+console.log(result.total);                    // 3 (successes)
+console.log(result.groups[0].resultMode);     // "success_count"
+console.log(result.groups[0].dice);           // per-die breakdown with .critical markers
+
+// Probability analysis — exact, not Monte Carlo
+const analysis = analyze('8d6cs>=5');
+console.log(analysis.stats.mean);             // 2.67
+console.log(analysis.probabilityAtLeast(4));  // P(4+ successes)
+
+// Seeded deterministic rolls
+import { seededRng, parse, evaluate } from '@mcptoolshop/roll';
+const ast = parse('4d6kh3');
+const r = evaluate(ast, seededRng(42));       // reproducible
+```
+
+### Estabilidade
+
+A **API de alto nível é estável** e segue o semver — alterações significativas apenas em um aumento principal:
+
+- `roll`, `analyze`
+- as APIs de saque (`rollLootTable`, `validateLootTables`) e as APIs de tabela de jogo (`rollGameTable`)
+- a superfície JSON-RPC do `BridgeHandler`
+
+**Os internos do analisador de baixo nível são avançados e podem mudar em versões secundárias** — use-os apenas se precisar percorrer o AST sozinho e fixar uma versão se depender deles:
+
+- `tokenize`, `Token`, `TokenType`
+- `runPipeline`, `matchesCompare`
+
+`analyze` também relata `.method` (`"exact"` | `"monte-carlo"`) e, para o caminho amostrado, `.samples` — para que os chamadores possam respeitar o contrato de probabilidades exatas programaticamente.
+
+## Ponte JSON (Godot / Unreal / Rust)
+
+Roll inclui uma ponte JSON-RPC 2.0 para integração com o mecanismo do jogo por meio de um processo filho:
+
+```bash
+# Stdio mode (pipe JSON in, get JSON out)
+echo '{"jsonrpc":"2.0","id":1,"method":"roll","params":{"expression":"4d6kh3","seed":42}}' | roll-bridge
+
+# HTTP mode
+roll-bridge --http --port 3947
+curl -X POST http://localhost:3947/rpc -d '{"jsonrpc":"2.0","id":1,"method":"roll","params":{"expression":"2d6+3"}}'
+```
+
+Métodos: `roll`, `roll_batch`, `analyze`, `at_least`, `compare`, `table_roll`, `table_load`, `table_list`, `seed`, `ping`, `shutdown`.
+
+## Servidor MCP
+
+Roll é fornecido como um servidor MCP para integração com o Claude durante o design do jogo:
+
+```json
+{
+  "mcpServers": {
+    "roll": {
+      "command": "node",
+      "args": ["node_modules/@mcptoolshop/roll/dist/mcp/server.js"]
+    }
+  }
+}
+```
+
+5 ferramentas: `roll_dice`, `analyze_dice`, `compare_dice`, `roll_table`, `query_table`.
+
+## Motor de probabilidade
+
+- **Distribuições exatas** por meio de convolução polinomial para o sistema básico NdM
+- **Enumeração completa** para as mecânicas de manter/descartar (4d6 = 1.296 estados)
+- **Recálculo analítico** — redistribui a massa de probabilidade sobre faces não correspondentes
+- **Valor mínimo/máximo analítico** — trunca a distribuição e acumula a massa no limite
+- **Contagem analítica de sucessos** — mapeia as faces para +1/0/-1, realiza a convolução N vezes
+- **Recursão truncada** para dados explosivos/acumulativos/penetrantes
+- **Alternativa Monte Carlo** (100 mil amostras) quando o cálculo exato ultrapassa 10 milhões de estados
+
+Cada modificador possui uma análise de probabilidade exata — não apenas simulação.
 
 ## Segurança e Confiança
 
-O `@mcptoolshop/roll` processa apenas expressões de dados e nada mais. Não faz solicitações de rede, não escreve arquivos e não coleta dados. O único acesso ao sistema de arquivos é a flag `--loot`, que lê um único arquivo JSON especificado pelo usuário.
+Processa expressões de dados e nada mais. Sem solicitações de rede, sem gravações em arquivos (exceto `--loot`, que lê um arquivo JSON), sem telemetria, sem segredos. Todas as rolagens de dados usam `crypto.randomInt` para aleatoriedade criptográfica. As expressões são limitadas no momento da análise (contagem de dados, lados dos dados, comprimento) para evitar o esgotamento de recursos, e qualquer texto lido de um arquivo `--loot` é desprovido de caracteres de controle de terminal antes da exibição, para que uma tabela hostil não possa injetar sequências de escape ANSI no seu terminal.
 
-Não há telemetria, análise ou rastreamento de qualquer tipo. Nenhum segredo, token ou credencial está envolvido em nenhuma operação.
-
-Todos os lançamentos de dados usam `crypto.randomInt` do módulo `crypto` do Node.js, fornecendo aleatoriedade criptograficamente segura, adequada para resultados justos.
-
-Consulte [SECURITY.md](./SECURITY.md) para a política de relatório de vulnerabilidades.
+Consulte [SECURITY.md](./SECURITY.md) para obter a política de notificação de vulnerabilidades.
 
 ## Licença
 
@@ -201,4 +234,4 @@ MIT
 
 ---
 
-Desenvolvido por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+Criado por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
