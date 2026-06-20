@@ -131,6 +131,19 @@ export class BridgeHandler {
           if (!p?.expressions || !Array.isArray(p.expressions)) {
             return err(id, RPC_INVALID_PARAMS, "Missing expressions array");
           }
+          // Cap the batch LENGTH before doing any per-expression work. Each
+          // expression already caps its own dice count, but an uncapped array of
+          // thousands of "10000d6" entries (≈8000 fit in a 64KB HTTP body, and
+          // the array is unbounded over stdio) rolls ~10^8 dice in one
+          // synchronous request → OOM/DoS. Reject over-cap via the same
+          // ParseError → INVALID_PARAMS path as the other count guards. (V1-003)
+          if (p.expressions.length > MAX_BATCH_EXPRESSIONS) {
+            return err(
+              id,
+              RPC_INVALID_PARAMS,
+              `expressions length (${p.expressions.length}) exceeds maximum of ${MAX_BATCH_EXPRESSIONS}`,
+            );
+          }
           if (p.expressions.some((e) => typeof e !== "string")) {
             return err(id, RPC_INVALID_PARAMS, "expressions must all be strings");
           }
@@ -246,6 +259,12 @@ export class BridgeHandler {
 
 /** Upper bound on repeat-count style params at the boundary. */
 const MAX_TABLE_ROLL_COUNT = 1000;
+
+/** Upper bound on the number of expressions in a single roll_batch. Mirrors
+ *  MAX_TABLE_ROLL_COUNT. Each expression still caps its own dice count; this
+ *  bounds the array length so a 64KB body can't queue ~10^8 allocations and
+ *  stdio can't pass an unbounded array. (V1-003) */
+const MAX_BATCH_EXPRESSIONS = 1000;
 
 /** Validate a count param: finite positive integer within cap. Returns def
  *  when absent. Throws ParseError (→ INVALID_PARAMS) on violation. */

@@ -4,7 +4,7 @@
  * Communicates via stdio using JSON-RPC 2.0 (MCP transport).
  */
 import { createInterface } from "node:readline";
-import { pathToFileURL } from "node:url";
+import { isMainModule } from "../entry.js";
 import { TOOLS } from "./tools.js";
 import { parse, ParseError } from "../parser/parser.js";
 import { LexerError } from "../parser/lexer.js";
@@ -370,7 +370,10 @@ function main(): void {
 }
 
 // Only run the stdio loop when invoked as a binary, not when imported in tests.
-// (pathToFileURL normalizes drive-letter casing + slashes across platforms.)
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// isMainModule() realpaths both sides so a symlinked `npm i -g` / `npm link` bin
+// still starts — the old href-equality guard compared the symlink path against
+// the realpath'd target and never matched, silently disabling the published
+// `roll-mcp` binary. (V2-001)
+if (isMainModule(import.meta.url)) {
   main();
 }

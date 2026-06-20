@@ -307,8 +307,8 @@ describe("M4 — HTTP transport hardening", () => {
   });
 
   it("rejects an over-cap body with 413", async () => {
-    // Craft a >64KB body. Server must respond 413 and destroy, not buffer it all.
-    const huge = "x".repeat(70 * 1024);
+    // Craft a body over the 8MB cap. Server must respond 413 and destroy, not buffer it all.
+    const huge = "x".repeat(8 * 1024 * 1024 + 1024);
     const r = await fetch(`${base}/rpc`, {
       method: "POST",
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping", params: { pad: huge } }),

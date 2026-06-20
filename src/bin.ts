@@ -3,9 +3,10 @@
 import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
 
+import { isMainModule } from "./entry.js";
 import { parse } from "./parser/parser.js";
+import type { ASTNode } from "./parser/ast.js";
 import { evaluate } from "./engine/roller.js";
 import { computeDistribution } from "./analyze/distribution.js";
 import { computeStats, probabilityAtLeast } from "./analyze/stats.js";
@@ -20,6 +21,15 @@ const { version } = require("../package.json") as { version: string };
 
 /** Upper bound on `--times` so a single command can't flood the terminal. */
 const MAX_TIMES = 10_000;
+
+/**
+ * Upper bound on the TOTAL dice allocated by a single `--times` roll, i.e.
+ * `times × dice-per-roll`. `--times` and per-expression dice are each capped
+ * individually, but the AST is parsed once and evaluated `times` times, so
+ * `10000d6 --times 10000` would allocate ~10^8 dice and flood the terminal even
+ * though each cap is individually satisfied. We bound the product instead.
+ */
+const MAX_TOTAL_DICE = 1_000_000;
 
 /**
  * Sink for normal/error output. Defaults to the real console but is overridable
@@ -134,7 +144,10 @@ export function run(argv: string[], io: IO = consoleIO): number {
     // which otherwise surface as raw Node stack traces with internal frames.
     const code = (e as { code?: string }).code;
     if (code === "ERR_PARSE_ARGS_UNKNOWN_OPTION") {
-      io.err(red(`Error: ${friendlyUnknownOption(e as Error)}`));
+      // The option name is lifted straight from argv (attacker-controlled), so
+      // sanitize before it reaches the terminal — a pasted ESC byte in a flag
+      // must not emit a raw control sequence (ANSI-injection defense).
+      io.err(red(`Error: ${sanitize(friendlyUnknownOption(e as Error))}`));
       io.err(dim("  Run 'roll --help' to see available options."));
       return 1;
     }
@@ -142,14 +155,16 @@ export function run(argv: string[], io: IO = consoleIO): number {
       code === "ERR_PARSE_ARGS_INVALID_OPTION_VALUE" ||
       code === "ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL"
     ) {
-      io.err(red(`Error: ${(e as Error).message}`));
+      io.err(red(`Error: ${sanitize((e as Error).message)}`));
       io.err(dim("  Run 'roll --help' to see usage."));
       return 1;
     }
 
     // Anything else (parser/engine ParseError, file errors, etc.): one clean
-    // line plus a hint — never a stack trace.
-    io.err(red(`Error: ${(e as Error).message}`));
+    // line plus a hint — never a stack trace. The message can echo the raw
+    // offending input (e.g. a LexerError on a crafted dice string), so sanitize
+    // before applying our own color codes.
+    io.err(red(`Error: ${sanitize((e as Error).message)}`));
     io.err(dim("  Run 'roll --help' for usage."));
     return 1;
   }
@@ -249,8 +264,41 @@ function dispatch(argv: string[], io: IO): void {
   handleRoll(expression, times, values.json!, io);
 }
 
+/**
+ * Sum the dice counts across every `dice` node in an AST — a cheap upper bound
+ * on how many dice one evaluation allocates (modifiers like explode can add a
+ * few more, but the base count dominates and is what we gate on). Used to bound
+ * `times × dice-per-roll` before any rolling happens.
+ */
+function estimateDiceCount(node: ASTNode): number {
+  switch (node.type) {
+    case "dice":
+      return node.count;
+    case "binary":
+      return estimateDiceCount(node.left) + estimateDiceCount(node.right);
+    case "unary_minus":
+      return estimateDiceCount(node.operand);
+    default:
+      return 0;
+  }
+}
+
 function handleRoll(expression: string, times: number, json: boolean, io: IO): void {
   const ast = parse(expression);
+
+  // Each individual cap (MAX_TIMES, MAX_DICE_COUNT) can be satisfied while their
+  // product is catastrophic. Bound `times × dice-per-roll` so a single command
+  // can't allocate ~10^8 dice and flood the terminal (V1-004).
+  const dicePerRoll = estimateDiceCount(ast);
+  if (dicePerRoll * times > MAX_TOTAL_DICE) {
+    io.err(
+      red(
+        `Error: total dice ${dicePerRoll} × ${times} times exceeds the limit of ${MAX_TOTAL_DICE.toLocaleString()}`,
+      ),
+    );
+    io.err(dim("  Lower --times or use a smaller dice expression."));
+    throw new CliExit(1);
+  }
 
   for (let i = 0; i < times; i++) {
     const result = evaluate(ast);
@@ -398,19 +446,10 @@ function handleLoot(filePath: string, json: boolean, io: IO): void {
   io.out();
 }
 
-// Only auto-execute when invoked as the CLI entry point. Importing this module
-// (e.g. from tests) must NOT run the CLI.
-const isEntry = (() => {
-  if (!process.argv[1]) return false;
-  try {
-    // Compare resolved filesystem paths (handles Windows drive-letter and
-    // slash differences that string-comparing the URLs would miss).
-    return fileURLToPath(import.meta.url) === process.argv[1];
-  } catch {
-    return false;
-  }
-})();
-
-if (isEntry) {
+// Only auto-execute when invoked as the CLI entry point. `isMainModule` is
+// realpath-based, so it stays correct when `npm i -g` / `npm link` install the
+// bin as a symlink (the old string/path compare silently disabled the published
+// `roll` binary). Importing this module (e.g. from tests) must NOT run the CLI.
+if (isMainModule(import.meta.url)) {
   process.exit(run(process.argv.slice(2)));
 }

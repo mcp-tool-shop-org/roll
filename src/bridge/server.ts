@@ -2,17 +2,20 @@
 import { createInterface } from "node:readline";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
-import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { BridgeHandler } from "./handler.js";
+import { isMainModule } from "../entry.js";
 import type { JsonRpcResponse } from "./protocol.js";
 
 const handler = new BridgeHandler();
 
 // ─── HTTP hardening limits (M4 / F-BM-004) ───────────────────────────────────
-/** Max request body. Dice expressions are tiny; table collections a bit larger.
- *  64 KB is generous for legitimate use and caps unbounded-body memory abuse. */
-const MAX_BODY_BYTES = 64 * 1024;
+/** Max request body. Dice expressions are tiny, but `table_load` carries a whole
+ *  game collection: a real loot/encounter set (~2000+ entries) is ~90 KB, so the
+ *  former 64 KB cap wrongly 413'd legitimate loads. 8 MB is generous enough for
+ *  any honest collection while still bounding unbounded-body memory abuse and
+ *  slow-loris streaming. Exported so tests assert against the real value. (V2-003) */
+export const MAX_BODY_BYTES = 8 * 1024 * 1024;
 /** Idle/request socket timeout. A slow-loris client must not pin a connection. */
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -71,7 +74,7 @@ export function runHttp(port: number, host: string): Server {
       if (size > MAX_BODY_BYTES) {
         aborted = true;
         res.writeHead(413, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: `Request body exceeds ${MAX_BODY_BYTES} bytes` }));
+        res.end(JSON.stringify({ error: `Request body exceeds the ${MAX_BODY_BYTES}-byte limit` }));
         req.destroy();
         return;
       }
@@ -133,7 +136,10 @@ function main(): void {
 }
 
 // Only auto-start when invoked as a binary, not when imported in tests
-// (importing must not block on stdin). (pathToFileURL normalizes Windows paths.)
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// (importing must not block on stdin). isMainModule() realpaths both sides so a
+// symlinked `npm i -g` / `npm link` bin still starts — the old href-equality
+// guard compared the symlink path against the realpath'd target and never
+// matched, silently disabling the published `roll-bridge` binary. (V2-001)
+if (isMainModule(import.meta.url)) {
   main();
 }
