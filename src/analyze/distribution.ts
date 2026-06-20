@@ -1,11 +1,65 @@
 import type { ASTNode, ComparePoint, DiceNode, DiceModifier, DiceSides } from "../parser/ast.js";
 import { matchesCompare } from "../engine/pipeline.js";
 import { monteCarloDistribution } from "./montecarlo.js";
+import { ParseError } from "../parser/parser.js";
 
 /** A probability distribution: value → probability (0..1) */
 export type Distribution = Map<number, number>;
 
+// ─── Cost bounds (analyze-path DoS prevention) ───────────────────────────────
+// V1-001 / V1-002: the parser caps dice count (<=10000) and sides (<=1000000),
+// which protects the ROLL path (rolling N dice once is cheap). But the ANALYZE
+// path computes the FULL distribution by convolution — work proportional to
+// count × sideCount — so a parse-clean expression like `10000d1000000` would
+// build a ~1e6-entry Map and convolve it 10000× (support → ~10^10) and OOM/hang.
+// Two independent guards close this; neither one alone is sufficient.
+
+/**
+ * Cap on the support (number of distinct outcomes) of any EXACT distribution.
+ * Used to gate enumerateKeepDrop AND every convolution step. When the support
+ * would exceed this, the exact path is abandoned and we fall back to Monte
+ * Carlo (which is O(samples × dice), not O(support)). Reused unchanged.
+ */
 const MAX_EXACT_STATES = 10_000_000;
+
+/**
+ * Cap on the TOTAL number of dice rolled across the whole AST. This bounds the
+ * Monte-Carlo fallback: each of the DEFAULT_SAMPLES (100_000) samples calls
+ * evaluate(ast), which rolls every die in the expression. With this cap MC does
+ * at most MAX_ANALYZE_DICE × 100_000 = 1e8 rolls — acceptable. 1000 dice is far
+ * beyond any realistic RPG analysis (100d100, 20d20kh3, 8d6!, 10d10cs>=7 all
+ * use ≤100 dice), so this rejects only the absurd. Exceeding it throws a
+ * structured ParseError ("Expression too complex to analyze") at the top of
+ * computeDistribution — before any convolution or sampling work begins.
+ */
+const MAX_ANALYZE_DICE = 1_000;
+
+/**
+ * Sentinel thrown internally by the convolution helpers when an exact
+ * distribution's support would exceed MAX_EXACT_STATES. Caught in tryExact so
+ * the whole exact attempt cleanly abandons to Monte Carlo. NEVER escapes this
+ * module (computeDistribution converts an escape into the public ParseError).
+ */
+class ExactTooLargeError extends Error {
+  constructor() {
+    super("exact distribution support exceeds MAX_EXACT_STATES");
+    this.name = "ExactTooLargeError";
+  }
+}
+
+/** Count the total number of dice rolled across an AST (sum over all dice nodes). */
+function countTotalDice(node: ASTNode): number {
+  switch (node.type) {
+    case "number":
+      return 0;
+    case "dice":
+      return node.count;
+    case "binary":
+      return countTotalDice(node.left) + countTotalDice(node.right);
+    case "unary_minus":
+      return countTotalDice(node.operand);
+  }
+}
 
 function sideCount(sides: DiceSides): number {
   if (sides === "%") return 100;
@@ -140,8 +194,26 @@ function singleDieWithMinMax(baseDist: Distribution, mods: DiceModifier[]): Dist
 
 // ─── Convolution ─────────────────────────────────────────────────────────────
 
-/** Convolve two distributions (sum of independent random variables). */
+/** Convolve two distributions (sum of independent random variables).
+ *  Throws ExactTooLargeError BEFORE the O(|a|·|b|) inner loop if EITHER:
+ *    - the result support (≤ |a| + |b| - 1 distinct integer sums) would exceed
+ *      MAX_EXACT_STATES — bounds allocation / Map size; OR
+ *    - the inner-loop iteration count |a|·|b| would exceed MAX_EXACT_STATES —
+ *      bounds COMPUTE TIME. The support bound alone is insufficient: a tall-but-
+ *      narrow case like 500d1000 keeps support ~5e5 (under the state cap) yet
+ *      each late step iterates 5e5 × 1000 = 5e8 times, so without this check the
+ *      exact path is slow-but-finite (a multi-second-to-minute stall). With it,
+ *      such cases throw early and fall back to bounded Monte Carlo, while real
+ *      analysis (100d100 peaks at 1e4 × 100 = 1e6 iterations) stays exact. */
 function convolve(a: Distribution, b: Distribution): Distribution {
+  // Distinct integer sums of two supports number at most |a| + |b| - 1.
+  if (a.size + b.size - 1 > MAX_EXACT_STATES) {
+    throw new ExactTooLargeError();
+  }
+  // Bound per-step compute: the inner loop runs |a|·|b| times.
+  if (a.size * b.size > MAX_EXACT_STATES) {
+    throw new ExactTooLargeError();
+  }
   const result: Distribution = new Map();
   for (const [va, pa] of a) {
     for (const [vb, pb] of b) {
@@ -152,7 +224,8 @@ function convolve(a: Distribution, b: Distribution): Distribution {
   return result;
 }
 
-/** Distribution for NdM via iterative convolution. */
+/** Distribution for NdM via iterative convolution. Throws ExactTooLargeError
+ *  (via convolve) when the accumulated support would exceed MAX_EXACT_STATES. */
 function convolveDice(count: number, sides: DiceSides): Distribution {
   const single = singleDieDistribution(sides);
   let dist: Distribution = new Map([[0, 1]]);
@@ -162,7 +235,8 @@ function convolveDice(count: number, sides: DiceSides): Distribution {
   return dist;
 }
 
-/** Convolve a single-die distribution N times. */
+/** Convolve a single-die distribution N times. Throws ExactTooLargeError (via
+ *  convolve) when the accumulated support would exceed MAX_EXACT_STATES. */
 function convolveN(single: Distribution, count: number): Distribution {
   let dist: Distribution = new Map([[0, 1]]);
   for (let i = 0; i < count; i++) {
@@ -293,6 +367,13 @@ function explosionDistribution(node: DiceNode): Distribution | null {
     let accumulated: Distribution = new Map([[0, 1]]);
 
     for (let depth = 0; depth <= maxExplosions; depth++) {
+      // Guard the per-die explosion expansion: each depth can add up to s new
+      // sums, so the support grows ~linearly to s·(maxExplosions+1). For huge
+      // side counts this would exceed MAX_EXACT_STATES before convolveN is even
+      // reached — abandon to Monte Carlo. (Plain NdM is guarded in convolve.)
+      if (dist.size + accumulated.size + s > MAX_EXACT_STATES) {
+        throw new ExactTooLargeError();
+      }
       const nextAccumulated: Distribution = new Map();
 
       for (const [accSum, accProb] of accumulated) {
@@ -457,9 +538,49 @@ function divideDistribution(dist: Distribution, divisor: number): Distribution {
 
 // ─── Main entry ──────────────────────────────────────────────────────────────
 
-/** Compute the full probability distribution for an AST. Falls back to Monte Carlo for complex cases. */
+/** Compute the full probability distribution for an AST.
+ *
+ *  Two cost guards make this safe against parse-clean but analytically
+ *  intractable inputs (V1-001 / V1-002):
+ *
+ *  1. INPUT-DICE BUDGET (throws): if the total dice across the AST exceed
+ *     MAX_ANALYZE_DICE, throw a structured ParseError BEFORE any work. This
+ *     bounds the Monte-Carlo fallback (each sample rolls every die), so we never
+ *     run an expensive MC for e.g. `10000d6!`. ParseError is the type the
+ *     bridge/MCP/CLI boundaries already classify as a client validation error
+ *     (→ INVALID_PARAMS / isError), so the caller sees a clean "too complex"
+ *     message, not an internal error.
+ *
+ *  2. EXACT-STATE GUARD (falls back): the exact strategies abandon (via
+ *     ExactTooLargeError, caught here) when a distribution's support would
+ *     exceed MAX_EXACT_STATES, e.g. `500d1000`. That case is within the dice
+ *     budget, so it falls back to a bounded Monte-Carlo estimate rather than
+ *     throwing.
+ */
 export function computeDistribution(ast: ASTNode): Distribution {
-  const result = tryExact(ast);
+  // Guard 1: input-dice budget — reject the truly absurd before any work.
+  const totalDice = countTotalDice(ast);
+  if (totalDice > MAX_ANALYZE_DICE) {
+    throw new ParseError(
+      `Expression too complex to analyze: ${totalDice} dice exceeds the ` +
+        `analysis limit of ${MAX_ANALYZE_DICE}. (Rolling it is fine; computing ` +
+        `its full probability distribution is not.)`,
+      0,
+    );
+  }
+
+  // Guard 2: exact-state guard — try exact, but fall back to MC if the support
+  // would blow up. ExactTooLargeError is internal; any other error propagates.
+  let result: Distribution | null;
+  try {
+    result = tryExact(ast);
+  } catch (e) {
+    if (e instanceof ExactTooLargeError) {
+      result = null; // abandon exact path, fall through to Monte Carlo
+    } else {
+      throw e;
+    }
+  }
   if (result) return result;
   return monteCarloDistribution(ast);
 }

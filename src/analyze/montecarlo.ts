@@ -5,7 +5,16 @@ import type { Distribution } from "./distribution.js";
 
 const DEFAULT_SAMPLES = 100_000;
 
-/** Monte Carlo simulation to estimate distribution. */
+/** Monte Carlo simulation to estimate distribution.
+ *
+ *  COST CONTRACT (V1-001 / V1-002): this runs DEFAULT_SAMPLES iterations, each
+ *  calling evaluate(ast) which rolls EVERY die in the expression. Cost is
+ *  therefore O(samples × totalDice). The bound on totalDice is enforced UPSTREAM
+ *  in computeDistribution (MAX_ANALYZE_DICE), which throws a structured
+ *  ParseError before this function is ever reached for an over-budget AST. With
+ *  that cap (1000 dice) the worst case here is ~1e8 rolls — acceptable. Callers
+ *  that invoke monteCarloDistribution directly with an unbounded AST bypass that
+ *  guard and own the cost; the public analyze path never does. */
 export function monteCarloDistribution(
   ast: ASTNode,
   samples: number = DEFAULT_SAMPLES,
