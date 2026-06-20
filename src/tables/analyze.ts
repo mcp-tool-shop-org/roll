@@ -6,6 +6,7 @@ import type {
 } from "./schema.js";
 import type { Distribution } from "../analyze/distribution.js";
 import { filterEligibleEntries } from "./conditions.js";
+import { weightScale } from "./engine.js";
 import { computeDistribution } from "../analyze/distribution.js";
 import { parse } from "../parser/parser.js";
 
@@ -41,27 +42,9 @@ export interface TableAnalysis {
   excluded: ExcludedEntry[];
 }
 
-// ─── Weight scaling (mirrors engine.ts weightScale/weightedSelect) ────────────
-// These MUST stay byte-for-byte equivalent to engine.ts so analyzed
+// Weight scaling reuses engine.ts `weightScale` (imported) so analyzed
 // probabilities match the integer-weight proportions `weightedSelect` actually
-// rolls. weightedSelect scales every weight by 10^(max decimal places, capped at
-// 6), rounds to an integer, and selects proportionally to those integers. We
-// reproduce that exactly here rather than re-deriving from the raw float weights
-// (which would drift for fractional weights).
-
-/** Choose an integer scale factor that turns the largest count of decimal
- *  places among the weights into whole numbers (capped to avoid overflow).
- *  Mirror of engine.ts `weightScale`. */
-function weightScale(entries: TableEntry[]): number {
-  let maxDecimals = 0;
-  for (const e of entries) {
-    if (!Number.isFinite(e.weight)) continue;
-    const str = String(e.weight);
-    const dot = str.indexOf(".");
-    if (dot >= 0) maxDecimals = Math.max(maxDecimals, str.length - dot - 1);
-  }
-  return 10 ** Math.min(maxDecimals, 6);
-}
+// rolls against — no byte-for-byte duplication to drift out of lockstep.
 
 /** The integer weights `weightedSelect` would roll against, in entry order. */
 function scaledWeights(entries: TableEntry[]): number[] {

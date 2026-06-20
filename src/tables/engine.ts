@@ -173,8 +173,10 @@ function weightedSelect(entries: TableEntry[], rng: RngFn): TableEntry {
 }
 
 /** Choose an integer scale factor that turns the largest count of decimal
- *  places among the weights into whole numbers (capped to avoid overflow). */
-function weightScale(entries: TableEntry[]): number {
+ *  places among the weights into whole numbers (capped to avoid overflow).
+ *  Exported so the table analyzer (tables/analyze.ts) computes the SAME
+ *  integer-weight proportions weightedSelect rolls against — no drift. */
+export function weightScale(entries: TableEntry[]): number {
   let maxDecimals = 0;
   for (const e of entries) {
     if (!Number.isFinite(e.weight)) continue;
