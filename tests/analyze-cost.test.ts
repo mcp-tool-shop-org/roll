@@ -3,6 +3,7 @@ import { parse } from "../src/parser/parser.js";
 import { ParseError } from "../src/parser/parser.js";
 import {
   computeDistribution,
+  computeDistributionWithMethod,
   type Distribution,
 } from "../src/analyze/distribution.js";
 import { computeStats } from "../src/analyze/stats.js";
@@ -143,13 +144,21 @@ describe("regression locks: realistic analysis still works (no over-restriction)
     expect(Number.isFinite(stats.mean)).toBe(true);
   });
 
-  it("100d100 analyzes fast (exact convolution stays within MAX_EXACT_STATES)", () => {
-    const start = Date.now();
-    const { dist, stats } = analyze("100d100");
-    const elapsed = Date.now() - start;
+  it("100d100 stays on the exact path (within MAX_EXACT_STATES)", () => {
+    // This asserted `elapsed < 2000` on a Date.now() stopwatch. Wall clock on a
+    // shared CI runner is not a property of this code: it went red at 2176ms
+    // with 508/509 green, and nothing had changed. A timing bound also does not
+    // say what the test name says -- it is a PROXY for "we did not fall back to
+    // sampling", so it fails when the runner is busy and passes when a genuine
+    // fallback happens to be quick.
+    //
+    // computeDistributionWithMethod labels the path it took, so assert that
+    // directly. Deterministic, and it is the actual claim: exact, not sampled.
+    const { distribution, method } = computeDistributionWithMethod(parse("100d100"));
+    expect(method).toBe("exact");
+    const stats = computeStats(distribution);
     expect(stats.mean).toBeCloseTo(100 * 50.5, 4); // 5050
-    expect(totalMass(dist)).toBeCloseTo(1, 6);
-    expect(elapsed).toBeLessThan(2000);
+    expect(totalMass(distribution)).toBeCloseTo(1, 6);
   });
 });
 
