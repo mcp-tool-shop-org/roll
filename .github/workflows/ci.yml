@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'package.json'
+      - 'package-lock.json'
       - 'tsconfig.json'
       - 'src/**'
       - 'tests/**'
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'package.json'
+      - 'package-lock.json'
       - 'tsconfig.json'
       - 'src/**'
       - 'tests/**'
