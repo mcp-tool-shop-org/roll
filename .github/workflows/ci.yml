@@ -9,6 +9,9 @@ on:
       - 'src/**'
       - 'tests/**'
       - '.github/workflows/**'
+      - 'site/package.json'
+      - 'site/package-lock.json'
+      - 'site/astro.config.mjs'
   pull_request:
     paths:
       - 'package.json'
@@ -17,6 +20,9 @@ on:
       - 'src/**'
       - 'tests/**'
       - '.github/workflows/**'
+      - 'site/package.json'
+      - 'site/package-lock.json'
+      - 'site/astro.config.mjs'
   workflow_dispatch:
 
 concurrency:
