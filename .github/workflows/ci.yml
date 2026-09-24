@@ -9,6 +9,7 @@ on:
       - 'src/**'
       - 'tests/**'
       - '.github/workflows/**'
+      - 'atlas/**'
       - 'site/package.json'
       - 'site/package-lock.json'
       - 'site/astro.config.mjs'
@@ -20,6 +21,7 @@ on:
       - 'src/**'
       - 'tests/**'
       - '.github/workflows/**'
+      - 'atlas/**'
       - 'site/package.json'
       - 'site/package-lock.json'
       - 'site/astro.config.mjs'
@@ -41,6 +43,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
+      # The map is the same on every Node, so the check runs on one cell.
+      - name: Atlas check
+        if: matrix.node-version == 22
+        run: npx --yes @dogfood-lab/atlas@1.17.0 check
       - run: npm ci
       # Dependency vulnerability scan (gate D). The shipped package has zero
       # runtime deps; this guards the dev-tooling tree. Fails CI on a high/

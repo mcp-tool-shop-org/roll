@@ -1,0 +1,602 @@
+{
+  "authorship": {
+    "parts": [],
+    "places": []
+  },
+  "boundaries": [
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": ".github",
+      "qualifyingSourceCommits": 0,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "root",
+      "qualifyingSourceCommits": 2,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "site",
+      "qualifyingSourceCommits": 3,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": [
+          "tests"
+        ]
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "src",
+      "qualifyingSourceCommits": 13,
+      "rebaseline": null
+    },
+    {
+      "breakage": {
+        "coChangesOnly": [],
+        "collapsed": false,
+        "confidence": "low",
+        "importsAndCoChanges": [],
+        "importsOnly": []
+      },
+      "cohesion": null,
+      "cohesionDropped": false,
+      "confidence": "low",
+      "highWater": null,
+      "name": "tests",
+      "qualifyingSourceCommits": 12,
+      "rebaseline": null
+    }
+  ],
+  "churn": {
+    "definition": "commits is how many commits in the window touch the file, including merges and commits dropped from coupling. lines is added plus deleted in those commits.",
+    "files": [
+      {
+        "commits": 9,
+        "lines": 106,
+        "path": ".github/workflows/ci.yml"
+      },
+      {
+        "commits": 2,
+        "lines": 58,
+        "path": ".github/workflows/pages.yml"
+      },
+      {
+        "commits": 1,
+        "lines": 107,
+        "path": ".github/workflows/release.yml"
+      },
+      {
+        "commits": 2,
+        "lines": 8,
+        "path": ".gitignore"
+      },
+      {
+        "commits": 4,
+        "lines": 192,
+        "path": "CHANGELOG.md"
+      },
+      {
+        "commits": 1,
+        "lines": 21,
+        "path": "LICENSE"
+      },
+      {
+        "commits": 2,
+        "lines": 517,
+        "path": "README.es.md"
+      },
+      {
+        "commits": 2,
+        "lines": 515,
+        "path": "README.fr.md"
+      },
+      {
+        "commits": 2,
+        "lines": 517,
+        "path": "README.hi.md"
+      },
+      {
+        "commits": 2,
+        "lines": 515,
+        "path": "README.it.md"
+      },
+      {
+        "commits": 2,
+        "lines": 513,
+        "path": "README.ja.md"
+      },
+      {
+        "commits": 7,
+        "lines": 519,
+        "path": "README.md"
+      },
+      {
+        "commits": 2,
+        "lines": 515,
+        "path": "README.pt-BR.md"
+      },
+      {
+        "commits": 2,
+        "lines": 511,
+        "path": "README.zh.md"
+      },
+      {
+        "commits": 1,
+        "lines": 45,
+        "path": "SCORECARD.md"
+      },
+      {
+        "commits": 3,
+        "lines": 44,
+        "path": "SECURITY.md"
+      },
+      {
+        "commits": 1,
+        "lines": 68,
+        "path": "SHIP_GATE.md"
+      },
+      {
+        "commits": 4,
+        "lines": 2840,
+        "path": "package-lock.json"
+      },
+      {
+        "commits": 8,
+        "lines": 86,
+        "path": "package.json"
+      },
+      {
+        "commits": 2,
+        "lines": 32,
+        "path": "site/astro.config.mjs"
+      },
+      {
+        "commits": 2,
+        "lines": 13956,
+        "path": "site/package-lock.json"
+      },
+      {
+        "commits": 2,
+        "lines": 24,
+        "path": "site/package.json"
+      },
+      {
+        "commits": 1,
+        "lines": 7,
+        "path": "site/src/content.config.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 1016,
+        "path": "site/src/content/docs/handbook/api-reference.md"
+      },
+      {
+        "commits": 3,
+        "lines": 419,
+        "path": "site/src/content/docs/handbook/dice-notation.md"
+      },
+      {
+        "commits": 2,
+        "lines": 289,
+        "path": "site/src/content/docs/handbook/getting-started.md"
+      },
+      {
+        "commits": 2,
+        "lines": 83,
+        "path": "site/src/content/docs/handbook/index.md"
+      },
+      {
+        "commits": 2,
+        "lines": 446,
+        "path": "site/src/content/docs/handbook/loot-tables.md"
+      },
+      {
+        "commits": 3,
+        "lines": 347,
+        "path": "site/src/content/docs/handbook/probability-engine.md"
+      },
+      {
+        "commits": 1,
+        "lines": 33,
+        "path": "site/src/pages/index.astro"
+      },
+      {
+        "commits": 2,
+        "lines": 65,
+        "path": "site/src/site-config.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 3,
+        "path": "site/src/styles/global.css"
+      },
+      {
+        "commits": 1,
+        "lines": 5,
+        "path": "site/src/styles/starlight-custom.css"
+      },
+      {
+        "commits": 1,
+        "lines": 5,
+        "path": "site/tsconfig.json"
+      },
+      {
+        "commits": 7,
+        "lines": 1007,
+        "path": "src/analyze/distribution.ts"
+      },
+      {
+        "commits": 4,
+        "lines": 57,
+        "path": "src/analyze/montecarlo.ts"
+      },
+      {
+        "commits": 4,
+        "lines": 254,
+        "path": "src/analyze/stats.ts"
+      },
+      {
+        "commits": 6,
+        "lines": 1197,
+        "path": "src/bin.ts"
+      },
+      {
+        "commits": 5,
+        "lines": 580,
+        "path": "src/bridge/handler.ts"
+      },
+      {
+        "commits": 4,
+        "lines": 163,
+        "path": "src/bridge/protocol.ts"
+      },
+      {
+        "commits": 4,
+        "lines": 353,
+        "path": "src/bridge/server.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 49,
+        "path": "src/display/box.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 40,
+        "path": "src/display/color.ts"
+      },
+      {
+        "commits": 5,
+        "lines": 272,
+        "path": "src/display/format.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 87,
+        "path": "src/display/histogram.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 412,
+        "path": "src/engine/pipeline.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 20,
+        "path": "src/engine/random.ts"
+      },
+      {
+        "commits": 4,
+        "lines": 464,
+        "path": "src/engine/roller.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 27,
+        "path": "src/entry.ts"
+      },
+      {
+        "commits": 5,
+        "lines": 160,
+        "path": "src/index.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 145,
+        "path": "src/loot/table.ts"
+      },
+      {
+        "commits": 5,
+        "lines": 728,
+        "path": "src/mcp/server.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 162,
+        "path": "src/mcp/tools.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 60,
+        "path": "src/parser/ast.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 336,
+        "path": "src/parser/lexer.ts"
+      },
+      {
+        "commits": 4,
+        "lines": 416,
+        "path": "src/parser/parser.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 47,
+        "path": "src/parser/tokens.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 262,
+        "path": "src/tables/analyze.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 87,
+        "path": "src/tables/conditions.ts"
+      },
+      {
+        "commits": 4,
+        "lines": 309,
+        "path": "src/tables/engine.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 130,
+        "path": "src/tables/schema.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 142,
+        "path": "src/tables/validate.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 294,
+        "path": "tests/analyze-correctness.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 204,
+        "path": "tests/analyze-cost.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 154,
+        "path": "tests/analyze-method.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 185,
+        "path": "tests/boundary-fixups.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 359,
+        "path": "tests/boundary-observability.test.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 329,
+        "path": "tests/boundary-security.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 191,
+        "path": "tests/bridge.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 81,
+        "path": "tests/cli-fixups.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 143,
+        "path": "tests/cli-stageb.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 190,
+        "path": "tests/cli.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 175,
+        "path": "tests/display.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 264,
+        "path": "tests/distribution.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 177,
+        "path": "tests/engine-caps.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 48,
+        "path": "tests/entry.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 299,
+        "path": "tests/feature-analysis.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 290,
+        "path": "tests/feature-boundary.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 239,
+        "path": "tests/feature-cli.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 24,
+        "path": "tests/fixtures/treasure.json"
+      },
+      {
+        "commits": 1,
+        "lines": 52,
+        "path": "tests/index.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 242,
+        "path": "tests/lexer.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 129,
+        "path": "tests/loot.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 87,
+        "path": "tests/mcp.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 289,
+        "path": "tests/parser.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 402,
+        "path": "tests/pipeline.test.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 321,
+        "path": "tests/roller.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 262,
+        "path": "tests/tables-consistency.test.ts"
+      },
+      {
+        "commits": 1,
+        "lines": 418,
+        "path": "tests/tables.test.ts"
+      },
+      {
+        "commits": 2,
+        "lines": 23,
+        "path": "tsconfig.json"
+      },
+      {
+        "commits": 1,
+        "lines": 5,
+        "path": "tsconfig.test.json"
+      },
+      {
+        "commits": 3,
+        "lines": 33,
+        "path": "vitest.config.ts"
+      }
+    ]
+  },
+  "confidence": {
+    "level": "low",
+    "reason": "fewer than 30 qualifying commits in the window, and fewer than 20 source files reach 10 revisions"
+  },
+  "generatedAt": "2026-09-24T08:42:51.187Z",
+  "generatedFrom": {
+    "commit": "97f0f4fccef27deabc592dad429bb8af6c1caee9"
+  },
+  "pairs": [],
+  "parameters": {
+    "appliedChangesetLimit": 23,
+    "changeset": 50,
+    "changesetFraction": 0.25,
+    "cohesionDrop": 0.2,
+    "couplingPopulation": "source",
+    "fallenShared": 3,
+    "floor": "fallen",
+    "floorHeld": false,
+    "floorTrigger": "both",
+    "headDate": "2026-09-17T18:16:44-07:00",
+    "inScopeFiles": 92,
+    "pinnedStart": null,
+    "priorFloor": null,
+    "qualifyingCommits": 27,
+    "qualifyingMinimum": 30,
+    "revisions": 5,
+    "shared": 10,
+    "sharedFloorUsed": 3,
+    "since": "2026-03-22T01:16:44.000Z",
+    "sourceExtensions": [
+      ".js",
+      ".mjs",
+      ".cjs",
+      ".jsx",
+      ".ts",
+      ".tsx",
+      ".mts",
+      ".cts",
+      ".py"
+    ],
+    "sourceFileReach": 20,
+    "sourceFileRise": 25,
+    "sourceFilesReachingStrongFloor": 0,
+    "strength": 0.5,
+    "windowDays": 180
+  },
+  "strengthDefinition": "strength is the shared qualifying commits divided by either. either is the number of qualifying commits that touch either file."
+}

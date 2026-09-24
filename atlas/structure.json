@@ -1,0 +1,5386 @@
+{
+  "boundaries": [
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "b9a34d0ac7d249b1b8e788d2be1ce07a50a898d0e04ca16741c68f045e28674e",
+          "path": ".github/workflows/ci.yml"
+        },
+        {
+          "hash": "4eb81eeb113bdba84a09846e4b80ab63d20507cb41935566c110e37f99afe899",
+          "path": ".github/workflows/pages.yml"
+        },
+        {
+          "hash": "1019a4b5c516b51db2807666c4d146cdd4310011c861e8605d3e0039b97800a7",
+          "path": ".github/workflows/release.yml"
+        }
+      ],
+      "globs": [
+        ".github/**"
+      ],
+      "importConfidence": "full",
+      "name": ".github",
+      "origin": "authored",
+      "role": "config",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "8356bd979319b7684b89dcc4bf0086b50b85dbba54e4c90ff64227e7fd2f3291",
+          "path": ".gitignore"
+        },
+        {
+          "hash": "cce2b95d84444830769e4a73f09202130df0cc8c7349f8782262ae5b9a4e1cb0",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "hash": "5ae6b3c8f446f0a7cb95176e4dadb91b68aaffb16b3be09f64f5de248b6a973a",
+          "path": "LICENSE"
+        },
+        {
+          "hash": "9cc2ea484448e2dc28484420e7acc56c257e8318d9562ab72bb1a7415c36c71b",
+          "path": "README.es.md"
+        },
+        {
+          "hash": "62afcd0e5b22e524ec51ced24ffd3e82bc76e8be6f59e2ed00e460b661f39baf",
+          "path": "README.fr.md"
+        },
+        {
+          "hash": "144e413618603475e9eff45e5e954ce721400a453f2c2e4c4eaa32e374f33bce",
+          "path": "README.hi.md"
+        },
+        {
+          "hash": "1314430e53c6d1bc79893b479d69d0fca94f24b4eb273cfe2e6faaefbc38c12c",
+          "path": "README.it.md"
+        },
+        {
+          "hash": "b969b1829f79b8e9349820860e17484c60600fb63ef3a77400cbb1b8e6343e26",
+          "path": "README.ja.md"
+        },
+        {
+          "hash": "516fddff0636490bd8686044d69433faeb7188312875bf9704c1bf31c2dddc11",
+          "path": "README.md"
+        },
+        {
+          "hash": "f6f856b1dae2bcdec0bcde6f0d8121a3ab4d2095a2ca9453569ea6affcca8ed3",
+          "path": "README.pt-BR.md"
+        },
+        {
+          "hash": "d711ad492ec422666cfe26d607bd5aef24d9978193721a4cc7771db7fbf19817",
+          "path": "README.zh.md"
+        },
+        {
+          "hash": "1b1a5cb47f57a96eda803a5e947a35ab332fa80cc155dd9756638ce102dec3c6",
+          "path": "SCORECARD.md"
+        },
+        {
+          "hash": "fa5fd4af7c015f0d81a3ee84677ea7ce68ca92aa61c0630f707e8d3453075a87",
+          "path": "SECURITY.md"
+        },
+        {
+          "hash": "3b1eb72c541f5cb7f89f532807ec34791126a266f2a1f06715db5b78d7c31a1e",
+          "path": "SHIP_GATE.md"
+        },
+        {
+          "hash": "13749c074e2fafb32e7f50e8097312bcdf5f1ade34632f4f6311f68257a42daf",
+          "path": "package-lock.json"
+        },
+        {
+          "hash": "909c24756cd035cb99b3922a44ac73fe078f35bb42e538b981bae6e16c60622b",
+          "path": "package.json"
+        },
+        {
+          "hash": "545ab2b9552aa82dc860620c369ded19bf3d0924d700b3171d23b263d58ff720",
+          "path": "tsconfig.json"
+        },
+        {
+          "hash": "99a6f5ef6d2f99a5f9e3e4b458560a4623b27e0d95aac053b1d5c864b0b40d58",
+          "path": "tsconfig.test.json"
+        },
+        {
+          "hash": "7be2630808d70c8b0ab877e84a37f4d7af8b89bb87507546b62877546b3beaf2",
+          "path": "vitest.config.ts"
+        }
+      ],
+      "globs": [
+        "*"
+      ],
+      "importConfidence": "full",
+      "name": "root",
+      "origin": "authored",
+      "role": "config",
+      "testedBy": 1,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "bcd69d9f65dc5903dee72422d2fc973a7f610240ca4630c04e6648ccced437cc",
+          "path": "site/astro.config.mjs"
+        },
+        {
+          "hash": "b5578baf42cab82e5e7b451b6992cb929aeb6ff8d02d8e11ab690e6f67fea144",
+          "path": "site/package-lock.json"
+        },
+        {
+          "hash": "0fe0343f8ddb0628d954129b02a72b3b2c8f8f884b1380c5567403c4f55942f8",
+          "path": "site/package.json"
+        },
+        {
+          "hash": "ec030f2e4bf6dc57eaca075d390c228b3212cf29db267e32ef92e110de1acdcc",
+          "path": "site/src/content.config.ts"
+        },
+        {
+          "hash": "16236afe1e46d45b039cd56980794dee1d0d336d8d7ad9a552869bcd1f470ca4",
+          "path": "site/src/content/docs/handbook/api-reference.md"
+        },
+        {
+          "hash": "400c06e9ff81fdb9c3f9566bbe78dc0635f8a6fced4dda842a73018e8c0480af",
+          "path": "site/src/content/docs/handbook/dice-notation.md"
+        },
+        {
+          "hash": "af6e864914bcac4599d994a31bf8766d9d94da5bdb380edc475ee0a753bfbb08",
+          "path": "site/src/content/docs/handbook/getting-started.md"
+        },
+        {
+          "hash": "396ca099dab0cf41f2c7a33934b9153ea00c565575dcfb3a915d0c3104318027",
+          "path": "site/src/content/docs/handbook/index.md"
+        },
+        {
+          "hash": "1ecad96e2d566b8bfaa113fae9fa9d0d3802982bd601ee91464e57e433e69142",
+          "path": "site/src/content/docs/handbook/loot-tables.md"
+        },
+        {
+          "hash": "5be49bc299ea8ad3af63790d2e272d0c62d1003d15f244767c5031784d16c176",
+          "path": "site/src/content/docs/handbook/probability-engine.md"
+        },
+        {
+          "hash": "a699ad78a6d27d6864ccfe4c3a4a01993aca28ecb4a3d20893f37db9f9b1a522",
+          "path": "site/src/pages/index.astro"
+        },
+        {
+          "hash": "3461cc4d2d07ae733fd9df4cf52dab8faf2dd6b063fdea270444e78de2c9aa98",
+          "path": "site/src/site-config.ts"
+        },
+        {
+          "hash": "5995279a40a9a63426a93feec129006b261cc7200426a398914d0317722ef19b",
+          "path": "site/src/styles/global.css"
+        },
+        {
+          "hash": "fac6b2b329062e49798151a02cb2e24f6be08d073b9e3f2275400ad6492c9518",
+          "path": "site/src/styles/starlight-custom.css"
+        },
+        {
+          "hash": "61fc24492db9aef7ec38eb91cfeebaef96155014bb5f22648fd8ed2327c6cae2",
+          "path": "site/tsconfig.json"
+        }
+      ],
+      "globs": [
+        "site/**"
+      ],
+      "importConfidence": "full",
+      "name": "site",
+      "origin": "authored",
+      "role": "site",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [
+        "src/bin.ts",
+        "src/bridge/server.ts",
+        "src/index.ts",
+        "src/mcp/server.ts"
+      ],
+      "externals": 0,
+      "files": [
+        {
+          "entry": "computeDistribution",
+          "entryRule": 4,
+          "exports": [
+            "classifyModifier",
+            "compareDistributions",
+            "computeDistribution",
+            "computeDistributionWithMethod",
+            "negateDistribution"
+          ],
+          "hash": "33e57b91715e6ac5d227ac0621c5c475fb3ed062d5db68922a54dacc2a75e6d8",
+          "importsFiles": [
+            "src/analyze/montecarlo.ts",
+            "src/engine/pipeline.ts",
+            "src/parser/ast.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "src/analyze/distribution.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 213,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "singleDieWithReroll"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "depth === node.count",
+                  "line": 407,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "enumerate"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "enumerateKeepDrop"
+            },
+            {
+              "calls": [
+                {
+                  "line": 490,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleExploding"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "explosionDistribution"
+            },
+            {
+              "calls": [
+                {
+                  "line": 538,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "rerollDistribution"
+            },
+            {
+              "calls": [
+                {
+                  "line": 213,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleDieWithReroll"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "successCountDistribution"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "isSuccessCount && !hasKeepDrop && !hasExplosion",
+                  "line": 213,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleDieWithReroll"
+                },
+                {
+                  "branch": "hasKeepDrop",
+                  "line": 407,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "enumerate"
+                },
+                {
+                  "branch": "hasExplosion",
+                  "line": 490,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleExploding"
+                },
+                {
+                  "branch": "hasReroll",
+                  "line": 538,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "rerollDistribution"
+                },
+                {
+                  "line": 709,
+                  "name": "monteCarloDistribution",
+                  "target": {
+                    "file": "src/analyze/montecarlo.ts"
+                  },
+                  "via": "computeDistributionWithMethod"
+                },
+                {
+                  "line": 709,
+                  "name": "DEFAULT_MONTE_CARLO_SAMPLES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/analyze/montecarlo.ts"
+                  },
+                  "via": "computeDistributionWithMethod"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "computeDistribution"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "isSuccessCount && !hasKeepDrop && !hasExplosion",
+                  "line": 213,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleDieWithReroll"
+                },
+                {
+                  "branch": "hasKeepDrop",
+                  "line": 407,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "enumerate"
+                },
+                {
+                  "branch": "hasExplosion",
+                  "line": 490,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleExploding"
+                },
+                {
+                  "branch": "hasReroll",
+                  "line": 538,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "rerollDistribution"
+                },
+                {
+                  "line": 709,
+                  "name": "monteCarloDistribution",
+                  "target": {
+                    "file": "src/analyze/montecarlo.ts"
+                  }
+                },
+                {
+                  "line": 709,
+                  "name": "DEFAULT_MONTE_CARLO_SAMPLES",
+                  "passed": true,
+                  "target": {
+                    "file": "src/analyze/montecarlo.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "computeDistributionWithMethod"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "isSuccessCount && !hasKeepDrop && !hasExplosion",
+                  "line": 213,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleDieWithReroll"
+                },
+                {
+                  "branch": "hasKeepDrop",
+                  "line": 407,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "enumerate"
+                },
+                {
+                  "branch": "hasExplosion",
+                  "line": 490,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "singleExploding"
+                },
+                {
+                  "branch": "hasReroll",
+                  "line": 538,
+                  "name": "matchesCompare",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "rerollDistribution"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "tryExact"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "monteCarloDistribution"
+          ],
+          "hash": "61d508b5db38aa29f1d3310be4b5054f1baa6d5f0f3849b67260d8d6219a576c",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/parser/ast.ts"
+          ],
+          "path": "src/analyze/montecarlo.ts"
+        },
+        {
+          "exports": [
+            "computeStats",
+            "cumulativeDistribution",
+            "probabilityAtLeast",
+            "probabilityAtMost",
+            "probabilityExactly",
+            "probabilityInRange",
+            "survivalDistribution",
+            "targetForProbability"
+          ],
+          "hash": "d3cd3ae7fae8d04b1db37eedcfe0ffd56fe51dee38deb8f188c5a5738f67d8a4",
+          "importsFiles": [
+            "src/analyze/distribution.ts"
+          ],
+          "path": "src/analyze/stats.ts"
+        },
+        {
+          "entry": "run",
+          "entryRule": 1,
+          "exports": [
+            "run"
+          ],
+          "hash": "b98cf2b6066681d2ec6737b67ca4c1d080e4993b161719eab9d4529f394cdaa0",
+          "importsFiles": [
+            "package.json",
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/display/box.ts",
+            "src/display/color.ts",
+            "src/display/format.ts",
+            "src/display/histogram.ts",
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/entry.ts",
+            "src/loot/table.ts",
+            "src/parser/ast.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "src/bin.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "branch": "!/^\\d+$/.test(raw.trim())",
+                  "line": 152,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "!/^\\d+$/.test(raw.trim())",
+                  "line": 152,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "!Number.isFinite(n) || n < 1",
+                  "line": 157,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "!Number.isFinite(n) || n < 1",
+                  "line": 157,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "n > MAX_TIMES",
+                  "line": 161,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "n > MAX_TIMES",
+                  "line": 161,
+                  "name": "err",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parseTimes"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "!/^-?\\d+$/.test(trimmed)",
+                  "line": 178,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "!/^-?\\d+$/.test(trimmed)",
+                  "line": 178,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "!Number.isSafeInteger(n)",
+                  "line": 183,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "!Number.isSafeInteger(n)",
+                  "line": 183,
+                  "name": "err",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parseSeed"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "raw.trim() === \"\" || !Number.isFinite(n)",
+                  "line": 198,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "raw.trim() === \"\" || !Number.isFinite(n)",
+                  "line": 198,
+                  "name": "err",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parseQueryValue"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "parts.length !== 2",
+                  "line": 217,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "parts.length !== 2",
+                  "line": 217,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "parts.length !== 2",
+                  "line": 218,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "parts.length !== 2",
+                  "line": 218,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "parts[0]!.trim() === \"\" || parts[1]!.trim() === \"\" || !Numb…",
+                  "line": 229,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "parts[0]!.trim() === \"\" || parts[1]!.trim() === \"\" || !Numb…",
+                  "line": 229,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "parts[0]!.trim() === \"\" || parts[1]!.trim() === \"\" || !Numb…",
+                  "line": 230,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "parts[0]!.trim() === \"\" || parts[1]!.trim() === \"\" || !Numb…",
+                  "line": 230,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "lo > hi",
+                  "line": 234,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "lo > hi",
+                  "line": 234,
+                  "name": "err",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parseRange"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "raw.trim() === \"\" || !Number.isFinite(p) || p <= 0 || p > 1",
+                  "line": 247,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "raw.trim() === \"\" || !Number.isFinite(p) || p <= 0 || p > 1",
+                  "line": 247,
+                  "name": "err",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parseProbability"
+            },
+            {
+              "calls": [
+                {
+                  "line": 328,
+                  "name": "setColorEnabled",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "dispatch"
+                },
+                {
+                  "branch": "values.help",
+                  "line": 332,
+                  "name": "out",
+                  "target": null,
+                  "via": "dispatch"
+                },
+                {
+                  "branch": "values.version",
+                  "line": 337,
+                  "name": "out",
+                  "target": null,
+                  "via": "dispatch"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 714,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 714,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 714,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 716,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 716,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 716,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 725,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 725,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 725,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 739,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 739,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "inner": [
+                    {
+                      "line": 133,
+                      "name": "parse",
+                      "target": {
+                        "file": "src/parser/parser.ts"
+                      }
+                    }
+                  ],
+                  "line": 743,
+                  "name": "validateLootTables",
+                  "target": {
+                    "file": "src/loot/table.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 745,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 745,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 747,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 747,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 747,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "inner": [
+                    {
+                      "line": 89,
+                      "name": "parse",
+                      "target": {
+                        "file": "src/parser/parser.ts"
+                      }
+                    },
+                    {
+                      "line": 90,
+                      "name": "evaluate",
+                      "target": {
+                        "file": "src/engine/roller.ts"
+                      }
+                    },
+                    {
+                      "line": 97,
+                      "name": "parse",
+                      "target": {
+                        "file": "src/parser/parser.ts"
+                      }
+                    },
+                    {
+                      "line": 98,
+                      "name": "evaluate",
+                      "target": {
+                        "file": "src/engine/roller.ts"
+                      }
+                    }
+                  ],
+                  "line": 751,
+                  "name": "rollLootTable",
+                  "target": {
+                    "file": "src/loot/table.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 754,
+                  "name": "out",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 763,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 763,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": true,
+              "isDefaultExport": false,
+              "name": "run",
+              "truncated": true
+            },
+            {
+              "calls": [
+                {
+                  "line": 328,
+                  "name": "setColorEnabled",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "values.help",
+                  "line": 332,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "branch": "values.version",
+                  "line": 337,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 714,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 714,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 714,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 716,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 716,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 716,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 725,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 725,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 725,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 739,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 739,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 743,
+                  "name": "validateLootTables",
+                  "target": {
+                    "file": "src/loot/table.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 745,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 745,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 747,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 747,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 747,
+                  "name": "err",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 751,
+                  "name": "rollLootTable",
+                  "target": {
+                    "file": "src/loot/table.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 754,
+                  "name": "out",
+                  "target": null,
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 763,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  },
+                  "via": "handleLoot"
+                },
+                {
+                  "branch": "values.loot",
+                  "line": 763,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "handleLoot"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "dispatch",
+              "truncated": true
+            },
+            {
+              "calls": [
+                {
+                  "line": 477,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "branch": "dicePerRoll * times > MAX_TOTAL_DICE",
+                  "line": 485,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "dicePerRoll * times > MAX_TOTAL_DICE",
+                  "line": 484,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "dicePerRoll * times > MAX_TOTAL_DICE",
+                  "line": 489,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "dicePerRoll * times > MAX_TOTAL_DICE",
+                  "line": 489,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "line": 496,
+                  "name": "seededRng",
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  }
+                },
+                {
+                  "line": 499,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                },
+                {
+                  "line": 503,
+                  "name": "formatJson",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 503,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 506,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 506,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 508,
+                  "name": "formatRollResult",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 508,
+                  "name": "out",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleRoll"
+            },
+            {
+              "calls": [
+                {
+                  "line": 515,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 518,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "line": 519,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "branch": "json",
+                  "line": 523,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 533,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 534,
+                  "name": "renderHistogram",
+                  "target": {
+                    "file": "src/display/histogram.ts"
+                  }
+                },
+                {
+                  "line": 534,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 536,
+                  "name": "formatStats",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 536,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 539,
+                  "name": "formatMethodNote",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 539,
+                  "name": "out",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleAnalyze"
+            },
+            {
+              "calls": [
+                {
+                  "line": 544,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 545,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "line": 546,
+                  "name": "probabilityAtLeast",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "branch": "json",
+                  "line": 549,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 559,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 560,
+                  "name": "formatAtLeast",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 560,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 561,
+                  "name": "formatMethodNote",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 561,
+                  "name": "out",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleAtLeast"
+            },
+            {
+              "calls": [
+                {
+                  "line": 566,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 568,
+                  "name": "computeDistribution",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "line": 570,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 576,
+                  "name": "compareDistributions",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "branch": "json",
+                  "line": 580,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 599,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 600,
+                  "name": "formatComparison",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 600,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 602,
+                  "name": "formatVersus",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 602,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 606,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 606,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 606,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 607,
+                  "name": "renderHistogram",
+                  "target": {
+                    "file": "src/display/histogram.ts"
+                  }
+                },
+                {
+                  "line": 607,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 609,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 609,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 609,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 610,
+                  "name": "renderHistogram",
+                  "target": {
+                    "file": "src/display/histogram.ts"
+                  }
+                },
+                {
+                  "line": 610,
+                  "name": "out",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleCompare"
+            },
+            {
+              "calls": [
+                {
+                  "line": 628,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 629,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "line": 636,
+                  "name": "probabilityAtMost",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 641,
+                  "name": "probabilityExactly",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 647,
+                  "name": "probabilityInRange",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "branch": "json",
+                  "line": 654,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 670,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 671,
+                  "name": "formatProbabilityQuery",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 671,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 672,
+                  "name": "formatMethodNote",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 672,
+                  "name": "out",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleQuery"
+            },
+            {
+              "calls": [
+                {
+                  "line": 681,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 682,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "line": 683,
+                  "name": "targetForProbability",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "branch": "json",
+                  "line": 686,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 702,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 703,
+                  "name": "formatTargetFor",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 703,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 704,
+                  "name": "formatMethodNote",
+                  "target": {
+                    "file": "src/display/format.ts"
+                  }
+                },
+                {
+                  "line": 704,
+                  "name": "out",
+                  "target": null
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleTargetFor"
+            },
+            {
+              "calls": [
+                {
+                  "line": 714,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                },
+                {
+                  "line": 714,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 714,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "line": 716,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                },
+                {
+                  "line": 716,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 716,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "line": 725,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                },
+                {
+                  "line": 725,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 725,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "line": 739,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 739,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "line": 743,
+                  "name": "validateLootTables",
+                  "target": {
+                    "file": "src/loot/table.ts"
+                  }
+                },
+                {
+                  "branch": "errors.length > 0",
+                  "line": 745,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "errors.length > 0",
+                  "line": 745,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "branch": "errors.length > 0",
+                  "line": 747,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                },
+                {
+                  "branch": "errors.length > 0",
+                  "line": 747,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "errors.length > 0",
+                  "line": 747,
+                  "name": "err",
+                  "target": null
+                },
+                {
+                  "line": 751,
+                  "name": "rollLootTable",
+                  "target": {
+                    "file": "src/loot/table.ts"
+                  }
+                },
+                {
+                  "branch": "json",
+                  "line": 754,
+                  "name": "out",
+                  "target": null
+                },
+                {
+                  "line": 763,
+                  "name": "sanitize",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                },
+                {
+                  "line": 763,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 764,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 766,
+                  "name": "green",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 766,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleLoot",
+              "truncated": true
+            }
+          ]
+        },
+        {
+          "entry": "makeVersus",
+          "entryRule": 4,
+          "exports": [
+            "makeVersus",
+            "serializeDistribution",
+            "serializeTableAnalysis"
+          ],
+          "hash": "e7dfed8db9aa80cf9223dfc5f2ca20117a4aff03493cdd0821ee4ff83a2af6c1",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/bridge/protocol.ts",
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/parser/lexer.ts",
+            "src/parser/parser.ts",
+            "src/tables/analyze.ts",
+            "src/tables/engine.ts",
+            "src/tables/schema.ts"
+          ],
+          "path": "src/bridge/handler.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 414,
+                  "name": "compareDistributions",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "makeVersus"
+            }
+          ]
+        },
+        {
+          "hash": "2249f8da1ff02273e995ede42c06c725b4b5cef22f1e2c1136329b294f30b94d",
+          "path": "src/bridge/protocol.ts"
+        },
+        {
+          "entry": "main",
+          "entryRule": 1,
+          "exports": [
+            "runHttp",
+            "runStdio"
+          ],
+          "hash": "8dede0ce4ce54f1fca531613c894ffcceba0b440f40107ea5a95c45ab95a1388",
+          "importsFiles": [
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts",
+            "src/entry.ts"
+          ],
+          "path": "src/bridge/server.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 242,
+                  "name": "stderrLogger",
+                  "passed": true,
+                  "target": {
+                    "file": "src/bridge/protocol.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": true,
+              "isDefaultExport": false,
+              "name": "main"
+            }
+          ]
+        },
+        {
+          "entry": "drawBox",
+          "entryRule": 4,
+          "exports": [
+            "drawBox",
+            "sanitize",
+            "stripAnsi"
+          ],
+          "hash": "1d3503acd8e19a5bed3f3d8bdce97b0cbc71f10ab8df5c2f6e549e90a1115dd4",
+          "importsFiles": [
+            "src/display/color.ts"
+          ],
+          "path": "src/display/box.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 38,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 45,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "drawBox"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "bold",
+            "boldCyan",
+            "boldGreen",
+            "boldRed",
+            "boldYellow",
+            "cyan",
+            "dim",
+            "green",
+            "magenta",
+            "red",
+            "setColorEnabled",
+            "yellow"
+          ],
+          "hash": "488a7bf1af08eee3a64a153373970a8139db641ddd0b847880204bed6c5da8fe",
+          "path": "src/display/color.ts"
+        },
+        {
+          "entry": "formatRollResult",
+          "entryRule": 4,
+          "exports": [
+            "formatAtLeast",
+            "formatComparison",
+            "formatJson",
+            "formatMethodNote",
+            "formatProbabilityQuery",
+            "formatRollResult",
+            "formatStats",
+            "formatTargetFor",
+            "formatVersus"
+          ],
+          "hash": "d35f4fffeb8dc56431b871e4b242066ad4ad320643992ed4b11c0158af9a7ee2",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/display/box.ts",
+            "src/display/color.ts",
+            "src/engine/roller.ts"
+          ],
+          "path": "src/display/format.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "branch": "!die.kept",
+                  "line": 19,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 23,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 23,
+                  "name": "magenta",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "isPool && die.critical === \"success\"",
+                  "line": 24,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "isPool && die.critical === \"success\"",
+                  "line": 24,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.rerolledFrom !== undefined",
+                  "line": 25,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.rerolledFrom !== undefined",
+                  "line": 25,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 27,
+                  "name": "magenta",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.critical === \"success\"",
+                  "line": 30,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.critical === \"failure\"",
+                  "line": 31,
+                  "name": "boldRed",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "isPool",
+                  "line": 32,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.value === maxSide && maxSide > 1",
+                  "line": 35,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "die.value === 1 && maxSide > 1",
+                  "line": 36,
+                  "name": "boldRed",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatDie"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "!die.kept",
+                  "line": 19,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 23,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 23,
+                  "name": "magenta",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool && die.critical === \"success\"",
+                  "line": 24,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool && die.critical === \"success\"",
+                  "line": 24,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.rerolledFrom !== undefined",
+                  "line": 25,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.rerolledFrom !== undefined",
+                  "line": 25,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 27,
+                  "name": "magenta",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.critical === \"success\"",
+                  "line": 30,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.critical === \"failure\"",
+                  "line": 31,
+                  "name": "boldRed",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool",
+                  "line": 32,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.value === maxSide && maxSide > 1",
+                  "line": 35,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.value === 1 && maxSide > 1",
+                  "line": 36,
+                  "name": "boldRed",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool",
+                  "line": 47,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "isPool",
+                  "line": 47,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "isPool",
+                  "line": 47,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 50,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 50,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatGroup"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "!die.kept",
+                  "line": 19,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 23,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 23,
+                  "name": "magenta",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool && die.critical === \"success\"",
+                  "line": 24,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool && die.critical === \"success\"",
+                  "line": 24,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.rerolledFrom !== undefined",
+                  "line": 25,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.rerolledFrom !== undefined",
+                  "line": 25,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.exploded",
+                  "line": 27,
+                  "name": "magenta",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.critical === \"success\"",
+                  "line": 30,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.critical === \"failure\"",
+                  "line": 31,
+                  "name": "boldRed",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool",
+                  "line": 32,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.value === maxSide && maxSide > 1",
+                  "line": 35,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "die.value === 1 && maxSide > 1",
+                  "line": 36,
+                  "name": "boldRed",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatDie"
+                },
+                {
+                  "branch": "isPool",
+                  "line": 47,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatGroup"
+                },
+                {
+                  "branch": "isPool",
+                  "line": 47,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatGroup"
+                },
+                {
+                  "branch": "isPool",
+                  "line": 47,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatGroup"
+                },
+                {
+                  "line": 50,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatGroup"
+                },
+                {
+                  "line": 50,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "formatGroup"
+                },
+                {
+                  "line": 72,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 74,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 76,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 76,
+                  "name": "drawBox",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatRollResult"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "method === \"monte-carlo\"",
+                  "line": 88,
+                  "name": "toLocaleString",
+                  "target": null
+                },
+                {
+                  "branch": "method === \"monte-carlo\"",
+                  "line": 89,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "branch": "method === \"monte-carlo\"",
+                  "line": 89,
+                  "name": "yellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 91,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatMethodNote"
+            },
+            {
+              "calls": [
+                {
+                  "line": 98,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 102,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 103,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 109,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 113,
+                  "name": "drawBox",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatStats"
+            },
+            {
+              "calls": [
+                {
+                  "line": 124,
+                  "name": "green",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 124,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 126,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 128,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 131,
+                  "name": "green",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 133,
+                  "name": "yellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 135,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 138,
+                  "name": "drawBox",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatAtLeast"
+            },
+            {
+              "calls": [
+                {
+                  "line": 151,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 153,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 156,
+                  "name": "toFixed",
+                  "target": null,
+                  "via": "row"
+                },
+                {
+                  "line": 159,
+                  "name": "green",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "row"
+                },
+                {
+                  "line": 159,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "row"
+                },
+                {
+                  "line": 159,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  },
+                  "via": "row"
+                },
+                {
+                  "line": 171,
+                  "name": "drawBox",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatComparison"
+            },
+            {
+              "calls": [
+                {
+                  "line": 189,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 189,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 189,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 189,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 189,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 192,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 192,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 193,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 193,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 194,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 194,
+                  "name": "boldRed",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 200,
+                  "name": "toFixed",
+                  "target": null
+                },
+                {
+                  "line": 200,
+                  "name": "green",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 202,
+                  "name": "toFixed",
+                  "target": null
+                },
+                {
+                  "line": 202,
+                  "name": "red",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 203,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 206,
+                  "name": "drawBox",
+                  "target": {
+                    "file": "src/display/box.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatVersus"
+            },
+            {
+              "calls": [
+                {
+                  "line": 217,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 217,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 217,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatProbabilityQuery"
+            },
+            {
+              "calls": [
+                {
+                  "line": 232,
+                  "name": "boldYellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 232,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 233,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 233,
+                  "name": "boldGreen",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 233,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "formatTargetFor"
+            }
+          ]
+        },
+        {
+          "entry": "renderHistogram",
+          "entryRule": 4,
+          "exports": [
+            "renderHistogram",
+            "renderSparkline"
+          ],
+          "hash": "bb8f7f9a13a6a128110fb6bfcba6bf0ba6f4c58df1f65df95b69856288a3a236",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/display/color.ts"
+          ],
+          "path": "src/display/histogram.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 25,
+                  "name": "boldCyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 48,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 52,
+                  "name": "yellow",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 52,
+                  "name": "cyan",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 53,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 53,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 62,
+                  "name": "bold",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                },
+                {
+                  "line": 66,
+                  "name": "dim",
+                  "target": {
+                    "file": "src/display/color.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "renderHistogram"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "matchesCompare",
+            "resolveSides",
+            "rollSingleDie",
+            "runPipeline",
+            "stageCriticalMark",
+            "stageExplode",
+            "stageKeepDrop",
+            "stageMinMax",
+            "stageReroll",
+            "stageRoll",
+            "stageSort",
+            "stageTotal"
+          ],
+          "hash": "dbc6e5040003063c777050f5a78556ad1f251531c4040ac0af2efafee24a2891",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/parser/ast.ts"
+          ],
+          "path": "src/engine/pipeline.ts"
+        },
+        {
+          "exports": [
+            "cryptoRng",
+            "seededRng"
+          ],
+          "hash": "bae5f386fb934aef8bd9cdec658fe1c6e4f7dc0bdb4ccccfbef5ea18afa2e885",
+          "path": "src/engine/random.ts"
+        },
+        {
+          "entry": "evaluate",
+          "entryRule": 4,
+          "exports": [
+            "buildExpressionForTest",
+            "evaluate"
+          ],
+          "hash": "9e3334a91627c57c638ac0f87412f69c6d672a647bf62d1970cbc79ee16bf541",
+          "importsFiles": [
+            "src/engine/pipeline.ts",
+            "src/engine/random.ts",
+            "src/parser/ast.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "src/engine/roller.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 120,
+                  "name": "runPipeline",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "rollDiceGroup"
+            },
+            {
+              "calls": [
+                {
+                  "line": 120,
+                  "name": "runPipeline",
+                  "target": {
+                    "file": "src/engine/pipeline.ts"
+                  },
+                  "via": "rollDiceGroup"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "evaluate"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "isMainModule"
+          ],
+          "hash": "1f22aaf5988d5c5a7132d3a9bfd428654e668152474aa593f8e6102ff0c9eca4",
+          "path": "src/entry.ts"
+        },
+        {
+          "entry": "analyze",
+          "entryRule": 4,
+          "exports": [
+            "analyze",
+            "roll"
+          ],
+          "hash": "492102c0581f1029d14ab6623091d9a1aa1c15d4f4f45b073b0b317b71768f14",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/montecarlo.ts",
+            "src/analyze/stats.ts",
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts",
+            "src/engine/pipeline.ts",
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/loot/table.ts",
+            "src/parser/ast.ts",
+            "src/parser/lexer.ts",
+            "src/parser/parser.ts",
+            "src/parser/tokens.ts",
+            "src/tables/analyze.ts",
+            "src/tables/conditions.ts",
+            "src/tables/engine.ts",
+            "src/tables/schema.ts",
+            "src/tables/validate.ts"
+          ],
+          "path": "src/index.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 98,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 99,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "roll"
+            },
+            {
+              "calls": [
+                {
+                  "inner": [
+                    {
+                      "line": 360,
+                      "name": "tokenize",
+                      "target": {
+                        "file": "src/parser/lexer.ts"
+                      }
+                    }
+                  ],
+                  "line": 111,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "inner": [
+                    {
+                      "branch": "isSuccessCount && !hasKeepDrop && !hasExplosion",
+                      "line": 213,
+                      "name": "matchesCompare",
+                      "target": {
+                        "file": "src/engine/pipeline.ts"
+                      },
+                      "via": "singleDieWithReroll"
+                    },
+                    {
+                      "branch": "hasKeepDrop",
+                      "line": 407,
+                      "name": "matchesCompare",
+                      "target": {
+                        "file": "src/engine/pipeline.ts"
+                      },
+                      "via": "enumerate"
+                    },
+                    {
+                      "branch": "hasExplosion",
+                      "line": 490,
+                      "name": "matchesCompare",
+                      "target": {
+                        "file": "src/engine/pipeline.ts"
+                      },
+                      "via": "singleExploding"
+                    },
+                    {
+                      "branch": "hasReroll",
+                      "line": 538,
+                      "name": "matchesCompare",
+                      "target": {
+                        "file": "src/engine/pipeline.ts"
+                      },
+                      "via": "rerollDistribution"
+                    },
+                    {
+                      "line": 709,
+                      "name": "monteCarloDistribution",
+                      "target": {
+                        "file": "src/analyze/montecarlo.ts"
+                      }
+                    },
+                    {
+                      "line": 709,
+                      "name": "DEFAULT_MONTE_CARLO_SAMPLES",
+                      "passed": true,
+                      "target": {
+                        "file": "src/analyze/montecarlo.ts"
+                      }
+                    }
+                  ],
+                  "line": 112,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "line": 113,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 124,
+                  "name": "cumulativeDistribution",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "analyze"
+            }
+          ]
+        },
+        {
+          "entry": "rollLootTable",
+          "entryRule": 4,
+          "exports": [
+            "rollLootTable",
+            "validateLootTables"
+          ],
+          "hash": "23643cfcbfda5cf98748822b9f5f1d16f293dd1581a8dd13e2dcfe1fc645f895",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "src/loot/table.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 89,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 90,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                },
+                {
+                  "line": 97,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 98,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "rollLootTable"
+            },
+            {
+              "calls": [
+                {
+                  "line": 133,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "validateLootTables"
+            }
+          ]
+        },
+        {
+          "entry": "main",
+          "entryRule": 1,
+          "exports": [
+            "dispatch",
+            "handleRequest",
+            "setLogger"
+          ],
+          "hash": "0322d9c7489779abfb322ddf75add8a00f1c287aa3b3bf04bbbd40ca84ccb66b",
+          "importsFiles": [
+            "package.json",
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts",
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/entry.ts",
+            "src/mcp/tools.ts",
+            "src/parser/lexer.ts",
+            "src/parser/parser.ts",
+            "src/tables/analyze.ts",
+            "src/tables/engine.ts",
+            "src/tables/schema.ts"
+          ],
+          "path": "src/mcp/server.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 212,
+                  "name": "seededRng",
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  }
+                },
+                {
+                  "line": 216,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 217,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                },
+                {
+                  "line": 217,
+                  "name": "cryptoRng",
+                  "passed": true,
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  }
+                },
+                {
+                  "line": 226,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 227,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                },
+                {
+                  "line": 228,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 236,
+                  "name": "probabilityAtLeast",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 249,
+                  "name": "probabilityAtMost",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 252,
+                  "name": "probabilityExactly",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 258,
+                  "name": "probabilityInRange",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  }
+                },
+                {
+                  "line": 270,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 271,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 274,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 286,
+                  "name": "makeVersus",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  }
+                },
+                {
+                  "line": 301,
+                  "name": "rollGameTable",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  }
+                },
+                {
+                  "line": 326,
+                  "name": "analyzeCollection",
+                  "target": {
+                    "file": "src/tables/analyze.ts"
+                  }
+                },
+                {
+                  "line": 330,
+                  "name": "serializeTableAnalysis",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleToolCall"
+            },
+            {
+              "calls": [
+                {
+                  "line": 212,
+                  "name": "seededRng",
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 216,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 217,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 217,
+                  "name": "cryptoRng",
+                  "passed": true,
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 226,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 227,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 228,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 236,
+                  "name": "probabilityAtLeast",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 249,
+                  "name": "probabilityAtMost",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 252,
+                  "name": "probabilityExactly",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 258,
+                  "name": "probabilityInRange",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 270,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 271,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 274,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 286,
+                  "name": "makeVersus",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 301,
+                  "name": "rollGameTable",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 326,
+                  "name": "analyzeCollection",
+                  "target": {
+                    "file": "src/tables/analyze.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 330,
+                  "name": "serializeTableAnalysis",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 429,
+                  "name": "error",
+                  "target": {
+                    "file": "src/bridge/protocol.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "handleRequest"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 212,
+                  "name": "seededRng",
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 216,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 217,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 217,
+                  "name": "cryptoRng",
+                  "passed": true,
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 226,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 227,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 228,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 236,
+                  "name": "probabilityAtLeast",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 249,
+                  "name": "probabilityAtMost",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 252,
+                  "name": "probabilityExactly",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 258,
+                  "name": "probabilityInRange",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 270,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 271,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 274,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 286,
+                  "name": "makeVersus",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 301,
+                  "name": "rollGameTable",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 326,
+                  "name": "analyzeCollection",
+                  "target": {
+                    "file": "src/tables/analyze.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 330,
+                  "name": "serializeTableAnalysis",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "branch": "Array.isArray(parsed)",
+                  "line": 429,
+                  "name": "error",
+                  "target": {
+                    "file": "src/bridge/protocol.ts"
+                  },
+                  "via": "handleRequest"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "dispatch"
+            },
+            {
+              "calls": [
+                {
+                  "line": 212,
+                  "name": "seededRng",
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 216,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 217,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 217,
+                  "name": "cryptoRng",
+                  "passed": true,
+                  "target": {
+                    "file": "src/engine/random.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 226,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 227,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 228,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 236,
+                  "name": "probabilityAtLeast",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 249,
+                  "name": "probabilityAtMost",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 252,
+                  "name": "probabilityExactly",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 258,
+                  "name": "probabilityInRange",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 270,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 271,
+                  "name": "computeDistributionWithMethod",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 274,
+                  "name": "computeStats",
+                  "target": {
+                    "file": "src/analyze/stats.ts"
+                  },
+                  "via": "analyze"
+                },
+                {
+                  "line": 286,
+                  "name": "makeVersus",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 301,
+                  "name": "rollGameTable",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 326,
+                  "name": "analyzeCollection",
+                  "target": {
+                    "file": "src/tables/analyze.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 330,
+                  "name": "serializeTableAnalysis",
+                  "target": {
+                    "file": "src/bridge/handler.ts"
+                  },
+                  "via": "handleToolCall"
+                },
+                {
+                  "line": 429,
+                  "name": "error",
+                  "target": {
+                    "file": "src/bridge/protocol.ts"
+                  },
+                  "via": "handleRequest"
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "dispatchOne"
+            }
+          ]
+        },
+        {
+          "hash": "9be20b6445f6c67888d842f9f15729c5448357a4611c06ea1477e369bb1b9dff",
+          "path": "src/mcp/tools.ts"
+        },
+        {
+          "hash": "ca2b3976e77ec12c335c3096839bb8eb9c76b113c4ba8f0bea015d3c346a5e9a",
+          "path": "src/parser/ast.ts"
+        },
+        {
+          "exports": [
+            "tokenize"
+          ],
+          "hash": "0f17ed2e3b1551f8923af16ac653d80bc39f9c257c1cdd9eb631a4fce16326b3",
+          "importsFiles": [
+            "src/parser/tokens.ts"
+          ],
+          "path": "src/parser/lexer.ts"
+        },
+        {
+          "entry": "parse",
+          "entryRule": 4,
+          "exports": [
+            "parse"
+          ],
+          "hash": "f46ac88170face3c8cf3bece8924297eee95c5397b3153fbd251daf5c429f431",
+          "importsFiles": [
+            "src/parser/ast.ts",
+            "src/parser/lexer.ts",
+            "src/parser/tokens.ts"
+          ],
+          "path": "src/parser/parser.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 360,
+                  "name": "tokenize",
+                  "target": {
+                    "file": "src/parser/lexer.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "parse"
+            }
+          ]
+        },
+        {
+          "hash": "85ba645960fef60fbe79848ed0dae08a896374de761aad87fb33bc218899f38f",
+          "path": "src/parser/tokens.ts"
+        },
+        {
+          "entry": "analyzeTable",
+          "entryRule": 4,
+          "exports": [
+            "analyzeCollection",
+            "analyzeTable"
+          ],
+          "hash": "a4ffe18e53bff25b84403f8608d72a6d41dc1b314f57281e5904c7230d3431b0",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/parser/parser.ts",
+            "src/tables/conditions.ts",
+            "src/tables/engine.ts",
+            "src/tables/schema.ts"
+          ],
+          "path": "src/tables/analyze.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 51,
+                  "name": "weightScale",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "scaledWeights"
+            },
+            {
+              "calls": [
+                {
+                  "line": 147,
+                  "name": "filterEligibleEntries",
+                  "target": {
+                    "file": "src/tables/conditions.ts"
+                  },
+                  "via": "analyzeTableInner"
+                },
+                {
+                  "line": 51,
+                  "name": "weightScale",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  },
+                  "via": "scaledWeights"
+                },
+                {
+                  "line": 208,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "analyzeTableInner"
+                },
+                {
+                  "line": 208,
+                  "name": "computeDistribution",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "analyzeTableInner"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "analyzeTable"
+            },
+            {
+              "calls": [
+                {
+                  "line": 147,
+                  "name": "filterEligibleEntries",
+                  "target": {
+                    "file": "src/tables/conditions.ts"
+                  },
+                  "via": "analyzeTableInner"
+                },
+                {
+                  "line": 51,
+                  "name": "weightScale",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  },
+                  "via": "scaledWeights"
+                },
+                {
+                  "line": 208,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "analyzeTableInner"
+                },
+                {
+                  "line": 208,
+                  "name": "computeDistribution",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  },
+                  "via": "analyzeTableInner"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "analyzeCollection"
+            },
+            {
+              "calls": [
+                {
+                  "line": 147,
+                  "name": "filterEligibleEntries",
+                  "target": {
+                    "file": "src/tables/conditions.ts"
+                  }
+                },
+                {
+                  "line": 51,
+                  "name": "weightScale",
+                  "target": {
+                    "file": "src/tables/engine.ts"
+                  },
+                  "via": "scaledWeights"
+                },
+                {
+                  "line": 208,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 208,
+                  "name": "computeDistribution",
+                  "target": {
+                    "file": "src/analyze/distribution.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "analyzeTableInner"
+            }
+          ]
+        },
+        {
+          "exports": [
+            "evaluateCondition",
+            "filterEligibleEntries"
+          ],
+          "hash": "b32e99249ca3c16adec8d0b3252cf4d351e2cf714bd3bee8c42d2258e5028953",
+          "importsFiles": [
+            "src/tables/schema.ts"
+          ],
+          "path": "src/tables/conditions.ts"
+        },
+        {
+          "entry": "rollMultiple",
+          "entryRule": 4,
+          "exports": [
+            "convertLootToGameTable",
+            "rollGameTable",
+            "rollMultiple",
+            "weightScale"
+          ],
+          "hash": "61538115e135b0e26da66aa34559de47494a78da515c7abe2b25d6d0ec5b12ee",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/loot/table.ts",
+            "src/parser/parser.ts",
+            "src/tables/conditions.ts",
+            "src/tables/schema.ts"
+          ],
+          "path": "src/tables/engine.ts",
+          "sequences": [
+            {
+              "calls": [
+                {
+                  "line": 36,
+                  "name": "filterEligibleEntries",
+                  "target": {
+                    "file": "src/tables/conditions.ts"
+                  }
+                },
+                {
+                  "line": 200,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "line": 201,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "line": 208,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "line": 209,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "line": 217,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "line": 218,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "resolveEntry"
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "rollGameTable"
+            },
+            {
+              "calls": [
+                {
+                  "branch": "table.allowDuplicates",
+                  "line": 36,
+                  "name": "filterEligibleEntries",
+                  "target": {
+                    "file": "src/tables/conditions.ts"
+                  },
+                  "via": "rollGameTable"
+                },
+                {
+                  "branch": "table.allowDuplicates",
+                  "inner": [
+                    {
+                      "line": 360,
+                      "name": "tokenize",
+                      "target": {
+                        "file": "src/parser/lexer.ts"
+                      }
+                    }
+                  ],
+                  "line": 200,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "branch": "table.allowDuplicates",
+                  "inner": [
+                    {
+                      "line": 120,
+                      "name": "runPipeline",
+                      "target": {
+                        "file": "src/engine/pipeline.ts"
+                      },
+                      "via": "rollDiceGroup"
+                    }
+                  ],
+                  "line": 201,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "branch": "table.allowDuplicates",
+                  "inner": [
+                    {
+                      "line": 360,
+                      "name": "tokenize",
+                      "target": {
+                        "file": "src/parser/lexer.ts"
+                      }
+                    }
+                  ],
+                  "line": 208,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "branch": "table.allowDuplicates",
+                  "inner": [
+                    {
+                      "line": 120,
+                      "name": "runPipeline",
+                      "target": {
+                        "file": "src/engine/pipeline.ts"
+                      },
+                      "via": "rollDiceGroup"
+                    }
+                  ],
+                  "line": 209,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "branch": "table.allowDuplicates",
+                  "inner": [
+                    {
+                      "line": 360,
+                      "name": "tokenize",
+                      "target": {
+                        "file": "src/parser/lexer.ts"
+                      }
+                    }
+                  ],
+                  "line": 217,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "branch": "table.allowDuplicates",
+                  "inner": [
+                    {
+                      "line": 120,
+                      "name": "runPipeline",
+                      "target": {
+                        "file": "src/engine/pipeline.ts"
+                      },
+                      "via": "rollDiceGroup"
+                    }
+                  ],
+                  "line": 218,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  },
+                  "via": "resolveEntry"
+                },
+                {
+                  "line": 98,
+                  "name": "filterEligibleEntries",
+                  "target": {
+                    "file": "src/tables/conditions.ts"
+                  }
+                }
+              ],
+              "exported": true,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "rollMultiple"
+            },
+            {
+              "calls": [
+                {
+                  "line": 200,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 201,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                },
+                {
+                  "line": 208,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 209,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                },
+                {
+                  "line": 217,
+                  "name": "parse",
+                  "target": {
+                    "file": "src/parser/parser.ts"
+                  }
+                },
+                {
+                  "line": 218,
+                  "name": "evaluate",
+                  "target": {
+                    "file": "src/engine/roller.ts"
+                  }
+                }
+              ],
+              "exported": false,
+              "invokedAtTopLevel": false,
+              "isDefaultExport": false,
+              "name": "resolveEntry"
+            }
+          ]
+        },
+        {
+          "hash": "92ff5ee799ac21c89db2012c6a162384b6f31182553013af1ee020a17d292fc4",
+          "path": "src/tables/schema.ts"
+        },
+        {
+          "exports": [
+            "validateGameTables"
+          ],
+          "hash": "83ee37047dfcca3d9aba981d40eab3134f3c143d5ca932dc37b239804aca6d1f",
+          "importsFiles": [
+            "src/parser/parser.ts",
+            "src/tables/schema.ts"
+          ],
+          "path": "src/tables/validate.ts"
+        }
+      ],
+      "globs": [
+        "src/**"
+      ],
+      "importConfidence": "full",
+      "name": "src",
+      "origin": "authored",
+      "outsideReads": 3,
+      "role": "code",
+      "testedBy": 26,
+      "unresolvedSites": 0
+    },
+    {
+      "dynamicReads": 0,
+      "dynamicSpawns": 0,
+      "dynamicSpawnsInTests": 0,
+      "dynamicWrites": 0,
+      "entryPoints": [],
+      "externals": 0,
+      "files": [
+        {
+          "hash": "b50fc99d7fa007643ff1e24c264e4a7bfefd5fb69af6998ac0fde7fc8931fb78",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/montecarlo.ts",
+            "src/analyze/stats.ts",
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "tests/analyze-correctness.test.ts"
+        },
+        {
+          "hash": "343aee0f42799ba0fb27054c61369ce6cb395724deb49386b0422e1c6ca1caff",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "tests/analyze-cost.test.ts"
+        },
+        {
+          "hash": "660ee9c22854bd3e436b17a0db9d619bf5fe72fd04fad15ca458f129c3192807",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/index.ts",
+            "src/parser/ast.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "tests/analyze-method.test.ts"
+        },
+        {
+          "hash": "230fc23cdfc48f9f241de130679b76354c3397675c8c91d6daa40cd23383f603",
+          "importsFiles": [
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts",
+            "src/bridge/server.ts",
+            "src/entry.ts",
+            "src/mcp/server.ts"
+          ],
+          "path": "tests/boundary-fixups.test.ts"
+        },
+        {
+          "hash": "6ba9095d66a960f8f6e09d9141f8e9e04829d54955c4063b8a5d0f7bc74d9c38",
+          "importsFiles": [
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts",
+            "src/bridge/server.ts",
+            "src/mcp/server.ts"
+          ],
+          "path": "tests/boundary-observability.test.ts"
+        },
+        {
+          "hash": "3ca2400f199063d0c97743a4e19536d8338d65d99cc70bb75a3a9c178dd5d59b",
+          "importsFiles": [
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts",
+            "src/bridge/server.ts",
+            "src/mcp/server.ts"
+          ],
+          "path": "tests/boundary-security.test.ts"
+        },
+        {
+          "hash": "113b9635dfc8081b8be6d1aa044cbee2dab3e374ddf6cd4a0ea8041ec7ad8a25",
+          "importsFiles": [
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts"
+          ],
+          "path": "tests/bridge.test.ts"
+        },
+        {
+          "hash": "75c18ff848e29188f81f579e42575cc631c697beabc94f35965b2e42abdb5a23",
+          "importsFiles": [
+            "src/bin.ts"
+          ],
+          "path": "tests/cli-fixups.test.ts"
+        },
+        {
+          "hash": "c092bfb9be3386009aba68b9faedbb06da88bfbb88f1b717924f3e70b3418539",
+          "importsFiles": [
+            "src/bin.ts"
+          ],
+          "path": "tests/cli-stageb.test.ts"
+        },
+        {
+          "hash": "0eb61e8b61e37328dd700b74bf182d261e9997580b00ada25db3166b6d4e0de5",
+          "importsFiles": [
+            "src/bin.ts"
+          ],
+          "path": "tests/cli.test.ts"
+        },
+        {
+          "hash": "3815c9a44203b9bd46f48c9ddd88486af4eae2f0aeac67a917f21001acb1f895",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/display/box.ts",
+            "src/display/format.ts",
+            "src/display/histogram.ts",
+            "src/engine/roller.ts"
+          ],
+          "path": "tests/display.test.ts"
+        },
+        {
+          "hash": "134b72cdbafe63c820502ada3007ce6965558e76a99968cd7fd15c6a5df0fabe",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "tests/distribution.test.ts"
+        },
+        {
+          "hash": "71cda6eaadc58ca036ed17a66cdaa3b9c07847e8f7970e938820012b2e56e77e",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "tests/engine-caps.test.ts"
+        },
+        {
+          "hash": "b342fe9e3d36e56a5e56cd3d094b67d71619a56666ea52504a132d4cc6f628f4",
+          "importsFiles": [
+            "src/entry.ts"
+          ],
+          "path": "tests/entry.test.ts"
+        },
+        {
+          "hash": "9f993eea2078b28064ece6a3638376f20d60451d5ef1bf468ede2a85f9af4186",
+          "importsFiles": [
+            "src/analyze/distribution.ts",
+            "src/analyze/stats.ts",
+            "src/index.ts",
+            "src/parser/parser.ts",
+            "src/tables/analyze.ts",
+            "src/tables/schema.ts"
+          ],
+          "path": "tests/feature-analysis.test.ts"
+        },
+        {
+          "hash": "c2d3f0d01ba6718ef2cb218c315c14a3dc61867a491990709c935477793a52ad",
+          "importsFiles": [
+            "package.json",
+            "src/bridge/handler.ts",
+            "src/bridge/protocol.ts",
+            "src/mcp/server.ts"
+          ],
+          "path": "tests/feature-boundary.test.ts"
+        },
+        {
+          "hash": "add39d4b9882ff7f2e7347eea557cfd6adbe175aae56e2d01fc7ab0781fa7241",
+          "importsFiles": [
+            "src/bin.ts"
+          ],
+          "path": "tests/feature-cli.test.ts"
+        },
+        {
+          "hash": "8493f0d36c94b52ef91f6c65a74981bc36ef8f92ecfd7664f1dacd54b297c55e",
+          "path": "tests/fixtures/treasure.json"
+        },
+        {
+          "hash": "6488aa7076fa698735ae587539b4e23d770682601c928d9f3832b1fb70d8a504",
+          "importsFiles": [
+            "src/index.ts"
+          ],
+          "path": "tests/index.test.ts"
+        },
+        {
+          "hash": "e846d7e332698c285bdcf548f562c93e72a20ed21a3f1377f87cb1980bbf01aa",
+          "importsFiles": [
+            "src/parser/lexer.ts",
+            "src/parser/tokens.ts"
+          ],
+          "path": "tests/lexer.test.ts"
+        },
+        {
+          "hash": "1202e72be9f1b65db032ddb9f6fabd3ab0ca5175fe09a15baf457a1cb44705e0",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/loot/table.ts"
+          ],
+          "path": "tests/loot.test.ts"
+        },
+        {
+          "hash": "b99ebce2b800df0ad150bff381cd968ea15cf603963c61233e9939d9cb229421",
+          "importsFiles": [
+            "src/mcp/tools.ts"
+          ],
+          "path": "tests/mcp.test.ts"
+        },
+        {
+          "hash": "f6668135d79710693debbf0a93f04669f9a0fc76f76ef48b923f6c7f83b69a3e",
+          "importsFiles": [
+            "src/parser/ast.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "tests/parser.test.ts"
+        },
+        {
+          "hash": "0b6a59e24842ece97a7dfcf489dfa2a2d6435b6aea3af5a6af5d166becec618e",
+          "importsFiles": [
+            "src/engine/pipeline.ts",
+            "src/engine/random.ts",
+            "src/parser/ast.ts"
+          ],
+          "path": "tests/pipeline.test.ts"
+        },
+        {
+          "hash": "8fb5ae03ed0fb88d58aedb6b461d41f764fcef8528beeecc76a4b0a58c52d092",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/engine/roller.ts",
+            "src/parser/parser.ts"
+          ],
+          "path": "tests/roller.test.ts"
+        },
+        {
+          "hash": "4a3589037929b7e847e5bd99e98a0d86ae1a2d8a9b586a206cf7a0421db80916",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/loot/table.ts",
+            "src/tables/conditions.ts",
+            "src/tables/engine.ts",
+            "src/tables/schema.ts",
+            "src/tables/validate.ts"
+          ],
+          "path": "tests/tables-consistency.test.ts"
+        },
+        {
+          "hash": "069fc9664d2ab306b5226ba525c7cd3af966617727aabd8a2c852661b8c5d957",
+          "importsFiles": [
+            "src/engine/random.ts",
+            "src/loot/table.ts",
+            "src/tables/conditions.ts",
+            "src/tables/engine.ts",
+            "src/tables/schema.ts",
+            "src/tables/validate.ts"
+          ],
+          "path": "tests/tables.test.ts"
+        }
+      ],
+      "globs": [
+        "tests/**"
+      ],
+      "importConfidence": "full",
+      "name": "tests",
+      "origin": "authored",
+      "role": "test",
+      "testedBy": 0,
+      "unresolvedSites": 0
+    }
+  ],
+  "doors": [
+    {
+      "checksCount": 1,
+      "commands": [
+        {
+          "job": "test",
+          "step": "Atlas check",
+          "text": "npx --yes @dogfood-lab/atlas@1.17.0 check"
+        },
+        {
+          "job": "test",
+          "step": "3",
+          "text": "npm ci"
+        },
+        {
+          "job": "test",
+          "step": "4",
+          "text": "npm audit --audit-level=high"
+        },
+        {
+          "job": "test",
+          "step": "5",
+          "text": "npm run verify"
+        },
+        {
+          "job": "test",
+          "step": "6",
+          "text": "node dist/bin.js --version"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/ci.yml",
+      "landings": [],
+      "mentions": [
+        {
+          "job": "test",
+          "path": "tsconfig.test.json"
+        }
+      ],
+      "name": "CI",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 28
+        },
+        {
+          "boundary": "tests",
+          "depth": 0,
+          "files": 26
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "directory": true,
+          "job": "test",
+          "matched": true,
+          "path": "src/",
+          "runKind": "checks",
+          "via": "tsc tsconfig.json"
+        },
+        {
+          "job": "test",
+          "path": "src/bin.ts",
+          "runKind": "executes"
+        },
+        {
+          "directory": true,
+          "job": "test",
+          "matched": true,
+          "path": "tests/",
+          "runKind": "executes",
+          "via": "tsc tsconfig.test.json"
+        }
+      ],
+      "runsCount": 3,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "event": "pull_request",
+          "paths": [
+            ".github/workflows/**",
+            "atlas/**",
+            "package-lock.json",
+            "package.json",
+            "site/astro.config.mjs",
+            "site/package-lock.json",
+            "site/package.json",
+            "src/**",
+            "tests/**",
+            "tsconfig.json"
+          ]
+        },
+        {
+          "event": "push",
+          "paths": [
+            ".github/workflows/**",
+            "atlas/**",
+            "package-lock.json",
+            "package.json",
+            "site/astro.config.mjs",
+            "site/package-lock.json",
+            "site/package.json",
+            "src/**",
+            "tests/**",
+            "tsconfig.json"
+          ]
+        },
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/setup-node"
+      ],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [
+        {
+          "job": "build",
+          "step": "Install site dependencies",
+          "text": "npm ci"
+        },
+        {
+          "job": "build",
+          "step": "Build site",
+          "text": "npm run build"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/pages.yml",
+      "landings": [],
+      "mentions": [],
+      "name": "Deploy site to GitHub Pages",
+      "permissions": [
+        "contents:read",
+        "id-token:write",
+        "pages:write"
+      ],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "site",
+          "depth": 0,
+          "files": 3
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "job": "build",
+          "matched": true,
+          "path": "site/astro.config.mjs",
+          "runKind": "executes",
+          "via": "astro build"
+        },
+        {
+          "directory": true,
+          "job": "build",
+          "matched": true,
+          "path": "site/src/",
+          "runKind": "executes",
+          "via": "astro build"
+        }
+      ],
+      "runsCount": 2,
+      "secrets": [],
+      "sends": {
+        "deploysPages": true,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "branches": [
+            "main"
+          ],
+          "event": "push",
+          "paths": [
+            ".github/workflows/pages.yml",
+            "site/**"
+          ]
+        },
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/deploy-pages",
+        "actions/setup-node",
+        "actions/upload-pages-artifact"
+      ],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 1,
+      "commands": [
+        {
+          "job": "release",
+          "step": "Install npm >=11.5 in a sandbox for OIDC trusted-publishing auth",
+          "text": "# Node 22 ships npm 10.9, which signs provenance but cannot negotiate\n# the OIDC auth path (PUT returns a misleading 404). An in-place\n# `npm i -g npm@latest` races the bundled arborist and breaks — install\n# npm@latest into a sandbox dir and shadow the system npm via PATH.\nSANDBOX=\"$HOME/.npm-cli-sandbox\"\nmkdir -p \"$SANDBOX\"\npushd \"$SANDBOX\" >/dev/null\necho '{\"name\":\"npm-cli-sandbox\",\"version\":\"0.0.0\",\"private\":true}' > package.json\nnpm install --no-save --no-audit --no-fund --silent npm@latest\npopd >/dev/null\necho \"$SANDBOX/node_modules/.bin\" >> \"$GITHUB_PATH\"\n\"$SANDBOX/node_modules/.bin/npm\" --version\n"
+        },
+        {
+          "job": "release",
+          "step": "Resolve tag",
+          "text": "TAG=\"${{ github.event.inputs.tag || github.ref_name }}\"\necho \"tag=${TAG}\" >> \"$GITHUB_OUTPUT\"\necho \"version=${TAG#v}\" >> \"$GITHUB_OUTPUT\"\n"
+        },
+        {
+          "job": "release",
+          "step": "Verify tag matches package.json version",
+          "text": "PKG_VERSION=$(node -p \"require('./package.json').version\")\nTAG_VERSION=\"${{ steps.tag.outputs.version }}\"\necho \"Tag: ${{ steps.tag.outputs.tag }} -> ${TAG_VERSION} | package.json: ${PKG_VERSION}\"\nif [ \"${PKG_VERSION}\" != \"${TAG_VERSION}\" ]; then\n  echo \"::error::Tag ${TAG_VERSION} does not match package.json version ${PKG_VERSION}\"\n  exit 1\nfi\n"
+        },
+        {
+          "job": "release",
+          "step": "5",
+          "text": "npm ci"
+        },
+        {
+          "job": "release",
+          "step": "Verify (build + typecheck + test)",
+          "text": "npm run verify"
+        },
+        {
+          "job": "release",
+          "step": "npm pack dry-run (shape check)",
+          "text": "npm pack --dry-run"
+        },
+        {
+          "job": "release",
+          "step": "Publish to npm with provenance (OIDC trusted publisher, no token)",
+          "text": "npm publish --provenance --access public"
+        },
+        {
+          "job": "release",
+          "step": "Extract CHANGELOG section for the release notes",
+          "text": "VERSION=\"${{ steps.tag.outputs.version }}\"\nawk -v ver=\"$VERSION\" '\n  $0 ~ (\"^## \" ver \"( |$)\") {flag=1; next}\n  flag && /^## / {exit}\n  flag {print}\n' CHANGELOG.md > release-notes.md\nif [ -s release-notes.md ]; then\n  echo \"have_notes=true\" >> \"$GITHUB_OUTPUT\"\nelse\n  echo \"have_notes=false\" >> \"$GITHUB_OUTPUT\"\nfi\n"
+        },
+        {
+          "job": "release",
+          "step": "Create GitHub Release",
+          "text": "TAG=\"${{ steps.tag.outputs.tag }}\"\nif [ \"${{ steps.notes.outputs.have_notes }}\" = \"true\" ]; then\n  gh release create \"$TAG\" --title \"roll $TAG\" --notes-file release-notes.md --verify-tag\nelse\n  gh release create \"$TAG\" --title \"roll $TAG\" --generate-notes --verify-tag\nfi\n"
+        }
+      ],
+      "elsewhere": [],
+      "file": ".github/workflows/release.yml",
+      "landings": [],
+      "mentions": [
+        {
+          "job": "release",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "job": "release",
+          "path": "package.json"
+        },
+        {
+          "job": "release",
+          "path": "tsconfig.test.json"
+        }
+      ],
+      "name": "Release",
+      "permissions": [
+        "contents:write",
+        "id-token:write"
+      ],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 28
+        },
+        {
+          "boundary": "tests",
+          "depth": 0,
+          "files": 26
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "directory": true,
+          "job": "release",
+          "matched": true,
+          "path": "src/",
+          "runKind": "checks",
+          "via": "tsc tsconfig.json"
+        },
+        {
+          "directory": true,
+          "job": "release",
+          "matched": true,
+          "path": "tests/",
+          "runKind": "executes",
+          "via": "tsc tsconfig.test.json"
+        }
+      ],
+      "runsCount": 2,
+      "secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "packages": [
+          {
+            "dir": "",
+            "name": "@mcptoolshop/roll",
+            "registry": "npm"
+          }
+        ],
+        "publishes": true,
+        "publishesTo": [
+          "npm"
+        ],
+        "releases": true
+      },
+      "stages": [],
+      "triggers": [
+        {
+          "event": "push",
+          "tags": [
+            "v*"
+          ]
+        },
+        {
+          "event": "workflow_dispatch"
+        }
+      ],
+      "uses": [
+        "actions/checkout",
+        "actions/setup-node"
+      ],
+      "usesWorkflowToken": true
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "entry": "src/index.ts",
+      "file": "package.json",
+      "kind": "package",
+      "landings": [],
+      "mentions": [],
+      "name": "@mcptoolshop/roll",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 19
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "path": "src/bridge/handler.ts",
+          "runKind": "executes"
+        },
+        {
+          "path": "src/index.ts",
+          "runKind": "executes"
+        },
+        {
+          "path": "src/tables/engine.ts",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 3,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "package.json",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "roll",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 17
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "path": "src/bin.ts",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "package.json",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "roll-bridge",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 19
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "path": "src/bridge/server.ts",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
+    },
+    {
+      "checksCount": 0,
+      "commands": [],
+      "elsewhere": [],
+      "file": "package.json",
+      "kind": "command",
+      "landings": [],
+      "mentions": [],
+      "name": "roll-mcp",
+      "permissions": [],
+      "pushes": false,
+      "reach": [
+        {
+          "boundary": "src",
+          "depth": 0,
+          "files": 20
+        }
+      ],
+      "readers": [],
+      "runs": [
+        {
+          "path": "src/mcp/server.ts",
+          "runKind": "executes"
+        }
+      ],
+      "runsCount": 1,
+      "secrets": [],
+      "sends": {
+        "deploysPages": false,
+        "dispatchesTo": [],
+        "opensIssues": false,
+        "opensIssuesOnFailure": false,
+        "opensPullRequests": false,
+        "publishes": false,
+        "publishesTo": [],
+        "releases": false
+      },
+      "stages": [],
+      "triggers": [],
+      "uses": [],
+      "usesWorkflowToken": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "tests",
+      "fromTests": true,
+      "kind": "file",
+      "to": "src"
+    }
+  ],
+  "generatedFrom": {
+    "commit": "97f0f4fccef27deabc592dad429bb8af6c1caee9",
+    "tracked": 92
+  },
+  "landings": [
+    {
+      "readers": [
+        {
+          "by": ".github/workflows/release.yml"
+        }
+      ],
+      "target": "CHANGELOG.md",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": ".github/workflows/release.yml"
+        },
+        {
+          "by": "src/bin.ts",
+          "call": "import",
+          "confidence": "ast"
+        },
+        {
+          "by": "src/mcp/server.ts",
+          "call": "import",
+          "confidence": "ast"
+        }
+      ],
+      "target": "package.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "site/astro.config.mjs",
+          "call": "content-collection",
+          "confidence": "ast"
+        }
+      ],
+      "target": "site/src/content/docs",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "site/astro.config.mjs",
+          "call": "autogenerate",
+          "confidence": "ast"
+        }
+      ],
+      "target": "site/src/content/docs/handbook",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "tests/boundary-fixups.test.ts",
+          "call": "readFileSync",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "src/bridge/server.ts",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "tests/boundary-fixups.test.ts",
+          "call": "readFileSync",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "src/mcp/server.ts",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "tsconfig.test.json",
+          "call": "literal",
+          "confidence": "text"
+        }
+      ],
+      "target": "tsconfig.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": ".github/workflows/ci.yml"
+        },
+        {
+          "by": ".github/workflows/release.yml"
+        }
+      ],
+      "target": "tsconfig.test.json",
+      "writers": []
+    }
+  ],
+  "overlaps": [],
+  "submodules": [],
+  "symlinks": [],
+  "testFiles": 28,
+  "unassigned": []
+}
