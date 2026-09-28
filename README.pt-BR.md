@@ -27,16 +27,16 @@ Requer Node.js >= 22. Sem dependências de tempo de execução.
 
 ## Notação de dados
 
-Roll suporta o padrão completo de notação Roll20/VTT, abrangendo D&D, Mundo das Trevas, Shadowrun, Savage Worlds, Fate e muito mais.
+Roll suporta o padrão completo de notação Roll20/VTT, abrangendo D&D, World of Darkness, Shadowrun, Savage Worlds, Fate e muito mais.
 
 | Notação | Significado |
 |----------|---------|
-| `2d6` | Lance 2 dados de seis lados |
-| `d20+5` | Lance d20, adicione o modificador |
-| `4d6kh3` | Lance 4d6, mantenha os 3 mais altos |
-| `4d6dl1` | Lance 4d6, descarte o menor 1 |
+| `2d6` | Lançar 2 dados de seis lados |
+| `d20+5` | Lançar d20, adicionar modificador |
+| `4d6kh3` | Lançar 4d6, manter os 3 mais altos |
+| `4d6dl1` | Lançar 4d6, descartar o 1 mais baixo |
 | `1d6!` | Explosivo (relançar no máximo, adicionar) |
-| `1d6!>4` | Explodir em 4 ou superior |
+| `1d6!>4` | Explodir em 4 ou mais |
 | `1d6!!` | Composição (somar as explosões no mesmo dado) |
 | `1d6!p` | Penetrante (as explosões subtraem 1) |
 | `2d6r<2` | Relançar valores menores que 2 (ilimitado) |
@@ -63,6 +63,7 @@ roll 2d6 --at-most 7              # P(result <= 7)
 roll 2d6 --exactly 7              # P(result == 7)
 roll 2d6 --between 6..8           # P(6 <= result <= 8)
 roll 1d20+5 --target-for 0.65     # Largest target T with P(result >= T) >= 0.65
+roll 1d20+5 --at-most-for 0.65    # Smallest target T with P(result <= T) >= 0.65
 roll --compare "4d6dl1" "3d6"     # Side-by-side + P(A>B) verdict
 roll --loot treasure.json         # Loot table
 roll 2d6+3 --times 5              # Multiple rolls
@@ -73,7 +74,7 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 
 ### Consultas de probabilidade
 
-Além de `--at-least`, quatro flags respondem às perguntas que um designer realmente faz. Cada uma imprime uma linha limpa e respeita a mesma marcação exata/Monte Carlo de `--analyze`:
+Além de `--at-least`, essas flags respondem às perguntas que um designer realmente faz. Cada uma imprime uma linha limpa e respeita a mesma marcação exata/Monte-Carlo de `--analyze`:
 
 | Flag | Respostas |
 |------|---------|
@@ -81,13 +82,14 @@ Além de `--at-least`, quatro flags respondem às perguntas que um designer real
 | `--at-most N` | P(resultado ≤ N) |
 | `--exactly N` | P(resultado = N) |
 | `--between L..H` | P(L ≤ resultado ≤ H) — também aceita `L,H` |
-| `--target-for P` | O maior alvo T de modo que P(resultado ≥ T) ≥ P ("para acertar 65% das vezes, alvo ≤ T") |
+| `--target-for P` | O maior alvo T, de modo que P(resultado ≥ T) ≥ P ("para acertar 65% das vezes, alvo ≤ T") |
+| `--at-most-for P` | O menor T, de modo que P(resultado ≤ T) ≥ P ("65% dos resultados caem em ou abaixo de T") |
 
-`--compare A B` agora adiciona um veredicto **Versus** no topo dos dois blocos de estatísticas — P(A vence), P(empate), P(B vence) e a margem média E[A−B] — para que você possa resolver a questão do equilíbrio diretamente. Com `--json`, ele carrega um objeto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
+`--compare A B` agora adiciona um veredicto **Versus** além dos dois blocos de estatísticas — P(A vence), P(empate), P(B vence) e a margem média E[A−B] — para que você possa resolver a questão do equilíbrio diretamente. Com `--json`, ele carrega um objeto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
 
 ### Lançamentos determinísticos (`--seed`)
 
-`--seed <int>` define a semente do RNG para que um lançamento (ou uma sequência inteira `--times N`) seja reproduzível byte a byte — o determinismo que o motor, a ponte e o MCP já tinham, agora na CLI. A semente deve ser um inteiro finito; uma semente ruim gera um erro e sai com código 1. Para passar uma semente **negativa**, use o formato `=` (`--seed=-3`), pois um valor de hífen inicial separado por espaço é ambíguo para o analisador de argumentos. `--json` ecoa a `seed` para que a saída registre exatamente o que a produziu.
+`--seed <int>` inicializa o RNG para que um lançamento (ou uma sequência `--times N` inteira) seja reproduzível byte a byte — o determinismo que o motor, a ponte e o MCP já tinham, agora na CLI. A semente deve ser um inteiro finito; uma semente ruim gera um erro e sai com código 1. Para passar uma semente **negativa**, use o formato `=` (`--seed=-3`), já que um valor com hífen inicial separado por espaços é ambíguo para o analisador de argumentos. `--json` ecoa o `seed` para que a saída registre exatamente o que o produziu.
 
 ```bash
 roll 4d6kh3 --seed 42             # same result every time
@@ -100,9 +102,9 @@ roll 2d6 --seed 99 --json         # output includes "seed": 99
 A cor está ativada por padrão. Desative-a de duas maneiras:
 
 - `--no-color` — suprime o estilo ANSI para uma única invocação
-- `NO_COLOR=1` (variável de ambiente) — respeita o padrão [NO_COLOR](https://no-color.org/)
+- `NO_COLOR=1` (variável de ambiente) — respeitada de acordo com o padrão [NO_COLOR](https://no-color.org/)
 
-Quando o analisador recorre ao Monte Carlo para uma expressão grande ou complexa, `--analyze` e `--at-least` rotulam o resultado como estimado (com a contagem de amostras) em vez de apresentar os números amostrados como exatos. Os resultados exatos são indicados como tal. A saída `--json` carrega um campo `method` (`"exact"` ou `"monte-carlo"`, com `samples` quando amostrado), para que os consumidores da máquina também possam diferenciá-los.
+Quando o analisador recorre ao Monte Carlo para uma expressão grande ou complexa, `--analyze` e `--at-least` rotulam o resultado como estimado (com a contagem de amostras) em vez de apresentar os números amostrados como exatos. Os resultados exatos são anotados como tal. A saída `--json` carrega um campo `method` (`"exact"` ou `"monte-carlo"`, com `samples` quando amostrado) para que os consumidores de máquina também possam diferenciá-los.
 
 ### Códigos de saída
 
@@ -117,7 +119,7 @@ Os erros sempre imprimem uma única linha limpa (código/mensagem/dica) para std
 
 ## Tabelas de jogo
 
-A V2 introduz um sistema universal de tabelas de jogo para encontros, sucessos críticos, saques, efeitos de status e muito mais.
+A V2 introduz um sistema universal de tabelas de jogo para encontros, golpes críticos, saques, efeitos de status e muito mais.
 
 ```typescript
 import { rollGameTable } from '@mcptoolshop/roll';
@@ -139,7 +141,7 @@ const collection: GameTableCollection = {
 const results = rollGameTable(collection, "critical_hits", { triggerNat: 20, triggerRoll: 25 });
 ```
 
-Recursos: 8 tipos de tabela, seleção ponderada, condições (comparar, nativo, tag, contexto), filtragem de nível, tabelas aninhadas, encadeamento de tabelas, expressões de dados para quantidade/lançamento/duração, níveis de raridade, validação com detecção de referência circular.
+Recursos: 8 tipos de tabelas, seleção ponderada, condições (comparar, nativo, tag, contexto), filtragem de nível, tabelas aninhadas, encadeamento de tabelas, expressões de dados para quantidade/lançamento/duração, níveis de raridade, validação com detecção de referência circular.
 
 ## API da biblioteca
 
@@ -165,11 +167,11 @@ const r = evaluate(ast, seededRng(42));       // reproducible
 
 ### Estabilidade
 
-A **API de alto nível é estável** e segue o semver — alterações significativas apenas em um aumento principal:
+A **API de alto nível é estável** e segue o semver — alterações significativas apenas em uma atualização principal:
 
 - `roll`, `analyze`
 - as APIs de saque (`rollLootTable`, `validateLootTables`) e as APIs de tabela de jogo (`rollGameTable`)
-- a superfície JSON-RPC do `BridgeHandler`
+- a superfície `BridgeHandler` JSON-RPC
 
 **Os internos do analisador de baixo nível são avançados e podem mudar em versões secundárias** — use-os apenas se precisar percorrer o AST sozinho e fixar uma versão se depender deles:
 
@@ -180,7 +182,7 @@ A **API de alto nível é estável** e segue o semver — alterações significa
 
 ## Ponte JSON (Godot / Unreal / Rust)
 
-Roll inclui uma ponte JSON-RPC 2.0 para integração com o mecanismo do jogo por meio de um processo filho:
+Roll inclui uma ponte JSON-RPC 2.0 para integração com o mecanismo de jogo por meio de um processo filho:
 
 ```bash
 # Stdio mode (pipe JSON in, get JSON out)
@@ -210,23 +212,23 @@ Roll é fornecido como um servidor MCP para integração com o Claude durante o 
 
 5 ferramentas: `roll_dice`, `analyze_dice`, `compare_dice`, `roll_table`, `query_table`.
 
-## Motor de probabilidade
+## Mecanismo de probabilidade
 
-- **Distribuições exatas** por meio de convolução polinomial para o sistema básico NdM
-- **Enumeração completa** para as mecânicas de manter/descartar (4d6 = 1.296 estados)
-- **Recálculo analítico** — redistribui a massa de probabilidade sobre faces não correspondentes
-- **Valor mínimo/máximo analítico** — trunca a distribuição e acumula a massa no limite
-- **Contagem analítica de sucessos** — mapeia as faces para +1/0/-1, realiza a convolução N vezes
-- **Recursão truncada** para dados explosivos/acumulativos/penetrantes
-- **Alternativa Monte Carlo** (100 mil amostras) quando o cálculo exato ultrapassa 10 milhões de estados
+- **Distribuições exatas** via convolução polinomial para NdM básico
+- **Enumeração completa** para mecânicas de manter/descartar (4d6 = 1.296 estados)
+- **Relançamento analítico** — redistribui a massa de probabilidade sobre faces não correspondentes
+- **Mínimo/máximo analítico** — trunca a distribuição e acumula massa no limite
+- **Contagem de sucessos analítica** — mapeia faces para +1/0/-1, convolui N vezes
+- **Recursão truncada** para dados explosivos/compostos/penetrantes
+- **Recurso Monte Carlo** (100 mil amostras) quando o cálculo exato excede 10 milhões de estados
 
-Cada modificador possui uma análise de probabilidade exata — não apenas simulação.
+Cada modificador tem análise de probabilidade exata — não apenas simulação.
 
-## Segurança e Confiança
+## Segurança e confiança
 
-Processa expressões de dados e nada mais. Sem solicitações de rede, sem gravações em arquivos (exceto `--loot`, que lê um arquivo JSON), sem telemetria, sem segredos. Todas as rolagens de dados usam `crypto.randomInt` para aleatoriedade criptográfica. As expressões são limitadas no momento da análise (contagem de dados, lados dos dados, comprimento) para evitar o esgotamento de recursos, e qualquer texto lido de um arquivo `--loot` é desprovido de caracteres de controle de terminal antes da exibição, para que uma tabela hostil não possa injetar sequências de escape ANSI no seu terminal.
+Processa expressões de dados e nada mais. Não faz pedidos à rede, não escreve em arquivos (exceto `--loot`, que lê um arquivo JSON), não coleta dados de telemetria, não armazena segredos. Todas as operações de lançamento de dados usam `crypto.randomInt` para gerar aleatoriedade criptográfica. As expressões são limitadas no momento da análise (contagem de dados, número de lados dos dados, comprimento) para evitar o esgotamento de recursos, e qualquer texto lido de um arquivo `--loot` é desprovido de caracteres de controle de terminal antes da exibição, para que uma tabela maliciosa não possa injetar sequências de escape ANSI no seu terminal.
 
-Consulte [SECURITY.md](./SECURITY.md) para obter a política de notificação de vulnerabilidades.
+Consulte [SECURITY.md](./SECURITY.md) para obter informações sobre a política de notificação de vulnerabilidades.
 
 ## Licença
 
@@ -234,4 +236,4 @@ MIT
 
 ---
 
-Criado por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+Desenvolvido por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

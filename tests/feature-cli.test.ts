@@ -210,6 +210,41 @@ describe("feature-cli: --target-for (FT-ANA-005)", () => {
   });
 });
 
+describe("feature-cli: --at-most-for (FT-ANA-005)", () => {
+  it("--at-most-for 0.65 1d20+5 returns target 18", () => {
+    const r = cli("1d20+5", "--at-most-for", "0.65");
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("18");
+    expect(r.out).toContain("result ≤");
+    expect(r.out).not.toContain("result ≥");
+    const r2 = cli("1d20+5", "--at-most-for", "0.65", "--json");
+    const parsed = JSON.parse(r2.out);
+    expect(parsed.target).toBe(18);
+    expect(parsed.p).toBe(0.65);
+    expect(parsed.direction).toBe("atMost");
+  });
+
+  it("--at-most-for with p outside (0,1] -> exit 1", () => {
+    const r = cli("1d20", "--at-most-for", "5");
+    expect(r.code).toBe(1);
+    expect(r.err.toLowerCase()).toContain("at-most-for");
+  });
+
+  it("--at-most-for abc -> exit 1", () => {
+    const r = cli("1d20", "--at-most-for", "abc");
+    expect(r.code).toBe(1);
+    expect(r.err.toLowerCase()).toContain("at-most-for");
+  });
+
+  it("--target-for still returns 13 for 0.65 and has no direction field", () => {
+    const r = cli("1d20+5", "--target-for", "0.65", "--json");
+    const parsed = JSON.parse(r.out);
+    expect(parsed.target).toBe(13);
+    expect(parsed.p).toBe(0.65);
+    expect(parsed.direction).toBeUndefined();
+  });
+});
+
 // ─── Regression: existing exit codes unchanged ───────────────────────────────
 
 describe("feature-cli: no regressions", () => {

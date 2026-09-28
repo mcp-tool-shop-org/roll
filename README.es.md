@@ -23,7 +23,7 @@ npx @mcptoolshop/roll 8d6cs>=5 --analyze
 npm install @mcptoolshop/roll
 ```
 
-Requiere Node.js >= 22. No tiene dependencias en tiempo de ejecución.
+Requiere Node.js >= 22. No hay dependencias en tiempo de ejecución.
 
 ## Notación de dados
 
@@ -35,12 +35,12 @@ Roll admite el estándar completo de notación Roll20/VTT, que cubre D&D, World 
 | `d20+5` | Lanzar d20, sumar modificador |
 | `4d6kh3` | Lanzar 4d6, mantener los 3 más altos |
 | `4d6dl1` | Lanzar 4d6, descartar el 1 más bajo |
-| `1d6!` | Explosivo (volver a lanzar al obtener el máximo, sumar) |
-| `1d6!>4` | Explosivo en 4 o superior |
+| `1d6!` | Explosivo (volver a lanzar en el máximo, sumar) |
+| `1d6!>4` | Explosivo en 4 o más |
 | `1d6!!` | Compuesto (sumar las explosiones en el mismo dado) |
 | `1d6!p` | Penetrante (las explosiones restan 1) |
 | `2d6r<2` | Volver a lanzar valores menores que 2 (ilimitado) |
-| `2d6ro=1` | Volver a lanzar los 1 una vez |
+| `2d6ro=1` | Volver a lanzar 1 una vez |
 | `2d6min3` | Mínimo: ningún dado por debajo de 3 |
 | `2d6max5` | Máximo: ningún dado por encima de 5 |
 | `8d6cs>=5` | Contar éxitos (dados >= 5) |
@@ -63,6 +63,7 @@ roll 2d6 --at-most 7              # P(result <= 7)
 roll 2d6 --exactly 7              # P(result == 7)
 roll 2d6 --between 6..8           # P(6 <= result <= 8)
 roll 1d20+5 --target-for 0.65     # Largest target T with P(result >= T) >= 0.65
+roll 1d20+5 --at-most-for 0.65    # Smallest target T with P(result <= T) >= 0.65
 roll --compare "4d6dl1" "3d6"     # Side-by-side + P(A>B) verdict
 roll --loot treasure.json         # Loot table
 roll 2d6+3 --times 5              # Multiple rolls
@@ -73,21 +74,22 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 
 ### Consultas de probabilidad
 
-Además de `--at-least`, cuatro indicadores responden a las preguntas que realmente se hace un diseñador. Cada uno imprime una línea limpia y respeta el etiquetado exacto/Monte Carlo del mismo modo que `--analyze`:
+Además de `--at-least`, estas opciones responden a las preguntas que realmente hace un diseñador. Cada una imprime una línea limpia y respeta el etiquetado exacto/Monte Carlo como `--analyze`:
 
-| Indicador | Respuestas |
+| Opción | Responde |
 |------|---------|
 | `--at-least N` | P(resultado ≥ N) |
 | `--at-most N` | P(resultado ≤ N) |
 | `--exactly N` | P(resultado = N) |
-| `--between L..H` | P(L ≤ resultado ≤ H); también acepta `L,H` |
-| `--target-for P` | El objetivo más grande T de tal manera que P(resultado ≥ T) ≥ P ("para acertar el 65% de las veces, objetivo ≤ T") |
+| `--between L..H` | P(L ≤ resultado ≤ H) — también acepta `L,H` |
+| `--target-for P` | El objetivo más grande T tal que P(resultado ≥ T) ≥ P ("para acertar el 65% de las veces, objetivo ≤ T") |
+| `--at-most-for P` | El T más pequeño tal que P(resultado ≤ T) ≥ P ("el 65% de los resultados caen en o por debajo de T") |
 
-`--compare A B` ahora agrega un veredicto **Versus** además de los dos bloques de estadísticas: P(A gana), P(empate), P(B gana) y la media del margen E[A−B], para que pueda resolver directamente la cuestión del equilibrio. Con `--json`, incluye un objeto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
+`--compare A B` ahora añade un veredicto **Versus** además de los dos bloques de estadísticas: P(A gana), P(empate), P(B gana) y el margen medio E[A−B], para que pueda resolver la cuestión del equilibrio directamente. Con `--json`, lleva un objeto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
 
 ### Lanzamientos deterministas (`--seed`)
 
-`--seed <int>` establece la semilla del RNG para que un lanzamiento (o una secuencia completa de `--times N`) sea reproducible byte por byte; el determinismo que ya tenían el motor, el puente y el MCP, ahora también en la línea de comandos. La semilla debe ser un entero finito; una semilla incorrecta genera un error y sale con código 1. Para pasar una semilla **negativa**, use el formato `=` (`--seed=-3`), ya que un valor separado por espacios con un guion inicial es ambiguo para el analizador de argumentos. `--json` muestra la `seed`, por lo que la salida registra exactamente qué la produjo.
+`--seed <int>` inicializa el RNG para que un lanzamiento (o una secuencia `--times N` completa) sea reproducible byte por byte; el determinismo que ya tenían el motor, el puente y el MCP, ahora también en la línea de comandos. La semilla debe ser un entero finito; una semilla incorrecta genera un error y sale con el código 1. Para pasar una semilla **negativa**, utilice el formato `=` (`--seed=-3`), ya que un valor con un guion inicial separado por espacios es ambiguo para el analizador de argumentos. `--json` hace eco de `seed` para que la salida registre exactamente lo que lo produjo.
 
 ```bash
 roll 4d6kh3 --seed 42             # same result every time
@@ -97,12 +99,12 @@ roll 2d6 --seed 99 --json         # output includes "seed": 99
 
 ### Color
 
-El color está activado por defecto. Se puede desactivar de dos maneras:
+El color está activado por defecto. Desactívelo de dos maneras:
 
 - `--no-color`: suprime el estilo ANSI para una sola invocación
 - `NO_COLOR=1` (variable de entorno): se respeta según el estándar [NO_COLOR](https://no-color.org/)
 
-Cuando el analizador recurre a Monte Carlo para una expresión grande o compleja, `--analyze` y `--at-least` etiquetan el resultado como estimado (con el recuento de muestras) en lugar de presentar los números muestreados como exactos. Los resultados exactos se indican como tales. La salida de `--json` incluye un campo `method` (`"exact"` o `"monte-carlo"`, con `samples` cuando se muestrea), para que los consumidores automáticos también puedan distinguirlos.
+Cuando el analizador recurre a Monte Carlo para una expresión grande o compleja, `--analyze` y `--at-least` etiquetan el resultado como estimado (con el recuento de muestras) en lugar de presentar los números muestreados como exactos. Los resultados exactos se indican como tales. La salida `--json` lleva un campo `method` (`"exact"` o `"monte-carlo"`, con `samples` cuando se muestrea) para que los consumidores de la máquina también puedan distinguirlos.
 
 ### Códigos de salida
 
@@ -111,13 +113,13 @@ Roll sigue un contrato deliberado de dos códigos, una promesa de estabilidad en
 | Código | Significado |
 |------|---------|
 | `0` | Éxito |
-| `1` | Cualquier error: expresión incorrecta, fallo de validación, archivo de botín faltante o superación del límite. |
+| `1` | Cualquier error: expresión incorrecta, fallo de validación, archivo de botín faltante o se ha superado un límite |
 
 Los errores siempre imprimen una sola línea limpia (código/mensaje/sugerencia) en stderr; la línea de comandos nunca filtra un rastreo de pila.
 
 ## Tablas de juego
 
-La versión 2 introduce un sistema universal de tablas de juego para encuentros, golpes críticos, botín, efectos de estado y más.
+La versión 2 introduce un sistema de tablas de juego universal para encuentros, golpes críticos, botín, efectos de estado y más.
 
 ```typescript
 import { rollGameTable } from '@mcptoolshop/roll';
@@ -139,7 +141,7 @@ const collection: GameTableCollection = {
 const results = rollGameTable(collection, "critical_hits", { triggerNat: 20, triggerRoll: 25 });
 ```
 
-Características: 8 tipos de tabla, selección ponderada, condiciones (comparar, natural, etiqueta, contexto), filtrado por nivel, tablas anidadas, encadenamiento de tablas, expresiones de dados para cantidad/lanzamiento/duración, niveles de rareza, validación con detección de referencias circulares.
+Características: 8 tipos de tablas, selección ponderada, condiciones (comparar, natural, etiqueta, contexto), filtrado por nivel, tablas anidadas, encadenamiento de tablas, expresiones de dados para cantidad/lanzamiento/duración, niveles de rareza, validación con detección de referencias circulares.
 
 ## API de la biblioteca
 
@@ -165,22 +167,22 @@ const r = evaluate(ast, seededRng(42));       // reproducible
 
 ### Estabilidad
 
-La **API de alto nivel es estable** y sigue semver: los cambios importantes solo se realizan en una versión principal:
+La **API de alto nivel es estable** y sigue semver: los cambios importantes solo se producen con una actualización importante:
 
 - `roll`, `analyze`
 - las API de botín (`rollLootTable`, `validateLootTables`) y las API de tablas de juego (`rollGameTable`)
-- la superficie JSON-RPC de `BridgeHandler`
+- la superficie `BridgeHandler` JSON-RPC
 
-**Los componentes internos del analizador de bajo nivel son avanzados y pueden cambiar en versiones secundarias**: úselos solo si necesita recorrer el AST usted mismo y fije una versión si depende de ellos:
+**Los componentes internos del analizador de bajo nivel son avanzados y pueden cambiar en versiones secundarias**: utilícelos solo si necesita recorrer el AST usted mismo y fije una versión si depende de ellos:
 
 - `tokenize`, `Token`, `TokenType`
 - `runPipeline`, `matchesCompare`
 
-`analyze` también informa `.method` (`"exact"` | `"monte-carlo"`) y, para la ruta muestreada, `.samples`; por lo que los programas pueden respetar el contrato de probabilidades exactas.
+`analyze` también informa `.method` (`"exact"` | `"monte-carlo"`) y, para la ruta muestreada, `.samples`, para que los llamadores puedan respetar el contrato de probabilidades exactas de forma programática.
 
 ## Puente JSON (Godot / Unreal / Rust)
 
-Roll incluye un puente JSON-RPC 2.0 para la integración con motores de juego a través de un proceso secundario:
+Roll incluye un puente JSON-RPC 2.0 para la integración con el motor de juego a través de un proceso hijo:
 
 ```bash
 # Stdio mode (pipe JSON in, get JSON out)
@@ -213,18 +215,18 @@ Roll se distribuye como un servidor MCP para la integración con Claude durante 
 ## Motor de probabilidad
 
 - **Distribuciones exactas** mediante convolución polinómica para NdM básico
-- **Enumeración completa** para las mecánicas de mantener/eliminar (4d6 = 1296 estados)
-- **Reajuste analítico:** redistribuye la masa de probabilidad sobre las caras que no coinciden
-- **Valor mínimo/máximo analítico:** trunca la distribución y concentra la masa en el valor límite
-- **Conteo analítico de éxitos:** asigna a cada cara los valores +1/0/-1, realiza la convolución N veces
-- **Recursión truncada** para dados que explotan/se acumulan/penetran
-- **Alternativa Monte Carlo** (100 000 muestras) cuando el cálculo exacto supera los 10 millones de estados
+- **Enumeración completa** para las mecánicas de mantener/descartar (4d6 = 1.296 estados)
+- **Re-lanzamiento analítico**: redistribuye la masa de probabilidad sobre las caras que no coinciden
+- **Mínimo/máximo analítico**: trunca la distribución y acumula la masa en el límite
+- **Conteo de éxitos analítico**: asigna las caras a +1/0/-1, convoluciona N veces
+- **Recursión truncada** para dados explosivos/compuestos/penetrantes
+- **Recurso a Monte Carlo** (100.000 muestras) cuando el cálculo exacto supera los 10 millones de estados
 
 Cada modificador tiene un análisis de probabilidad exacto, no solo una simulación.
 
 ## Seguridad y confianza
 
-Procesa expresiones de dados y nada más. No hay solicitudes a la red, ni escrituras en archivos (excepto que `--loot` lee un archivo JSON), ni telemetría, ni secretos. Todas las tiradas de dados utilizan `crypto.randomInt` para generar aleatoriedad criptográfica. Las expresiones se limitan en el momento del análisis (recuento de dados, caras del dado, longitud) para evitar el agotamiento de recursos, y cualquier texto que se lea de un archivo `--loot` se elimina de los caracteres de control de terminal antes de mostrarse, para que una tabla maliciosa no pueda insertar secuencias de escape ANSI en su terminal.
+Procesa las expresiones de los dados y nada más. No realiza solicitudes a la red, ni escribe en archivos (excepto que `--loot` lee un archivo JSON), no recopila datos de telemetría, ni almacena secretos. Todas las tiradas de dados utilizan `crypto.randomInt` para generar aleatoriedad criptográfica. Las expresiones se limitan en el momento del análisis (recuento de dados, caras del dado, longitud) para evitar el agotamiento de recursos, y cualquier texto que se lea de un archivo `--loot` se elimina de los caracteres de control de terminal antes de mostrarlo, para que una tabla maliciosa no pueda insertar secuencias de escape ANSI en su terminal.
 
 Consulte [SECURITY.md](./SECURITY.md) para conocer la política de notificación de vulnerabilidades.
 

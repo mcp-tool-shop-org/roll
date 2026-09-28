@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/roll/readme.png" width="400" alt="Roll"></p>
@@ -63,6 +63,7 @@ roll 2d6 --at-most 7              # P(result <= 7)
 roll 2d6 --exactly 7              # P(result == 7)
 roll 2d6 --between 6..8           # P(6 <= result <= 8)
 roll 1d20+5 --target-for 0.65     # Largest target T with P(result >= T) >= 0.65
+roll 1d20+5 --at-most-for 0.65    # Smallest target T with P(result <= T) >= 0.65
 roll --compare "4d6dl1" "3d6"     # Side-by-side + P(A>B) verdict
 roll --loot treasure.json         # Loot table
 roll 2d6+3 --times 5              # Multiple rolls
@@ -73,7 +74,7 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 
 ### Probability queries
 
-Beyond `--at-least`, four flags answer the questions a designer actually asks. Each prints one clean line and honors the same exact/Monte-Carlo labeling as `--analyze`:
+Beyond `--at-least`, these flags answer the questions a designer actually asks. Each prints one clean line and honors the same exact/Monte-Carlo labeling as `--analyze`:
 
 | Flag | Answers |
 |------|---------|
@@ -82,6 +83,7 @@ Beyond `--at-least`, four flags answer the questions a designer actually asks. E
 | `--exactly N` | P(result = N) |
 | `--between L..H` | P(L ≤ result ≤ H) — also accepts `L,H` |
 | `--target-for P` | The largest target T such that P(result ≥ T) ≥ P ("to hit 65% of the time, target ≤ T") |
+| `--at-most-for P` | The smallest T such that P(result ≤ T) ≥ P ("65% of outcomes fall at or below T") |
 
 `--compare A B` now adds a **Versus** verdict on top of the two stat blocks — P(A wins), P(tie), P(B wins), and the mean margin E[A−B] — so you can settle the balance question directly. With `--json` it carries a `comparison` object (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
 

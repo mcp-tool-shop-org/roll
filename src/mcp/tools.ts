@@ -61,6 +61,10 @@ export const TOOLS: McpToolDefinition[] = [
           type: "array",
           description: "Optional [lo, hi] — adds query.between = P(lo <= result <= hi), inclusive",
         },
+        at_most_for: {
+          type: "number",
+          description: "Optional probability — adds query.atMostFor = { p, target } where target is smallest T with P(result <= T) >= p",
+        },
       },
       required: ["expression"],
     },

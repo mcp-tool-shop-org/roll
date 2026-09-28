@@ -46,7 +46,7 @@ export const config: SiteConfig = {
       title: 'Usage',
       cards: [
         { title: 'Roll dice', code: 'npx @mcptoolshop/roll 2d6+3\nnpx @mcptoolshop/roll 4d6kh3\nnpx @mcptoolshop/roll 1d6!' },
-        { title: 'Analyze odds', code: 'npx @mcptoolshop/roll 4d6dl1 --analyze\nnpx @mcptoolshop/roll 2d6 --between 6..8\nnpx @mcptoolshop/roll 1d20+5 --target-for 0.65\nnpx @mcptoolshop/roll --compare "2d6+5" "1d12+6"' },
+        { title: 'Analyze odds', code: 'npx @mcptoolshop/roll 4d6dl1 --analyze\nnpx @mcptoolshop/roll 2d6 --between 6..8\nnpx @mcptoolshop/roll 1d20+5 --target-for 0.65\nnpx @mcptoolshop/roll 1d20+5 --at-most-for 0.65\nnpx @mcptoolshop/roll --compare "2d6+5" "1d12+6"' },
         { title: 'Library API', code: "import { roll, analyze } from '@mcptoolshop/roll';\n\nconst result = roll('4d6kh3');\nconsole.log(result.total);\n\nconst { stats } = analyze('2d6+3');\nconsole.log(stats.mean);" },
         { title: 'Loot tables', code: "import { rollLootTable } from '@mcptoolshop/roll';\n\nconst tables = [{\n  table: 'Treasure',\n  items: [\n    { name: 'Gold', weight: 40, roll: '2d6*10' },\n    { name: 'Potion', weight: 30 }\n  ]\n}];\nconst drops = rollLootTable(tables);" },
       ],

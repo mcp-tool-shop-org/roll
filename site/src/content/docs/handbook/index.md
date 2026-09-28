@@ -60,6 +60,9 @@ npx @mcptoolshop/roll 4d6dl1 --at-least 15
 # What DC can a +5 character beat 65% of the time?
 npx @mcptoolshop/roll 1d20+5 --target-for 0.65
 
+# What result covers 65% of those rolls from below?
+npx @mcptoolshop/roll 1d20+5 --at-most-for 0.65
+
 # Which damage build wins head-to-head?
 npx @mcptoolshop/roll --compare "2d6+5" "1d12+6"
 

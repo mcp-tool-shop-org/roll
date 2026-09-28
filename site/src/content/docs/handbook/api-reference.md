@@ -897,7 +897,7 @@ Roll ships an MCP server (`dist/mcp/server.js`) exposing six tools for Claude-dr
 | Tool | Purpose |
 |------|---------|
 | `roll_dice` | Roll an expression. Params: `expression`, optional `times`, optional `seed`. |
-| `analyze_dice` | Distribution + stats for an expression. Carries a `method` field (`"exact"` / `"monte-carlo"` with `samples`). Optional `at_least`, `at_most`, `exactly`, and `between` ([lo, hi]) add a `query` block to the result. |
+| `analyze_dice` | Distribution + stats for an expression. Carries a `method` field (`"exact"` / `"monte-carlo"` with `samples`). Optional `at_least`, `at_most`, `exactly`, `between` ([lo, hi]), and `at_most_for` (a probability) add a `query` block to the result. `at_most_for` sets `query.atMostFor` to `{ p, target }`, the smallest T with P(result ≤ T) ≥ p. |
 | `compare_dice` | Stats for two expressions PLUS a `versus` verdict — P(A>B), P(tie), P(B>A), and the mean margin (A − B). Params: `expression_a`, `expression_b`. |
 | `analyze_table` | Analyze a game table: each eligible entry's selection probability + value distribution, plus excluded entries with reasons. Params: `table_name`, `collection`, optional `context`. The headline tool for AI balance work. |
 | `roll_table` | Roll on a game table. Params: `table_name`, `collection`, optional `context`, optional `count`. |
@@ -909,7 +909,7 @@ The `analyze_dice` query block and the `compare_dice` versus verdict are the v2.
 
 The bridge (`roll-bridge`) is a JSON-RPC 2.0 server for game-engine integration over stdio or HTTP. Use the exported `BridgeHandler` class to call methods in-process, or run the binary as a child process.
 
-**Methods:** `roll`, `roll_batch`, `analyze`, `at_least`, `at_most`, `exactly`, `between`, `compare`, `table_roll`, `table_load`, `table_list`, `table_analyze`, `seed`, `ping`, `shutdown`.
+**Methods:** `roll`, `roll_batch`, `analyze`, `at_least`, `at_most`, `exactly`, `between`, `at_most_for`, `compare`, `table_roll`, `table_load`, `table_list`, `table_analyze`, `seed`, `ping`, `shutdown`.
 
 The v2.1.0 additions and enhancements:
 
@@ -918,6 +918,7 @@ The v2.1.0 additions and enhancements:
 | `at_most` | P(result <= target). Params: `expression`, `target`. |
 | `exactly` | P(result == target). Params: `expression`, `target`. |
 | `between` | P(lo <= result <= hi). Params: `expression`, `lo`, `hi`. |
+| `at_most_for` | Smallest T with P(result ≤ T) ≥ p. Params: `expression`, `p`. Result includes `direction: "atMost"`. |
 | `table_analyze` | Table analysis — mirrors `table_roll`'s `table` + `context` params, minus `count`. |
 | `compare` | Now attaches a `versus` block (`pAGreater`, `pEqual`, `pBGreater`, `marginMean`) to each of the two returned entries. |
 | `roll_batch` | Per-item resilient: one bad expression returns a `{ expression, error }` element instead of voiding the whole batch. |

@@ -234,6 +234,18 @@ export function formatTargetFor(
   );
 }
 
+export function formatTargetForAtMost(
+  expression: string,
+  p: number,
+  target: number,
+): string {
+  const pct = (p * 100).toFixed(1);
+  return (
+    `To cover ${boldYellow(pct + "%")} of outcomes from below with ${bold(expression)}: ` +
+    `${dim("result ≤")} ${boldGreen(String(target))}  ${dim(`(P(${expression} ≤ ${target}) ≥ ${pct}%)`)}`
+  );
+}
+
 /** Format roll result as JSON. When `seed` is provided (FT-INT-001), it is
  *  echoed so the output records exactly which seed produced these rolls;
  *  omitted entirely for an unseeded (cryptoRng) roll. */

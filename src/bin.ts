@@ -31,6 +31,7 @@ import {
   formatVersus,
   formatProbabilityQuery,
   formatTargetFor,
+  formatTargetForAtMost,
   formatJson,
   formatMethodNote,
 } from "./display/format.js";
@@ -92,6 +93,7 @@ ${bold("Usage:")}
   ${cyan("roll")} <expression> ${dim("--exactly")} N   P(result == N)
   ${cyan("roll")} <expression> ${dim("--between")} L..H P(L <= result <= H)
   ${cyan("roll")} <expression> ${dim("--target-for")} P  Break-even target for P(>=T) >= P
+  ${cyan("roll")} <expression> ${dim("--at-most-for")} P  Break-even target for P(<=T) >= P
   ${cyan("roll")} ${dim("--compare")} "expr1" "expr2"  Compare two distributions (with verdict)
   ${cyan("roll")} ${dim("--loot")} table.json         Roll on a loot table
   ${cyan("roll")} <expression> ${dim("--times")} N    Roll N times
@@ -126,6 +128,7 @@ ${bold("Flags:")}
   --exactly N    Show probability of rolling exactly N
   --between L..H Show probability of L <= result <= H (also accepts L,H)
   --target-for P Largest target T with P(result >= T) >= P (e.g. 0.65)
+  --at-most-for P Smallest target T with P(result <= T) >= P (e.g. 0.65)
   --compare      Compare two dice expressions, with a P(A>B) verdict
   --loot FILE    Roll on a JSON loot table
   --times N      Roll multiple times (default: 1, max ${MAX_TIMES})
@@ -251,6 +254,19 @@ function parseProbability(raw: string, io: IO): number {
 }
 
 /**
+ * Parse `--at-most-for <p>` into a probability in (0, 1]. Same validation rules as
+ * `--target-for` but error text mentions at-most-for.
+ */
+function parseProbabilityAtMostFor(raw: string, io: IO): number {
+  const p = Number(raw.trim());
+  if (raw.trim() === "" || !Number.isFinite(p) || p <= 0 || p > 1) {
+    io.err(red("Error: --at-most-for requires a probability between 0 and 1 (e.g. 0.65)"));
+    throw new CliExit(1);
+  }
+  return p;
+}
+
+/**
  * Run the CLI in-process. Returns the would-be process exit code (0 = success,
  * 1 = error) instead of calling `process.exit()`, so it is safe to import and
  * call from tests. The real entry point (below) maps the return into a process
@@ -311,6 +327,7 @@ function dispatch(argv: string[], io: IO): void {
       exactly: { type: "string" },
       between: { type: "string" },
       "target-for": { type: "string" },
+      "at-most-for": { type: "string" },
       compare: { type: "boolean", default: false },
       loot: { type: "string" },
       times: { type: "string", default: "1" },
@@ -385,6 +402,11 @@ function dispatch(argv: string[], io: IO): void {
       io.err(dim("  Example: roll 1d20+5 --target-for 0.65"));
       throw new CliExit(1);
     }
+    if (values["at-most-for"] !== undefined) {
+      io.err(red("Error: no dice expression given"));
+      io.err(dim("  Example: roll 1d20+5 --at-most-for 0.65"));
+      throw new CliExit(1);
+    }
     if (values.analyze) {
       io.err(red("Error: no dice expression given"));
       io.err(dim("  Example: roll 2d6 --analyze"));
@@ -437,6 +459,12 @@ function dispatch(argv: string[], io: IO): void {
   if (values["target-for"] !== undefined) {
     const p = parseProbability(values["target-for"], io);
     return handleTargetFor(expression, p, values.json!, io);
+  }
+
+  // At-most-for mode: smallest T with P(X <= T) >= p
+  if (values["at-most-for"] !== undefined) {
+    const p = parseProbabilityAtMostFor(values["at-most-for"], io);
+    return handleAtMostFor(expression, p, values.json!, io);
   }
 
   // Analyze mode
@@ -701,6 +729,39 @@ function handleTargetFor(expression: string, p: number, json: boolean, io: IO): 
 
   io.out();
   io.out(formatTargetFor(expression, p, target));
+  io.out(formatMethodNote(method, samples));
+  io.out();
+}
+
+/**
+ * FT-ANA-005 at-most variant: the break-even target solver — `--at-most-for p` prints
+ * the smallest target T such that P(X ≤ T) ≥ p ("to cover p% from below, need result ≤ T").
+ */
+function handleAtMostFor(expression: string, p: number, json: boolean, io: IO): void {
+  const ast = parse(expression);
+  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+  const target = targetForProbability(dist, p, "atMost");
+
+  if (json) {
+    io.out(
+      JSON.stringify(
+        {
+          expression,
+          p,
+          target,
+          direction: "atMost",
+          method,
+          ...(samples !== undefined ? { samples } : {}),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  io.out();
+  io.out(formatTargetForAtMost(expression, p, target));
   io.out(formatMethodNote(method, samples));
   io.out();
 }

@@ -13,6 +13,7 @@ import type {
   TableAnalyzeParams,
   SeedParams,
   Logger,
+  AtMostForParams,
 } from "./protocol.js";
 import {
   RPC_METHOD_NOT_FOUND,
@@ -33,6 +34,7 @@ import {
   probabilityAtMost,
   probabilityExactly,
   probabilityInRange,
+  targetForProbability,
 } from "../analyze/stats.js";
 import { cryptoRng, seededRng } from "../engine/random.js";
 import { rollGameTable } from "../tables/engine.js";
@@ -258,6 +260,17 @@ export class BridgeHandler {
           const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
           const probability = probabilityInRange(dist, p.lo, p.hi);
           return ok(id, { probability, lo: p.lo, hi: p.hi, ...methodFields(method, samples) });
+        }
+
+        case "at_most_for": {
+          const p = params as unknown as AtMostForParams;
+          if (!p?.expression || typeof p?.p !== "number") {
+            return err(id, RPC_INVALID_PARAMS, "Missing expression or p parameter");
+          }
+          const ast = parse(p.expression);
+          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const target = targetForProbability(dist, p.p, "atMost");
+          return ok(id, { p: p.p, target, direction: "atMost", ...methodFields(method, samples) });
         }
 
         case "compare": {

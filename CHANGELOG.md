@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## 2.1.1
+
+### Added
+
+- **At-most-for target solver** — CLI `--at-most-for P`, bridge `at_most_for`, and MCP `analyze_dice` `at_most_for`. Returns the smallest T with P(result ≤ T) ≥ p. `--target-for` is unchanged.
+
 ## 2.1.0
 
 A full health-pass + feature-pass release. Hardening across the engine and the

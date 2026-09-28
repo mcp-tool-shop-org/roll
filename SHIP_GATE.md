@@ -16,7 +16,7 @@
 
 ### Default safety posture
 
-- [ ] `[cli|mcp|desktop]` SKIP: no dangerous actions exist — roll is a pure computation tool (no kill/delete/restart). The only side effect is reading one `--loot` JSON file.
+- [x] `[cli|mcp|desktop]` SKIP: no dangerous actions exist — roll is a pure computation tool (no kill/delete/restart). The only side effect is reading one `--loot` JSON file.
 - [x] `[cli|mcp|desktop]` File operations constrained — read-only, a single user-named `--loot` JSON; no writes anywhere
 - [x] `[mcp]` Network egress off by default — no network code in the package at all
 - [x] `[mcp]` Stack traces never exposed — catch-all returns a generic "Internal error"; detail logged to stderr only (Stage A hardening)
@@ -37,19 +37,19 @@
 - [x] `[cli]` `--help` output accurate for all commands and flags (V2 notation + all flags incl. --seed/--no-color/--verbose/queries)
 - [x] `[cli|mcp|desktop]` Logging levels defined — normal + `--verbose`/`ROLL_BRIDGE_DEBUG` on the bridge/MCP, `--no-color`/`NO_COLOR` for the CLI; no secrets exist to redact at any level
 - [x] `[mcp]` All tools documented with description + parameters (`tools.ts` inputSchema per tool)
-- [ ] `[complex]` SKIP: not a complex stateful service — the Starlight handbook at `/handbook/` covers operator docs; no warn/critical runbook needed for a pure computation tool
+- [x] `[complex]` SKIP: not a complex stateful service — the Starlight handbook at `/handbook/` covers operator docs; no warn/critical runbook needed for a pure computation tool
 
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists — `build && typecheck && test`
-- [x] `[all]` Version in manifest matches git tag — package.json 2.1.0, tagged v2.1.0 at release
+- [x] `[all]` Version in manifest matches git tag — package.json 2.1.1, tagged v2.1.1 at release
 - [x] `[all]` Dependency scanning runs in CI — `npm audit --audit-level=high` step in ci.yml
-- [ ] `[all]` SKIP: zero runtime dependencies; the dev-tooling tree is audited in CI and updated manually (org CI-cost policy: no Dependabot)
+- [x] `[all]` SKIP: zero runtime dependencies; the dev-tooling tree is audited in CI and updated manually (org CI-cost policy: no Dependabot)
 - [x] `[npm]` `npm pack --dry-run` includes dist/, README.md, CHANGELOG.md, LICENSE (verified)
 - [x] `[npm]` `engines.node` set (`>=22`)
 - [x] `[npm]` Lockfile committed
-- [ ] `[vsix]` SKIP: not a VS Code extension
-- [ ] `[desktop]` SKIP: not a desktop app
+- [x] `[vsix]` SKIP: not a VS Code extension
+- [x] `[desktop]` SKIP: not a desktop app
 
 ## E. Identity (soft gate — does not block ship)
 

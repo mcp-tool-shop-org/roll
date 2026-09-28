@@ -187,6 +187,7 @@ roll 2d6 --at-most 7          # P(result <= 7)
 roll 2d6 --exactly 7          # P(result == 7)
 roll 2d6 --between 6..8       # P(6 <= result <= 8)
 roll 1d20+5 --target-for 0.65 # the largest DC you can still beat 65% of the time
+roll 1d20+5 --at-most-for 0.65 # the line that 65% of results fall at or below
 ```
 
 And to settle "which build wins?", `--compare` now prints a **Versus** verdict — P(A wins), P(tie), P(B wins), and the mean margin — on top of the side-by-side stats:

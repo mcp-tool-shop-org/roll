@@ -261,12 +261,25 @@ describe("FT-ANA-003 — MCP analyze_dice surfaces the query family additively",
     expect(isError).toBe(false);
     const parsed = JSON.parse(text) as {
       stats: unknown;
-      query?: { atMost?: { target: number; probability: number }; exactly?: { target: number; probability: number }; between?: { lo: number; hi: number; probability: number } };
+      query?: { atMost?: { target: number; probability: number }; exactly?: { target: number; probability: number }; between?: { lo: number; hi: number; probability: number }; atMostFor?: { p: number; target: number } };
     };
     expect(parsed.query).toBeDefined();
     expect(parsed.query!.atMost!.probability).toBeCloseTo(21 / 36, 6);
     expect(parsed.query!.exactly!.probability).toBeCloseTo(6 / 36, 6);
     expect(parsed.query!.between!.probability).toBeCloseTo(24 / 36, 6);
+  });
+
+  it("analyze_dice with at_most_for includes query.atMostFor.target", () => {
+    const res = handleRequest(mcpCall("analyze_dice", { expression: "1d20+5", at_most_for: 0.65 }));
+    const { text, isError } = mcpText(res);
+    expect(isError).toBe(false);
+    const parsed = JSON.parse(text) as {
+      query?: { atMostFor?: { p: number; target: number } };
+    };
+    expect(parsed.query).toBeDefined();
+    expect(parsed.query!.atMostFor).toBeDefined();
+    expect(parsed.query!.atMostFor!.p).toBe(0.65);
+    expect(parsed.query!.atMostFor!.target).toBe(18);
   });
 
   it("analyze_dice without query args is unchanged (no query block, stats present)", () => {

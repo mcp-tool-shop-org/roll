@@ -17,6 +17,7 @@ import {
   probabilityAtMost,
   probabilityExactly,
   probabilityInRange,
+  targetForProbability,
 } from "../analyze/stats.js";
 import { seededRng, cryptoRng } from "../engine/random.js";
 import { rollGameTable } from "../tables/engine.js";
@@ -244,6 +245,7 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
       const atMost = optionalNumber(args, "at_most");
       const exactly = optionalNumber(args, "exactly");
       const between = optionalPair(args, "between");
+      const atMostFor = optionalNumber(args, "at_most_for");
       const query: Record<string, unknown> = {};
       if (atMost !== undefined) {
         query.atMost = { target: atMost, probability: probabilityAtMost(dist, atMost) };
@@ -257,6 +259,10 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
           hi: between[1],
           probability: probabilityInRange(dist, between[0], between[1]),
         };
+      }
+      if (atMostFor !== undefined) {
+        const target = targetForProbability(dist, atMostFor, "atMost");
+        query.atMostFor = { p: atMostFor, target };
       }
       if (Object.keys(query).length > 0) result.query = query;
       return result;

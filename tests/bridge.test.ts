@@ -104,6 +104,21 @@ describe("bridge analyze", () => {
     expect(result.probability).toBeCloseTo(21 / 36, 3);
   });
 
+  it("computes at_most_for target", () => {
+    const res = handler.handle(req("at_most_for", { expression: "1d20+5", p: 0.65 }));
+    expect(res.error).toBeUndefined();
+    const result = res.result as { target: number; p: number; direction: string };
+    expect(result.target).toBe(18);
+    expect(result.p).toBe(0.65);
+    expect(result.direction).toBe("atMost");
+  });
+
+  it("at_most_for missing p returns INVALID_PARAMS", () => {
+    const res = handler.handle(req("at_most_for", { expression: "1d20+5" }));
+    expect(res.error).toBeDefined();
+    expect(res.error!.code).toBe(-32602);
+  });
+
   it("compares two expressions", () => {
     const res = handler.handle(req("compare", {
       expressions: ["4d6kh3", "3d6"],

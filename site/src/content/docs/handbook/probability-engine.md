@@ -199,7 +199,8 @@ roll d20+5 --at-least 15      # P(result >= 15)
 roll 2d6 --at-most 7          # P(result <= 7)
 roll 2d6 --exactly 7          # P(result == 7)
 roll 2d6 --between 6..8       # P(6 <= result <= 8), inclusive
-roll 1d20+5 --target-for 0.65 # break-even target solver (see below)
+roll 1d20+5 --target-for 0.65 # largest target you still reach 65% of the time
+roll 1d20+5 --at-most-for 0.65 # smallest result that covers 65% of outcomes from below
 ```
 
 | Flag | Answers |
@@ -209,6 +210,7 @@ roll 1d20+5 --target-for 0.65 # break-even target solver (see below)
 | `--exactly N` | P(result = N) |
 | `--between L..H` | P(L ≤ result ≤ H), inclusive — also accepts `L,H` |
 | `--target-for P` | The largest target T such that P(result ≥ T) ≥ P |
+| `--at-most-for P` | The smallest T such that P(result ≤ T) ≥ P |
 
 ### Break-even target solver: --target-for
 
@@ -219,6 +221,14 @@ roll 1d20+5 --target-for 0.65
 ```
 
 This returns the largest target T for which P(result ≥ T) ≥ 0.65 — the break-even DC for a 65%-or-better success rate. Use it to set difficulty by intent: pick the success rate you want, read off the number to put on the page. The probability argument is a decimal in (0, 1].
+
+`--at-most-for P` asks the question from the other side. It returns the smallest T such that P(result ≤ T) ≥ P: 65% of outcomes fall at or below that line.
+
+```bash
+roll 1d20+5 --at-most-for 0.65
+```
+
+For `1d20+5` that T is 18. JSON adds `"direction": "atMost"`. `--target-for` JSON is unchanged and has no direction field. The same probability rules apply: a value outside (0, 1] exits 1.
 
 ### Comparison as probability: the Versus verdict
 
@@ -277,7 +287,7 @@ Returns a JSON object with the expression, full stats, and the distribution as a
 roll d20+5 --at-least 15 --json
 ```
 
-Returns the expression, target, and probability as a decimal. The point/range queries (`--at-most`, `--exactly`, `--between`) and the break-even solver (`--target-for`) all support `--json` as well, each carrying the same `method` field so a script can detect a sampled estimate. `--compare --json` carries a `comparison` object (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`) alongside the two stat blocks.
+Returns the expression, target, and probability as a decimal. The point/range queries (`--at-most`, `--exactly`, `--between`) and both break-even solvers (`--target-for`, `--at-most-for`) all support `--json` as well, each carrying the same `method` field so a script can detect a sampled estimate. `--at-most-for --json` adds `"direction": "atMost"`. `--target-for --json` does not. `--compare --json` carries a `comparison` object (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`) alongside the two stat blocks.
 
 ## Programmatic queries
 

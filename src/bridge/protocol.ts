@@ -115,6 +115,11 @@ export interface BetweenParams {
   hi: number;
 }
 
+export interface AtMostForParams {
+  expression: string;
+  p: number;
+}
+
 export interface CompareParams {
   expressions: [string, string];
 }
@@ -152,6 +157,7 @@ export type BridgeMethod =
   | "exactly"
   | "between"
   | "compare"
+  | "at_most_for"
   | "table_roll"
   | "table_load"
   | "table_list"
