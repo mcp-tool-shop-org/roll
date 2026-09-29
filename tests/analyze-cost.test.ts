@@ -187,6 +187,9 @@ describe("moderate case falls back to bounded Monte Carlo (not exact, not thrown
     expect(stats.mean).toBeLessThan(260000);
     expect(Number.isFinite(stats.mean)).toBe(true);
     // Bounded cost: 500 dice * 100000 samples = 5e7 rolls — should be a few sec.
-    expect(elapsed).toBeLessThan(10000);
+    // Not on the run that collects coverage for Codecov (COVERAGE_LEG, set by
+    // ci.yml): V8 instrumentation doubled this to 20s on a CI runner, which
+    // measures the instrumentation, not the guard. Every other run holds it.
+    if (process.env.COVERAGE_LEG !== "true") expect(elapsed).toBeLessThan(10000);
   });
 });
