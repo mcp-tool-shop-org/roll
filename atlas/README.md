@@ -1,19 +1,21 @@
 # roll: how it works
 
-Mapped at 2026-09-24 from commit 97f0f4f.
+Mapped at 2026-09-30 from commit ad9faaa by Atlas 1.24.0.
 
 ## What this is
 
-5 parts, mostly TypeScript (57 files). Work enters through 7 doors; CI and Release each reach 2 parts, and CI is followed because a pull request goes through it. It publishes to npm. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll.
+5 parts, mostly TypeScript (58 files), CSS (2), Astro (1) and JavaScript (1). Work enters through 7 doors; CI and Release each reach 2 parts, and CI is followed because a pull request goes through it. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll.
 
-## What changed since the last map
+## What changed since 2026-09-24 (97f0f4f)
 
-This is the first map.
+- CI's pull request trigger now also names `codecov.yml`.
+- CI's push trigger now also names `codecov.yml`.
+- 2 files added and 92 changed content, across 5 parts.
 
 ## What comes in
 
-1. **CI.** On a pull request touching 10 paths; on a push touching 10 paths; or by hand. Runs src/bin.ts and tests/; checks src/.
-2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs tests/; checks src/.
+1. **CI.** On a pull request touching 11 paths; on a push touching 11 paths; or by hand. Runs src/bin.ts and tests/; builds src/.
+2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs tests/; builds src/.
 3. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 4. **@mcptoolshop/roll** (the package people import). Loads src/index.ts, src/bridge/handler.ts and src/tables/engine.ts.
 5. **roll** (a command people run). Runs src/bin.ts.
@@ -22,7 +24,8 @@ This is the first map.
 
 ## What happens through CI
 
-1. The workflow runs src/bin.ts in src and tests/ in tests; it checks src/ in src.
+1. The workflow runs src/bin.ts in src and tests/ in tests; it builds src/ in src.
+2. It uploads coverage to Codecov.
 
 ## Who reads the results
 
@@ -30,7 +33,7 @@ CI writes nothing this map can see.
 
 ## The other doors
 
-**Release** runs tests/, checks src/, publishes to npm, and creates a GitHub release.
+**Release** runs tests/, builds src/, publishes to npm, and creates a GitHub release.
 
 **Deploy site to GitHub Pages** runs site/astro.config.mjs and site/src/, and deploys the site.
 
@@ -51,7 +54,7 @@ CI writes nothing this map can see.
 
 No two source files changed together often enough to name.
 
-Window: 180 days; a pair counts from 3 shared commits, since the window holds fewer than 30 qualifying commits.
+Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do.
 
 ## What no test touches
 
@@ -75,13 +78,13 @@ People write .github/, the repository root and site/. Nothing in this repository
 
 ## Where to start
 
-.github/workflows/ci.yml → src/bin.ts
+.github/workflows/ci.yml → src/bin.ts → src/display/color.ts → src/display/box.ts → src/loot/table.ts
 
 Read those in order to follow one pull request end to end.
 
 ## What this map cannot see
 
-- 3 reads go to the directory the command is run in, the home directory or a path its caller passes, not to this repository.
-- Statistics confidence is low: fewer than 30 qualifying commits in the window, and fewer than 20 source files reach 10 revisions.
+- 2 reads go to a path their caller passes, not to this repository.
+- Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.
