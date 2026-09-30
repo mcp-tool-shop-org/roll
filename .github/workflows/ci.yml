@@ -54,7 +54,7 @@ jobs:
       # The map is the same on every Node, so the check runs on one cell.
       - name: Atlas check
         if: matrix.node-version == 22
-        run: npx --yes @dogfood-lab/atlas@1.17.0 check
+        run: npx --yes @dogfood-lab/atlas@1.24.0 check
       - run: npm ci
       # Dependency vulnerability scan (gate D). The shipped package has zero
       # runtime deps; this guards the dev-tooling tree. Fails CI on a high/
