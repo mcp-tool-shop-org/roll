@@ -26,36 +26,29 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 2,
-      "changed": 92,
+      "added": 0,
+      "changed": 1,
       "moved": 0,
-      "parts": 5,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
         "kind": "door",
-        "sentence": "CI's pull request trigger now also names `codecov.yml`.",
-        "subjects": [
-          ".github/workflows/ci.yml"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "CI's push trigger now also names `codecov.yml`.",
+        "sentence": "CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `package-lock.json`, `package.json`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**`, `tests/**` and `tsconfig.json`.",
         "subjects": [
           ".github/workflows/ci.yml"
         ]
       },
       {
         "kind": "counts",
-        "sentence": "2 files added and 92 changed content, across 5 parts.",
+        "sentence": "1 file changed content, across 1 part.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "97f0f4fccef27deabc592dad429bb8af6c1caee9",
-      "generatedAt": "2026-09-24T08:42:51.187Z"
+      "commit": "ad9faaaa28e2ea56a3086eb8a118cf4d0e632658",
+      "generatedAt": "2026-09-30T21:28:41.183Z"
     },
     "unchanged": false
   },
@@ -64,7 +57,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "ad9faaaa28e2ea56a3086eb8a118cf4d0e632658",
+  "commit": "b65c777bd9f43d214eb58d2feb27a36b3923b273",
   "defaultBranch": "main",
   "derived": "5 parts, mostly TypeScript (58 files), CSS (2), Astro (1) and JavaScript (1). Work enters through 7 doors; CI and Release each reach 2 parts, and CI is followed because a pull request goes through it. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll.",
   "doors": [
@@ -103,7 +96,7 @@
       ],
       "stages": [],
       "triggers": [
-        "on a pull request touching 11 paths",
+        "on a pull request",
         "on a push touching 11 paths",
         "or by hand"
       ]
@@ -297,7 +290,7 @@
   ],
   "engine": "1.24.0",
   "generated": [],
-  "generatedAt": "2026-09-30T21:28:41.183Z",
+  "generatedAt": "2026-10-01T02:12:51.774Z",
   "limits": [
     "2 reads go to a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
