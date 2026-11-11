@@ -1,15 +1,14 @@
 # roll: how it works
 
-Mapped at 2026-10-01 from commit b65c777 by Atlas 1.24.0.
+Mapped at 2026-11-11 from commit 88eebf7 by Atlas 1.26.0.
 
 ## What this is
 
 5 parts, mostly TypeScript (58 files), CSS (2), Astro (1) and JavaScript (1). Work enters through 7 doors; CI and Release each reach 2 parts, and CI is followed because a pull request goes through it. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll.
 
-## What changed since 2026-09-30 (ad9faaa)
+## What changed since 2026-10-01 (b65c777)
 
-- CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `package-lock.json`, `package.json`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**`, `tests/**` and `tsconfig.json`.
-- 1 file changed content, across 1 part.
+Nothing structural changed since 2026-10-01; 2 files changed content.
 
 ## What comes in
 
@@ -77,9 +76,11 @@ People write .github/, the repository root and site/. Nothing in this repository
 
 ## Where to start
 
-.github/workflows/ci.yml → src/bin.ts → src/display/color.ts → src/display/box.ts → src/loot/table.ts
+.github/workflows/ci.yml → src/bin.ts → src/display/box.ts → src/display/color.ts
 
 Read those in order to follow one pull request end to end.
+
+Beside the path, src/bin.ts also calls src/loot/table.ts.
 
 ## What this map cannot see
 

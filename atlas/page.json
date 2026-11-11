@@ -27,37 +27,30 @@
   "changes": {
     "fileCounts": {
       "added": 0,
-      "changed": 1,
+      "changed": 2,
       "moved": 0,
-      "parts": 1,
+      "parts": 2,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI's pull request trigger no longer names `.github/workflows/**`, `atlas/**`, `codecov.yml`, `package-lock.json`, `package.json`, `site/astro.config.mjs`, `site/package-lock.json`, `site/package.json`, `src/**`, `tests/**` and `tsconfig.json`.",
-        "subjects": [
-          ".github/workflows/ci.yml"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "1 file changed content, across 1 part.",
+        "sentence": "Nothing structural changed since 2026-10-01; 2 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "ad9faaaa28e2ea56a3086eb8a118cf4d0e632658",
-      "generatedAt": "2026-09-30T21:28:41.183Z"
+      "commit": "b65c777bd9f43d214eb58d2feb27a36b3923b273",
+      "generatedAt": "2026-10-01T02:12:51.774Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [],
   "changesTogetherNote": [
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "b65c777bd9f43d214eb58d2feb27a36b3923b273",
+  "commit": "88eebf7031bf9ef0a660207eb3167546a1ffacd7",
   "defaultBranch": "main",
   "derived": "5 parts, mostly TypeScript (58 files), CSS (2), Astro (1) and JavaScript (1). Work enters through 7 doors; CI and Release each reach 2 parts, and CI is followed because a pull request goes through it. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll.",
   "doors": [
@@ -288,9 +281,9 @@
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-10-01T02:12:51.774Z",
+  "generatedAt": "2026-11-11T22:38:21.512Z",
   "limits": [
     "2 reads go to a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
@@ -307,13 +300,20 @@
   "readers": [],
   "repo": "mcp-tool-shop-org/roll",
   "sequences": [],
+  "startBeside": [
+    {
+      "files": [
+        "src/loot/table.ts"
+      ],
+      "from": "src/bin.ts"
+    }
+  ],
   "startDoor": ".github/workflows/ci.yml",
   "startHere": [
     ".github/workflows/ci.yml",
     "src/bin.ts",
-    "src/display/color.ts",
     "src/display/box.ts",
-    "src/loot/table.ts"
+    "src/display/color.ts"
   ],
   "summary": null,
   "summaryFrom": null,
@@ -321,6 +321,7 @@
   "testedBy": {
     "src": 27
   },
+  "testedCodeParts": 1,
   "unnamedWrites": 0,
   "unread": [],
   "unreadFiles": 0,
