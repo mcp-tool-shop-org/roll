@@ -29,19 +29,19 @@
       "added": 0,
       "changed": 2,
       "moved": 0,
-      "parts": 2,
+      "parts": 1,
       "removed": 0
     },
     "items": [
       {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-10-01; 2 files changed content.",
+        "sentence": "Nothing structural changed since 2026-11-11; 2 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "b65c777bd9f43d214eb58d2feb27a36b3923b273",
-      "generatedAt": "2026-10-01T02:12:51.774Z"
+      "commit": "88eebf7031bf9ef0a660207eb3167546a1ffacd7",
+      "generatedAt": "2026-11-11T22:38:21.512Z"
     },
     "unchanged": true
   },
@@ -50,7 +50,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "88eebf7031bf9ef0a660207eb3167546a1ffacd7",
+  "commit": "8373bb44c1dd62a99a1cefca29e5991b3b563fd8",
   "defaultBranch": "main",
   "derived": "5 parts, mostly TypeScript (58 files), CSS (2), Astro (1) and JavaScript (1). Work enters through 7 doors; CI and Release each reach 2 parts, and CI is followed because a pull request goes through it. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll.",
   "doors": [
@@ -283,7 +283,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-11T22:38:21.512Z",
+  "generatedAt": "2026-11-12T00:44:43.944Z",
   "limits": [
     "2 reads go to a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."

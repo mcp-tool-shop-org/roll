@@ -100,11 +100,11 @@
           "path": "codecov.yml"
         },
         {
-          "hash": "0a035b515470fa3f3a6c8b68831a6b1e7a9c8fa4dfa813c59fff3b8a4d36f5bc",
+          "hash": "cc1c977a8a19836aa868a0d017b7fa3e88bb200d53ee42d8bd69ab35508e2b66",
           "path": "package-lock.json"
         },
         {
-          "hash": "a0355b73c79428d8415d1b08149fe7664192ae742927ca5539517beeb200aaa0",
+          "hash": "3151987c91ffae12a1241d50461dfdd862c525c92d45f32c9784c1245d4b0bed",
           "path": "package.json"
         },
         {
@@ -5634,6 +5634,39 @@
       ],
       "elsewhere": [],
       "file": ".github/workflows/ci.yml",
+      "findings": [
+        {
+          "job": "test",
+          "legs": 2,
+          "lines": [
+            {
+              "file": ".github/workflows/ci.yml",
+              "line": 41
+            },
+            {
+              "file": ".github/workflows/ci.yml",
+              "line": 54
+            },
+            {
+              "file": "package-lock.json",
+              "line": 1491
+            }
+          ],
+          "package": "vitest",
+          "pinnedBy": {
+            "step": "1",
+            "version": "${{ matrix.node-version }}"
+          },
+          "pins": [
+            "23"
+          ],
+          "requires": "^20.0.0 || ^22.0.0 || >=24.0.0",
+          "rule": "D1",
+          "step": "5",
+          "tool": "vitest run",
+          "version": "4.1.12"
+        }
+      ],
       "jobs": [
         {
           "basis": "declared",
@@ -6353,7 +6386,7 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "88eebf7031bf9ef0a660207eb3167546a1ffacd7",
+    "commit": "8373bb44c1dd62a99a1cefca29e5991b3b563fd8",
     "tracked": 94
   },
   "landings": [
