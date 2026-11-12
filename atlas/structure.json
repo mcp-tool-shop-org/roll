@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "3c92efd3b69ba1253170c5c708843c78af79c13ac92470bc8adc5609267997f4",
+          "hash": "1e03664b550260b71616f501c93ea3ef89705a7caa507760e290637129220db5",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -100,11 +100,11 @@
           "path": "codecov.yml"
         },
         {
-          "hash": "0a035b515470fa3f3a6c8b68831a6b1e7a9c8fa4dfa813c59fff3b8a4d36f5bc",
+          "hash": "cc1c977a8a19836aa868a0d017b7fa3e88bb200d53ee42d8bd69ab35508e2b66",
           "path": "package-lock.json"
         },
         {
-          "hash": "a0355b73c79428d8415d1b08149fe7664192ae742927ca5539517beeb200aaa0",
+          "hash": "3151987c91ffae12a1241d50461dfdd862c525c92d45f32c9784c1245d4b0bed",
           "path": "package.json"
         },
         {
@@ -143,7 +143,7 @@
           "path": "site/astro.config.mjs"
         },
         {
-          "hash": "af5d4f54dca60686724d306eb58759fb25b6f5ba4d66559ab84a968112a184e5",
+          "hash": "0607a19c4f60b635244a906c7ad2424359b50e20c4a83bc140f202abce4a941e",
           "path": "site/package-lock.json"
         },
         {
@@ -5634,6 +5634,39 @@
       ],
       "elsewhere": [],
       "file": ".github/workflows/ci.yml",
+      "findings": [
+        {
+          "job": "test",
+          "legs": 2,
+          "lines": [
+            {
+              "file": ".github/workflows/ci.yml",
+              "line": 41
+            },
+            {
+              "file": ".github/workflows/ci.yml",
+              "line": 54
+            },
+            {
+              "file": "package-lock.json",
+              "line": 1491
+            }
+          ],
+          "package": "vitest",
+          "pinnedBy": {
+            "step": "1",
+            "version": "${{ matrix.node-version }}"
+          },
+          "pins": [
+            "23"
+          ],
+          "requires": "^20.0.0 || ^22.0.0 || >=24.0.0",
+          "rule": "D1",
+          "step": "5",
+          "tool": "vitest run",
+          "version": "4.1.12"
+        }
+      ],
       "jobs": [
         {
           "basis": "declared",
@@ -6152,6 +6185,13 @@
           "event": "workflow_dispatch"
         }
       ],
+      "unresolvedExpressions": [
+        {
+          "adds": "words",
+          "job": "release",
+          "step": "Verify tag matches package.json version"
+        }
+      ],
       "uses": [
         "actions/checkout",
         "actions/setup-node"
@@ -6344,9 +6384,9 @@
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "b65c777bd9f43d214eb58d2feb27a36b3923b273",
+    "commit": "8373bb44c1dd62a99a1cefca29e5991b3b563fd8",
     "tracked": 94
   },
   "landings": [
