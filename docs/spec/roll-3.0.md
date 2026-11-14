@@ -104,6 +104,7 @@ impl RollRng {
 // ─── Grammar & Canonical AST (Section 4) ─────────────────────────────────────
 
 pub const MAX_EXPRESSION_BYTES: usize = 1_000;
+pub const MAX_CANONICAL_EXPRESSION_BYTES: usize = 3_000; // 3 * MAX_EXPRESSION_BYTES (§3.3)
 pub const MAX_DICE_PER_GROUP: u32 = 10_000;
 pub const MAX_TOTAL_DICE_PER_EXPR: u32 = 10_000;
 pub const MAX_DIE_SIDES: u32 = 1_000_000;
@@ -602,7 +603,8 @@ A third party (another player at the *Merchant League* table, `roll verify`, or 
 1. **Schema & version check:** Confirm `schema_version == "roll.receipt.v1"` and `rules_version == address.rules_version == "roll.v3"`.
 2. **Integrity digest check:** Strip `"receipt_sha256"`, serialize the remaining object to canonical JSON, compute `SHA-256`, and assert equality with `receipt.receipt_sha256`.
 3. **Spec canonicality check:**
-   - If `spec.kind == "expression"`: `let expr = parse(&spec.canonical_expression)?;` and assert `expr.to_canonical_string() == spec.canonical_expression`.
+   - If `spec.kind == "expression"`: parse `spec.canonical_expression` under a byte cap of `MAX_CANONICAL_EXPRESSION_BYTES` (`3_000`), **not** the input cap `MAX_EXPRESSION_BYTES`, with every other `parse` rule unchanged, and assert `expr.to_canonical_string() == spec.canonical_expression`. A canonical expression over `3_000` bytes is refused with `ReceiptVerifyError::InvalidSpecExpression` carrying the `ExpressionTooLong` message.
+   - **Why a second cap (normative; receipts are a wire format):** the canonical writer can make an expression longer than its input, so re-parsing under the input cap would make some inputs of `1_000` bytes or fewer roll and then fail their own receipt (`1000d6!` + 331 × `dl1` is 1,000 bytes; its canonical form is 1,003). Every canonical byte can be charged to the input bytes it came from, at most 3 per input byte: bare `r` → `r=1` (3 for 1); bare `ro` → `ro=1` (4 for 2); bare `kh`/`kl`/`dh`/`dl` → `kh1` (3 for 2); a bare explosion `!`/`!!`/`!p` → `!>=`, `!!>=`, `!p>=` (3 for 1, 4 for 2) plus the digits of the die's maximum face, charged to the dice head, where a bare `d` writes `1d` (2 for 1), `k` sides digits write at most `2k` digits, and `%` writes `%` and `100` (so bare `d%` writes 6 bytes for 2); a unary minus over a number literal adds `(` and `)` (`- 5` → `-(5)`, `--1` → `-(-1)`), at most 2 bytes for the `-` and `k + 1` for a `k`-byte literal. Whitespace writes nothing, letter case keeps its length, every explicit number writes at most the bytes it was read from, and no other parentheses are added. Hence `canonical.len() <= 3 * input.len() <= 3_000`, and the bound is reached by `d%!` + 997 × `r` (1,000 bytes; canonical `1d%` + 997 × `r=1` + `!>=100`, 3,000 bytes). A second implementation must use the same cap: a smaller one refuses receipts this one issues, and a larger one accepts canonical forms no accepted input produces.
    - If `spec.kind == "table"`: assert `tables.is_some()` and `hex(tables.unwrap().sha256()) == spec.collection_sha256`.
 4. **PRNG stream authenticity check:** Compute `key = derive_roll_key(&receipt.address)?`, initialize `ChaCha12Rng::from_seed(key)`, draw `receipt.raw_draws.len()` words via `next_u64()`, and assert exact element-by-element equality with `receipt.raw_draws`.
 5. **Deterministic execution & exact draw exhaustion check:** Re-execute `expr` (or `roll_table` / `roll_table_multiple` under `spec.context`) against a bounded tape cursor over `receipt.raw_draws`:
@@ -630,7 +632,7 @@ Eliminate the separate context-guessing `tokenize()` pass. The parser scans `&st
 Among the 15 modifier prefixes, only two pairs share a strict prefix: `("r", "ro")` and `("!", "!!", "!p")`.
 - No modifier keyword begins with `'o'` or `'p'`. Therefore, bare `"r"` followed by any valid subsequent modifier (`r`, `min`, `max`, `kh`, `kl`, `dh`, `dl`, `cs`, `cf`, `sa`, `sd`, `!`, `!!`, `!p`) never begins with `"ro"`, and bare `"!"` followed by any valid non-explosion modifier never begins with `"!p"` or `"!!"`. (Multiple explosion modifiers on one dice group are forbidden; see Section 4.2.)
 - Every other modifier keyword has fixed length 2 (`kh`, `kl`, `dh`, `dl`, `cs`, `cf`, `sa`, `sd`) or 3 followed by mandatory digits (`min`, `max`).
-- Thus `1d20cscf` parses deterministically as `1d20` + `cs` + `cf`; `4d6khsa` parses as `4d6` + `kh(1)` + `sa`; `2d6rsa` parses as `2d6` + `r(=1)` + `sa`; and `parse(expr.to_canonical_string()) == Ok(expr)` holds for **every** constructible `Expr` whose canonical form is within `MAX_EXPRESSION_BYTES` and nests at most `MAX_NESTING_DEPTH` levels (a deeper one is refused with `ExpressionTooDeep`, never another error).
+- Thus `1d20cscf` parses deterministically as `1d20` + `cs` + `cf`; `4d6khsa` parses as `4d6` + `kh(1)` + `sa`; `2d6rsa` parses as `2d6` + `r(=1)` + `sa`; and `parse(expr.to_canonical_string()) == Ok(expr)` holds for **every** constructible `Expr` whose canonical form is within `MAX_EXPRESSION_BYTES` (within `MAX_CANONICAL_EXPRESSION_BYTES` for the receipt re-parse of §3.3) and nests at most `MAX_NESTING_DEPTH` levels (a deeper one is refused with `ExpressionTooDeep`, never another error).
 
 ### 4.2 Typed canonical stage slots and parse-time validation
 

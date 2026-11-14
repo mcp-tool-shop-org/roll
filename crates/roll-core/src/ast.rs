@@ -6,6 +6,40 @@ use core::num::NonZeroU32;
 
 /// Maximum byte length accepted by [`crate::parse`].
 pub const MAX_EXPRESSION_BYTES: usize = 1_000;
+/// Maximum byte length of a receipt's `canonical_expression` accepted by [`crate::verify_receipt`]
+/// (`3 * MAX_EXPRESSION_BYTES = 3,000`).
+///
+/// The canonical writer can make an expression longer than its input, so a receipt must not
+/// re-parse its canonical form under the input cap: an input of `1,000` bytes or fewer would roll
+/// and then fail its own receipt. This cap is the longest canonical form any accepted input has.
+///
+/// ### Bound: `canonical.len() <= 3 * input.len()`
+/// Charge every byte [`Expr::to_canonical_string`] writes to the input bytes it came from:
+/// - **Whitespace** writes nothing. **Letter case** (`D`, `f`, `KH`, `MIN`, `R`, `!P`) keeps its length.
+/// - **Number literals** (`-0`, `007`, `-9223372036854775808`) and every explicit count, sides value,
+///   modifier argument and compare point write at most the bytes (digits and sign) they were read from.
+/// - **Parentheses** are written only where the input had them, with one exception: a unary minus
+///   over a number literal writes `-(5)` for `- 5` and `-(-1)` for `--1`. The `(` is charged to the
+///   `-` (2 bytes for 1) and the `)` to the literal (at most `k + 1` bytes for `k >= 1`).
+/// - **Bare `r`** writes `r=1` (3 bytes for 1); **bare `ro`** writes `ro=1` (4 for 2);
+///   **bare `kh`/`kl`/`dh`/`dl`** write `kh1` and so on (3 for 2).
+/// - **An explosion with no threshold** writes `!>=`, `!!>=` or `!p>=` (3 for 1, 4 for 2) plus the
+///   digits of the die's maximum face, which are charged to the dice head (count, `d`, sides):
+///   - a bare `d` writes `1d` (2 for 1);
+///   - `k` sides digits write at most `k` digits twice (sides and threshold), so a bare head
+///     `d<k digits>` writes at most `2 + 2k` bytes for `1 + k`;
+///   - `%` writes `%` and the threshold `100` (4 for 1), so a bare `d%` writes `1d%` and `100`
+///     (6 bytes for 2), exactly 3 per byte; an explicit count of `c >= 1` digits writes at most
+///     `c` digits, so `<c>d%` writes at most `c + 5` bytes for `c + 2`;
+///   - `F` cannot explode, and writes `F` (1 for 1).
+///
+/// No charge exceeds 3 bytes per input byte, so `canonical.len() <= 3 * input.len() <= 3,000`.
+/// The bound is reached: `d%!` followed by `997 x r` (1,000 bytes) writes `1d%`, `997 x r=1` and
+/// `!>=100`, 3,000 bytes (`tests/receipts.rs`). Raising only the receipt's cap leaves every input
+/// that parses today parsing and every receipt that verifies today verifying.
+pub const MAX_CANONICAL_EXPRESSION_BYTES: usize = 3 * MAX_EXPRESSION_BYTES;
+
+const _: () = assert!(MAX_CANONICAL_EXPRESSION_BYTES == 3_000);
 /// Maximum recursive factor nesting depth (`(` parentheses and prefix unary `-`) accepted by [`crate::parse`] (`§4.2`).
 ///
 /// Prefix unary `-` directly over an unparenthesized number literal (`--1`, `- 5`) counts as two

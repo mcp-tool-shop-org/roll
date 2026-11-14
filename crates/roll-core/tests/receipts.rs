@@ -334,3 +334,76 @@ fn verify_receipt_refuses_raw_draws_exceeding_max_total_draws_before_chacha_work
         ))
     );
 }
+
+/// Rolls `input` at a fixed address and returns its receipt, asserting the roll succeeds.
+fn roll_receipt(input: &str) -> RollReceipt {
+    let expr = parse(input).expect("input parses");
+    let addr = RollAddress::new(SeedMaterial::Int64(7), 1, "receipt_length", "canonical", 0);
+    let (_outcome, receipt) = evaluate_addressed(&expr, &addr).expect("input rolls");
+    receipt
+}
+
+fn canonical_of(receipt: &RollReceipt) -> &str {
+    let ReceiptSpec::Expression {
+        canonical_expression,
+    } = &receipt.spec;
+    canonical_expression
+}
+
+#[test]
+fn receipt_verifies_when_canonical_form_outgrows_the_input_cap() {
+    // The #21 tester's smallest case: 1,000 bytes in, 1,003 bytes canonical (`!` -> `!>=6`).
+    let input = format!("1000d6!{}", "dl1".repeat(331));
+    assert_eq!(input.len(), roll_core::MAX_EXPRESSION_BYTES);
+    let receipt = roll_receipt(&input);
+    let canonical = canonical_of(&receipt);
+    assert_eq!(canonical.len(), 1_003);
+    assert!(canonical.starts_with("1000d6!>=6dl1"));
+    verify_receipt(&receipt).expect("a roll's own receipt verifies");
+    verify_receipt_json(&to_canonical_receipt_json(&receipt)).expect("its JSON verifies");
+}
+
+#[test]
+fn worst_case_canonical_growth_reaches_the_canonical_cap_and_verifies() {
+    // `d%!` + 997 x `r` (1,000 bytes) is the longest canonical form (`ast.rs`, the bound on
+    // `MAX_CANONICAL_EXPRESSION_BYTES`): `1d%`, 997 x `r=1`, `!>=100`.
+    let input = format!("d%!{}", "r".repeat(997));
+    assert_eq!(input.len(), roll_core::MAX_EXPRESSION_BYTES);
+    let receipt = roll_receipt(&input);
+    let canonical = canonical_of(&receipt);
+    assert_eq!(canonical.len(), roll_core::MAX_CANONICAL_EXPRESSION_BYTES);
+    assert_eq!(canonical, format!("1d%{}!>=100", "r=1".repeat(997)));
+    assert_eq!(canonical.len(), 3 * input.len());
+    verify_receipt(&receipt).expect("the worst-case receipt verifies");
+}
+
+#[test]
+fn verify_receipt_refuses_canonical_expression_over_the_canonical_cap() {
+    // A canonical string one byte over the cap (`11d6` + 999 x `r=1`, 3,001 bytes), re-hashed so
+    // the digest check passes and the length check is what refuses it.
+    let mut receipt = roll_receipt("1d6");
+    let over = format!("11d6{}", "r=1".repeat(999));
+    assert_eq!(over.len(), roll_core::MAX_CANONICAL_EXPRESSION_BYTES + 1);
+    assert_eq!(
+        parse(&over),
+        Err(RollError::ExpressionTooLong {
+            len: 3_001,
+            max: 1_000
+        })
+    );
+    receipt.spec = ReceiptSpec::Expression {
+        canonical_expression: over,
+    };
+    receipt.receipt_sha256 = compute_receipt_sha256(&receipt).expect("digest");
+    match verify_receipt(&receipt) {
+        Err(RollError::ReceiptInvalid(ReceiptVerifyError::InvalidSpecExpression { message })) => {
+            assert_eq!(
+                message,
+                "expression length 3001 bytes exceeds maximum of 3000 bytes"
+            );
+        }
+        other => {
+            panic!("expected InvalidSpecExpression for a 3,001-byte canonical form, got {other:?}")
+        }
+    }
+}

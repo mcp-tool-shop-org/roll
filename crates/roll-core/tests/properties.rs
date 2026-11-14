@@ -1072,3 +1072,97 @@ proptest! {
         }
     }
 }
+
+/// Generates inputs of at most `MAX_EXPRESSION_BYTES` that lean on every token the canonical writer
+/// lengthens (bare `d`, bare `!`/`!!`/`!p`, `d%`, bare `r`/`ro`, bare `kh`/`kl`/`dh`/`dl`, unary minus
+/// over a literal), filled toward the cap, so their canonical forms run past `1,000` bytes.
+fn arb_canonical_growth_input() -> impl Strategy<Value = String> {
+    let group = (
+        0u8..4u8,
+        0u8..5u8,
+        0u8..4u8,
+        prop::collection::vec(0u8..10u8, 0..=520),
+    );
+    (
+        prop::collection::vec(0u8..4u8, 0..=3),
+        prop::collection::vec((0u8..3u8, group), 1..=4),
+    )
+        .prop_map(|(lead, groups)| {
+            const LEAD: [&str; 4] = ["--1", "- 5", "-(-3)", "-\t7"];
+            const OPS: [&str; 3] = ["+", " - ", "*"];
+            const TOKENS: [&str; 10] = ["r", "ro", "kh", "kl", "dh", "dl", "R", "Ro", "KH", "r=1"];
+            let mut out = String::new();
+            for l in lead {
+                out.push_str(LEAD[l as usize]);
+                out.push('+');
+            }
+            for (i, (op, (count, sides, explode, tokens))) in groups.into_iter().enumerate() {
+                let count = ["", "1", "2", "3"][count as usize];
+                let (sides, fate) = [
+                    ("%", false),
+                    ("6", false),
+                    ("20", false),
+                    ("1000000", false),
+                    ("F", true),
+                ][sides as usize];
+                let explode = if fate {
+                    ""
+                } else {
+                    ["", "!", "!!", "!p"][explode as usize]
+                };
+                let mut piece = String::new();
+                if i > 0 {
+                    piece.push_str(OPS[op as usize]);
+                }
+                piece.push_str(count);
+                piece.push('d');
+                piece.push_str(sides);
+                piece.push_str(explode);
+                if out.len() + piece.len() > roll_core::MAX_EXPRESSION_BYTES {
+                    break;
+                }
+                out.push_str(&piece);
+                for t in tokens {
+                    let tok = TOKENS[t as usize];
+                    if out.len() + tok.len() > roll_core::MAX_EXPRESSION_BYTES {
+                        break;
+                    }
+                    out.push_str(tok);
+                }
+            }
+            out
+        })
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 48, ..proptest_cfg() })]
+
+    /// Every receipt a roll returns verifies, including inputs whose canonical form is longer than
+    /// `MAX_EXPRESSION_BYTES`; the canonical form stays within `3 * input.len()` and
+    /// `MAX_CANONICAL_EXPRESSION_BYTES` (`ast.rs`).
+    #[test]
+    fn prop_every_receipt_verifies_whatever_its_canonical_length(
+        raw in arb_canonical_growth_input(),
+        addr in arb_roll_address(),
+    ) {
+        prop_assert!(raw.len() <= roll_core::MAX_EXPRESSION_BYTES);
+        let expr = parse(&raw);
+        prop_assert!(expr.is_ok(), "generated input {:?} failed to parse: {:?}", raw, expr.err());
+        let expr = expr.unwrap();
+        let canonical = expr.to_canonical_string();
+        prop_assert!(canonical.len() <= 3 * raw.len());
+        prop_assert!(canonical.len() <= roll_core::MAX_CANONICAL_EXPRESSION_BYTES);
+        let rolled = evaluate_addressed(&expr, &addr);
+        prop_assert!(rolled.is_ok(), "generated input {:?} failed to roll: {:?}", raw, rolled.err());
+        let (_outcome, receipt) = rolled.unwrap();
+        let verified = verify_receipt(&receipt);
+        prop_assert!(
+            verified.is_ok(),
+            "receipt of {:?} ({} bytes, canonical {} bytes) failed to verify: {:?}",
+            raw,
+            raw.len(),
+            canonical.len(),
+            verified.err()
+        );
+    }
+}

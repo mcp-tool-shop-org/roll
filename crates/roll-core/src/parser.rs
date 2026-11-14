@@ -13,10 +13,19 @@ use crate::error::RollError;
 
 /// Parses a Roll 3.0 dice/arithmetic expression into a statically validated [`Expr`].
 pub fn parse(input: &str) -> Result<Expr, RollError> {
-    if input.len() > MAX_EXPRESSION_BYTES {
+    parse_with_max_bytes(input, MAX_EXPRESSION_BYTES)
+}
+
+/// [`parse`] with a byte cap of `max_bytes` in place of [`MAX_EXPRESSION_BYTES`].
+///
+/// [`crate::verify_receipt`] re-parses a receipt's canonical expression under
+/// [`crate::ast::MAX_CANONICAL_EXPRESSION_BYTES`], because the canonical form of an accepted input
+/// can be longer than the input. Every other rule (nesting depth, dice budgets) is unchanged.
+pub(crate) fn parse_with_max_bytes(input: &str, max_bytes: usize) -> Result<Expr, RollError> {
+    if input.len() > max_bytes {
         return Err(RollError::ExpressionTooLong {
             len: input.len(),
-            max: MAX_EXPRESSION_BYTES,
+            max: max_bytes,
         });
     }
 
