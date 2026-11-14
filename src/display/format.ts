@@ -1,6 +1,6 @@
 import type { RollResult, DiceGroupResult, DieResult } from "../engine/roller.js";
 import type { DistributionStats } from "../analyze/stats.js";
-import type { DistributionComparison } from "../analyze/distribution.js";
+import type { DistributionComparison, ModelledCaps } from "../analyze/distribution.js";
 import { bold, dim, red, green, yellow, cyan, boldGreen, boldRed, boldYellow, magenta } from "./color.js";
 import { drawBox } from "./box.js";
 
@@ -81,12 +81,30 @@ export function formatRollResult(result: RollResult, expression: string): string
  * exact or a Monte-Carlo estimate. The product is marketed on "exact
  * probabilities", so when the analyzer falls back to sampling we say so plainly
  * (with the sample count) rather than presenting estimates as exact. For the
- * exact path we return a quiet "exact" note. (P-CORE-001 consumer side.)
+ * exact path we return a quiet "exact" note, naming any engine loop caps
+ * (`MAX_EXPLOSIONS`, `MAX_REROLLS`) that bound an otherwise infinite process.
+ * (P-CORE-001 consumer side.)
  */
-export function formatMethodNote(method: "exact" | "monte-carlo", samples?: number): string {
+export function formatMethodNote(
+  method: "exact" | "monte-carlo",
+  samples?: number,
+  caps?: ModelledCaps,
+): string {
   if (method === "monte-carlo") {
     const n = samples !== undefined ? ` (${samples.toLocaleString()} samples)` : "";
     return dim("~ ") + yellow(`estimated via Monte Carlo${n} — not exact`);
+  }
+  if (caps) {
+    const parts: string[] = [];
+    if (caps.maxExplosions !== undefined) {
+      parts.push(`MAX_EXPLOSIONS=${caps.maxExplosions}`);
+    }
+    if (caps.maxRerolls !== undefined) {
+      parts.push(`MAX_REROLLS=${caps.maxRerolls}`);
+    }
+    if (parts.length > 0) {
+      return dim(`exact probabilities (engine caps: ${parts.join(", ")})`);
+    }
   }
   return dim("exact probabilities");
 }

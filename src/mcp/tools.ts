@@ -37,7 +37,7 @@ export const TOOLS: McpToolDefinition[] = [
   {
     name: "analyze_dice",
     description:
-      "Compute the probability distribution and statistics for a dice expression. Returns mean, median, mode, std dev, percentiles, entropy, the full distribution, and a `method` field (\"exact\" for a closed-form result, or \"monte-carlo\" with a `samples` count when the expression is too complex for exact analysis and was sampled). Optionally computes P(result >= target), P(result <= target), P(result == target), and P(lo <= result <= hi) so you get the whole query family in one call.",
+      "Compute the probability distribution and statistics for a dice expression. Returns mean, median, mode, std dev, percentiles, entropy, the full distribution, and a `method` field (\"exact\" for a closed-form result — with `caps` naming `maxExplosions` / `maxRerolls` whenever those engine loop caps bound the distribution — or \"monte-carlo\" with a `samples` count when the expression is too complex for exact analysis and was sampled). Optionally computes P(result >= target), P(result <= target), P(result == target), and P(lo <= result <= hi) so you get the whole query family in one call.",
     inputSchema: {
       type: "object",
       properties: {

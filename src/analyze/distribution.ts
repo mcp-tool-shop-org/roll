@@ -1,5 +1,5 @@
 import type { ASTNode, ComparePoint, DiceNode, DiceModifier, DiceSides } from "../parser/ast.js";
-import { matchesCompare } from "../engine/pipeline.js";
+import { matchesCompare, MAX_EXPLOSIONS, MAX_REROLLS } from "../engine/pipeline.js";
 import { monteCarloDistribution, DEFAULT_MONTE_CARLO_SAMPLES } from "./montecarlo.js";
 import { ParseError } from "../parser/parser.js";
 
@@ -14,13 +14,30 @@ export type Distribution = Map<number, number>;
  */
 export type DistributionMethod = "exact" | "monte-carlo";
 
+/**
+ * Engine loop caps modelled by an `"exact"` distribution.
+ *
+ * Exploding dice and unlimited rerolls have no finite exact distribution in pure
+ * mathematics; in Roll, `"exact"` means exact for the engine as built
+ * (`runPipeline` in `src/engine/pipeline.ts`), including its finite loop caps
+ * (`MAX_EXPLOSIONS = 100` and `MAX_REROLLS = 100`). Only caps actually exercised
+ * by the expression are populated.
+ */
+export interface ModelledCaps {
+  maxExplosions?: number;
+  maxRerolls?: number;
+}
+
 /** A distribution paired with how it was produced. When `method` is
  *  "monte-carlo", `samples` is the number of Monte-Carlo iterations used; for
- *  the exact path `samples` is absent. (P-CORE-001) */
+ *  the exact path `samples` is absent, and `caps` is present whenever the exact
+ *  distribution models one or more of the engine's loop caps (`MAX_EXPLOSIONS`,
+ *  `MAX_REROLLS`). (P-CORE-001) */
 export interface DistributionWithMethod {
   distribution: Distribution;
   method: DistributionMethod;
   samples?: number;
+  caps?: ModelledCaps;
 }
 
 /**
@@ -186,109 +203,172 @@ function singleDieDistribution(sides: DiceSides): Distribution {
   return dist;
 }
 
-/** Single-die distribution after reroll modifiers.
- *  Unlimited reroll: faces matching the compare point have zero probability;
- *  their mass redistributes uniformly to remaining faces via geometric series.
- *  Reroll-once: two-step probability. */
-function singleDieWithReroll(sides: DiceSides, mods: DiceModifier[]): Distribution {
+/** Enumerate every face of a die (Fate: -1,0,1; else 1..s). */
+function allFaces(sides: DiceSides): number[] {
+  if (sides === "F") return [-1, 0, 1];
   const s = sideCount(sides);
-  const isFate = sides === "F";
-  const base = singleDieDistribution(sides);
-
-  // Get all faces
   const faces: number[] = [];
-  if (isFate) {
-    faces.push(-1, 0, 1);
-  } else {
-    for (let i = 1; i <= s; i++) faces.push(i);
-  }
+  for (let i = 1; i <= s; i++) faces.push(i);
+  return faces;
+}
+
+/** Single-die distribution after reroll / reroll_once modifiers (Stage 2).
+ *  Mirrors stageReroll in src/engine/pipeline.ts: runs all unlimited "reroll"
+ *  modifiers first (capped at MAX_REROLLS = 100 — after 100 failed rerolls, the
+ *  100th roll stands uniformly across matchingFaces), then all "reroll_once"
+ *  modifiers. Returns null when an unlimited reroll matches every face
+ *  (F-AT-007), so the caller falls back to Monte Carlo instead of returning an
+ *  unmodified uniform distribution. */
+function singleDieWithReroll(
+  sides: DiceSides,
+  mods: DiceModifier[],
+  caps: ModelledCaps,
+): Distribution | null {
+  const base = singleDieDistribution(sides);
+  const faces = allFaces(sides);
+  const s = faces.length;
 
   let dist = new Map(base);
 
-  for (const mod of mods) {
-    if (mod.kind !== "reroll" && mod.kind !== "reroll_once") continue;
-    if (!mod.compare) continue;
+  const rerollMods = mods.filter((m) => m.kind === "reroll");
+  const rerollOnceMods = mods.filter((m) => m.kind === "reroll_once");
 
-    const newDist: Distribution = new Map();
+  // Unlimited reroll: while matchesCompare(die.value, mod.compare) &&
+  // iterations < MAX_REROLLS, roll a fresh uniform die.
+  // - If every face matches (nonMatchingFaces.length === 0), return null so
+  //   computeDistribution falls back to Monte Carlo (F-AT-007).
+  // - Otherwise, let m = matchingFaces.length and q = m / s. An initial match
+  //   (mass pMatch) escapes to nonMatchingFaces within MAX_REROLLS tries with
+  //   total probability pMatch * (1 - q^MAX_REROLLS), distributed uniformly
+  //   across nonMatchingFaces; with probability pMatch * q^MAX_REROLLS all
+  //   MAX_REROLLS rerolls match, leaving the final roll uniformly distributed
+  //   across matchingFaces (pMatch * q^MAX_REROLLS / m each).
+  for (const mod of rerollMods) {
+    if (!mod.compare) continue;
     const matchingFaces = faces.filter((f) => matchesCompare(f, mod.compare!));
     const nonMatchingFaces = faces.filter((f) => !matchesCompare(f, mod.compare!));
-
     if (nonMatchingFaces.length === 0) {
-      // All faces match — infinite reroll would never terminate, return uniform
-      return dist;
+      return null;
+    }
+    if (matchingFaces.length === 0) {
+      continue;
     }
 
-    if (mod.kind === "reroll") {
-      // Unlimited reroll: matching faces have 0 probability.
-      // Total probability of non-matching faces: each gets its base prob + share of removed mass.
-      // Result: uniform over non-matching faces.
-      const pEach = 1 / nonMatchingFaces.length;
-      for (const face of nonMatchingFaces) {
-        newDist.set(face, pEach);
-      }
-    } else {
-      // Reroll once: if face matches, reroll one time.
-      // P(end on face f) = P(roll f initially, f doesn't match) + P(roll matching, then roll f)
-      const pMatch = matchingFaces.length / s;
-      const pFace = 1 / s;
-      for (const face of faces) {
-        const isMatch = matchesCompare(face, mod.compare!);
-        if (isMatch) {
-          // Can only end here if initial roll was a match AND reroll also lands here
-          newDist.set(face, pMatch * pFace);
-        } else {
-          // End here from: direct roll + (match then reroll to here)
-          newDist.set(face, pFace + pMatch * pFace);
-        }
-      }
+    let pMatch = 0;
+    for (const f of matchingFaces) {
+      pMatch += dist.get(f) ?? 0;
+    }
+    if (pMatch === 0) {
+      continue;
     }
 
+    caps.maxRerolls = MAX_REROLLS;
+    const q = matchingFaces.length / s;
+    const qCap = Math.pow(q, MAX_REROLLS);
+    const share = (pMatch * (1 - qCap)) / nonMatchingFaces.length;
+    const residualEach =
+      (pMatch * qCap) / matchingFaces.length || Number.MIN_VALUE;
+
+    const newDist: Distribution = new Map();
+    for (const face of nonMatchingFaces) {
+      const p = (dist.get(face) ?? 0) + share;
+      if (p > 0) newDist.set(face, p);
+    }
+    for (const face of matchingFaces) {
+      newDist.set(face, residualEach);
+    }
+    dist = newDist;
+  }
+
+  // Reroll once: if current value matches mod.compare, roll one fresh uniform die.
+  for (const mod of rerollOnceMods) {
+    if (!mod.compare) continue;
+    const matchingFaces = faces.filter((f) => matchesCompare(f, mod.compare!));
+
+    let pMatch = 0;
+    for (const f of matchingFaces) {
+      pMatch += dist.get(f) ?? 0;
+    }
+
+    const newDist: Distribution = new Map();
+    const pFace = 1 / s;
+    for (const face of faces) {
+      const isMatch = matchesCompare(face, mod.compare!);
+      const p = (isMatch ? 0 : (dist.get(face) ?? 0)) + pMatch * pFace;
+      if (p > 0) newDist.set(face, p);
+    }
     dist = newDist;
   }
 
   return dist;
 }
 
-/** Single-die distribution after min/max clamping. */
+/** Single-die distribution after min/max clamping (Stage 3).
+ *  Mirrors stageMinMax in src/engine/pipeline.ts: runs all "min" modifiers
+ *  first, then all "max" modifiers. */
 function singleDieWithMinMax(baseDist: Distribution, mods: DiceModifier[]): Distribution {
   let dist = new Map(baseDist);
 
-  for (const mod of mods) {
-    if (mod.kind === "min" && mod.value !== undefined) {
-      const floor = mod.value;
-      const newDist: Distribution = new Map();
-      let piledMass = 0;
-      for (const [v, p] of dist) {
-        if (v < floor) {
-          piledMass += p;
-        } else {
-          newDist.set(v, (newDist.get(v) ?? 0) + p);
-        }
-      }
-      if (piledMass > 0) {
-        newDist.set(floor, (newDist.get(floor) ?? 0) + piledMass);
-      }
-      dist = newDist;
-    }
+  const minMods = mods.filter((m) => m.kind === "min");
+  const maxMods = mods.filter((m) => m.kind === "max");
 
-    if (mod.kind === "max" && mod.value !== undefined) {
-      const ceiling = mod.value;
-      const newDist: Distribution = new Map();
-      let piledMass = 0;
-      for (const [v, p] of dist) {
-        if (v > ceiling) {
-          piledMass += p;
-        } else {
-          newDist.set(v, (newDist.get(v) ?? 0) + p);
-        }
+  for (const mod of minMods) {
+    if (mod.value === undefined) continue;
+    const floor = mod.value;
+    const newDist: Distribution = new Map();
+    let piledMass = 0;
+    for (const [v, p] of dist) {
+      if (v < floor) {
+        piledMass += p;
+      } else {
+        newDist.set(v, (newDist.get(v) ?? 0) + p);
       }
-      if (piledMass > 0) {
-        newDist.set(ceiling, (newDist.get(ceiling) ?? 0) + piledMass);
-      }
-      dist = newDist;
     }
+    if (piledMass > 0) {
+      newDist.set(floor, (newDist.get(floor) ?? 0) + piledMass);
+    }
+    dist = newDist;
   }
 
+  for (const mod of maxMods) {
+    if (mod.value === undefined) continue;
+    const ceiling = mod.value;
+    const newDist: Distribution = new Map();
+    let piledMass = 0;
+    for (const [v, p] of dist) {
+      if (v > ceiling) {
+        piledMass += p;
+      } else {
+        newDist.set(v, (newDist.get(v) ?? 0) + p);
+      }
+    }
+    if (piledMass > 0) {
+      newDist.set(ceiling, (newDist.get(ceiling) ?? 0) + piledMass);
+    }
+    dist = newDist;
+  }
+
+  return dist;
+}
+
+/** Compose Stage 1 (initial roll) -> Stage 2 (reroll / reroll_once) -> Stage 3
+ *  (min / max) for a single die. Returns null if an unlimited reroll is
+ *  degenerate (matches all faces). */
+function singleDiePreExplode(node: DiceNode, caps: ModelledCaps): Distribution | null {
+  const hasReroll = node.modifiers.some(
+    (m) => m.kind === "reroll" || m.kind === "reroll_once",
+  );
+  let dist: Distribution | null = hasReroll
+    ? singleDieWithReroll(node.sides, node.modifiers, caps)
+    : singleDieDistribution(node.sides);
+  if (!dist) return null;
+
+  const hasMinMax = node.modifiers.some(
+    (m) => m.kind === "min" || m.kind === "max",
+  );
+  if (hasMinMax) {
+    dist = singleDieWithMinMax(dist, node.modifiers);
+  }
   return dist;
 }
 
@@ -316,23 +396,15 @@ function convolve(a: Distribution, b: Distribution): Distribution {
   }
   const result: Distribution = new Map();
   for (const [va, pa] of a) {
+    if (pa <= 0) continue;
     for (const [vb, pb] of b) {
-      const sum = va + vb;
-      result.set(sum, (result.get(sum) ?? 0) + pa * pb);
+      if (pb <= 0) continue;
+      const sum = (va + vb) || 0;
+      const prod = pa * pb || Number.MIN_VALUE;
+      result.set(sum, (result.get(sum) ?? 0) + prod);
     }
   }
   return result;
-}
-
-/** Distribution for NdM via iterative convolution. Throws ExactTooLargeError
- *  (via convolve) when the accumulated support would exceed MAX_EXACT_STATES. */
-function convolveDice(count: number, sides: DiceSides): Distribution {
-  const single = singleDieDistribution(sides);
-  let dist: Distribution = new Map([[0, 1]]);
-  for (let i = 0; i < count; i++) {
-    dist = convolve(dist, single);
-  }
-  return dist;
 }
 
 /** Convolve a single-die distribution N times. Throws ExactTooLargeError (via
@@ -347,34 +419,22 @@ function convolveN(single: Distribution, count: number): Distribution {
 
 // ─── Exact strategies ────────────────────────────────────────────────────────
 
-/** Distribution with keep/drop via full enumeration. */
-function enumerateKeepDrop(node: DiceNode): Distribution | null {
-  const s = sideCount(node.sides);
-  const totalStates = Math.pow(s, node.count);
+/** Distribution with keep/drop via full enumeration over the post-reroll,
+ *  post-min/max single-die distribution (Stages 1-3 -> Stage 5 -> Stage 8). */
+function enumerateKeepDrop(
+  node: DiceNode,
+  singleDieDist: Distribution,
+): Distribution | null {
+  const entries = [...singleDieDist.entries()];
+  const totalStates = Math.pow(entries.length, node.count);
   if (totalStates > MAX_EXACT_STATES) return null;
 
-  const isFate = node.sides === "F";
   const dist: Distribution = new Map();
-  const prob = 1 / totalStates;
-
   const rolls = new Array<number>(node.count);
 
-  function enumerate(depth: number): void {
+  function enumerate(depth: number, prob: number): void {
     if (depth === node.count) {
-      // Apply reroll + min/max per die, then keep/drop on the result
-      let values = rolls.slice();
-
-      // Apply min/max per die
-      for (const mod of node.modifiers) {
-        if (mod.kind === "min" && mod.value !== undefined) {
-          values = values.map((v) => Math.max(v, mod.value!));
-        }
-        if (mod.kind === "max" && mod.value !== undefined) {
-          values = values.map((v) => Math.min(v, mod.value!));
-        }
-      }
-
-      const sorted = [...values].sort((a, b) => a - b);
+      const sorted = [...rolls].sort((a, b) => a - b);
       let kept = sorted.slice();
 
       for (const mod of node.modifiers) {
@@ -382,13 +442,13 @@ function enumerateKeepDrop(node: DiceNode): Distribution | null {
         const n = mod.value ?? 1;
         switch (mod.kind) {
           case "kh":
-            kept = kept.slice(kept.length - n);
+            kept = kept.slice(Math.max(0, kept.length - n));
             break;
           case "kl":
             kept = kept.slice(0, n);
             break;
           case "dh":
-            kept = kept.slice(0, kept.length - n);
+            kept = kept.slice(0, Math.max(0, kept.length - n));
             break;
           case "dl":
             kept = kept.slice(n);
@@ -396,7 +456,7 @@ function enumerateKeepDrop(node: DiceNode): Distribution | null {
         }
       }
 
-      // Compute total based on result mode
+      // Compute total based on result mode (Stage 8)
       let total: number;
       if (node.resultMode === "success_count") {
         const csMods = node.modifiers.filter((m) => m.kind === "cs_count");
@@ -418,33 +478,41 @@ function enumerateKeepDrop(node: DiceNode): Distribution | null {
       return;
     }
 
-    if (isFate) {
-      for (let v = -1; v <= 1; v++) {
-        rolls[depth] = v;
-        enumerate(depth + 1);
-      }
-    } else {
-      const max = sideCount(node.sides);
-      for (let v = 1; v <= max; v++) {
-        rolls[depth] = v;
-        enumerate(depth + 1);
-      }
+    for (const [face, pFace] of entries) {
+      if (pFace <= 0) continue;
+      rolls[depth] = face;
+      enumerate(depth + 1, prob * pFace || Number.MIN_VALUE);
     }
   }
 
-  enumerate(0);
+  enumerate(0, 1);
   return dist;
 }
 
-/** Distribution for exploding/compounding/penetrating dice via iterative depth expansion. */
-function explosionDistribution(node: DiceNode): Distribution | null {
+/** Distribution for exploding/compounding/penetrating dice via iterative depth
+ *  expansion (Stages 1-3 -> Stage 4 -> Stage 8).
+ *
+ *  Mirrors stageExplode in src/engine/pipeline.ts up to MAX_EXPLOSIONS = 100:
+ *  - Depth 0 (the initial roll) draws from `initialDieDist` (after stageReroll
+ *    and stageMinMax).
+ *  - Depth 1..MAX_EXPLOSIONS (explosion bonus rolls) calls rollSingleDie(sides,
+ *    rng) directly, so bonus rolls are drawn uniformly from raw faces 1..s
+ *    without reroll or min/max clamping.
+ *  - At depth === MAX_EXPLOSIONS, chains stop unconditionally (matching
+ *    `while (... && explosions < MAX_EXPLOSIONS)` in stageExplode). */
+function explosionDistribution(
+  node: DiceNode,
+  initialDieDist: Distribution,
+  caps: ModelledCaps,
+): Distribution | null {
   if (node.sides === "F") return null;
   const s = sideCount(node.sides);
 
-  const explodeMod = node.modifiers.find(
+  const explodeMods = node.modifiers.filter(
     (m) => m.kind === "explode" || m.kind === "compound" || m.kind === "penetrate",
   );
-  if (!explodeMod) return null;
+  if (explodeMods.length !== 1) return null;
+  const explodeMod = explodeMods[0]!;
 
   // F-AT-001: honor the FULL compare operator, not just its value. Mirror the
   // engine's getExplosionThreshold (pipeline.ts): default to {operator:">=",
@@ -456,39 +524,50 @@ function explosionDistribution(node: DiceNode): Distribution | null {
     operator: ">=",
     value: s,
   };
-  const isCompound = explodeMod.kind === "compound";
   const isPenetrate = explodeMod.kind === "penetrate";
-  const maxExplosions = 10;
 
   function singleExploding(): Distribution {
     const dist: Distribution = new Map();
-    const pFace = 1 / s;
+    const rawFaces: Array<[number, number]> = [];
+    const pRaw = 1 / s;
+    for (let f = 1; f <= s; f++) {
+      rawFaces.push([f, pRaw]);
+    }
+    const initialFaces = [...initialDieDist.entries()];
 
     let accumulated: Distribution = new Map([[0, 1]]);
 
-    for (let depth = 0; depth <= maxExplosions; depth++) {
-      // Guard the per-die explosion expansion: each depth can add up to s new
-      // sums, so the support grows ~linearly to s·(maxExplosions+1). For huge
-      // side counts this would exceed MAX_EXACT_STATES before convolveN is even
-      // reached — abandon to Monte Carlo. (Plain NdM is guarded in convolve.)
-      if (dist.size + accumulated.size + s > MAX_EXACT_STATES) {
+    for (let depth = 0; depth <= MAX_EXPLOSIONS; depth++) {
+      const stepFaces = depth === 0 ? initialFaces : rawFaces;
+      // Guard BOTH support allocation AND per-depth inner-loop work so huge
+      // side counts (e.g. 1d1000!>=1) abandon early to Monte Carlo rather than
+      // stalling across MAX_EXPLOSIONS = 100 steps.
+      if (
+        dist.size + accumulated.size + stepFaces.length > MAX_EXACT_STATES ||
+        accumulated.size * stepFaces.length > MAX_EXACT_STATES
+      ) {
         throw new ExactTooLargeError();
       }
       const nextAccumulated: Distribution = new Map();
 
       for (const [accSum, accProb] of accumulated) {
-        for (let face = 1; face <= s; face++) {
-          // Penetrating: explosions subtract 1 (min 1) from the new roll
+        if (accProb <= 0) continue;
+        for (const [face, pFace] of stepFaces) {
+          if (pFace <= 0) continue;
+          // Penetrating: explosions subtract 1 (min 1) from bonus rolls (depth > 0)
           const effectiveFace =
             isPenetrate && depth > 0 ? Math.max(1, face - 1) : face;
           const total = accSum + effectiveFace;
-          const p = accProb * pFace;
+          const p = accProb * pFace || Number.MIN_VALUE;
 
           // Explode exactly when the engine would: matchesCompare(face, cp).
           // Note the threshold check uses the RAW face (pre-penetration), which
           // matches the engine — penetrate adjusts the added value, not the test.
           const explodes = matchesCompare(face, explodeCompare);
-          if (!explodes || depth === maxExplosions) {
+          if (!explodes || depth === MAX_EXPLOSIONS) {
+            if (explodes) {
+              caps.maxExplosions = MAX_EXPLOSIONS;
+            }
             dist.set(total, (dist.get(total) ?? 0) + p);
           } else {
             nextAccumulated.set(total, (nextAccumulated.get(total) ?? 0) + p);
@@ -510,80 +589,20 @@ function explosionDistribution(node: DiceNode): Distribution | null {
   return convolveN(single, node.count);
 }
 
-/** Enumerate every face of a die (Fate: -1,0,1; else 1..s). */
-function allFaces(sides: DiceSides): number[] {
-  if (sides === "F") return [-1, 0, 1];
-  const s = sideCount(sides);
-  const faces: number[] = [];
-  for (let i = 1; i <= s; i++) faces.push(i);
-  return faces;
-}
-
-/** Distribution for simple reroll (no keep/drop, no explode). */
-function rerollDistribution(node: DiceNode): Distribution | null {
-  const hasReroll = node.modifiers.some(
-    (m) => m.kind === "reroll" || m.kind === "reroll_once",
-  );
-  if (!hasReroll) return null;
-
-  // F-AT-007: if an UNLIMITED reroll compare matches every face (e.g. 1d6r>=1,
-  // 1d6r<7), the exact path cannot terminate — singleDieWithReroll returns the
-  // unmodified base distribution, which disagrees with the engine's capped
-  // behavior (MAX_REROLLS in the pipeline). Return null so we fall back to Monte
-  // Carlo, which reflects what the engine actually rolls. (reroll_once always
-  // terminates after one reroll, so it is exempt.)
-  const faces = allFaces(node.sides);
-  for (const mod of node.modifiers) {
-    if (mod.kind !== "reroll" || !mod.compare) continue;
-    if (faces.every((f) => matchesCompare(f, mod.compare!))) {
-      return null;
-    }
-  }
-
-  const single = singleDieWithReroll(node.sides, node.modifiers);
-  return convolveN(single, node.count);
-}
-
-/** Distribution for simple min/max (no keep/drop, no explode, no reroll). */
-function minMaxDistribution(node: DiceNode): Distribution | null {
-  const hasMinMax = node.modifiers.some(
-    (m) => m.kind === "min" || m.kind === "max",
-  );
-  if (!hasMinMax) return null;
-
-  const base = singleDieDistribution(node.sides);
-  const clamped = singleDieWithMinMax(base, node.modifiers);
-  return convolveN(clamped, node.count);
-}
-
 /** Distribution for success counting pools (no keep/drop, no explode).
- *  Each die independently produces +1 (success), -1 (failure), or 0 (neutral).
+ *  Each die independently produces +1 (success), -1 (failure), or 0 (neutral)
+ *  from its post-reroll, post-min/max distribution.
  *  The distribution is over net count, computed via convolution. */
-function successCountDistribution(node: DiceNode): Distribution | null {
+function successCountDistribution(
+  node: DiceNode,
+  baseDist: Distribution,
+): Distribution | null {
   if (node.resultMode !== "success_count") return null;
 
   const csMods = node.modifiers.filter((m) => m.kind === "cs_count");
   const cfMods = node.modifiers.filter((m) => m.kind === "cf_count");
 
-  if (csMods.length === 0) return null;
-
-  // Build single-die distribution accounting for reroll + min/max first
-  let baseDist: Distribution;
-  const hasReroll = node.modifiers.some(
-    (m) => m.kind === "reroll" || m.kind === "reroll_once",
-  );
-  if (hasReroll) {
-    baseDist = singleDieWithReroll(node.sides, node.modifiers);
-  } else {
-    baseDist = singleDieDistribution(node.sides);
-  }
-
-  const hasMinMax = node.modifiers.some(
-    (m) => m.kind === "min" || m.kind === "max",
-  );
-  if (hasMinMax) {
-    baseDist = singleDieWithMinMax(baseDist, node.modifiers);
-  }
+  if (csMods.length === 0 && cfMods.length === 0) return null;
 
   // Map each face to its contribution: +1 (success), -1 (failure), or 0
   const outcomeDist: Distribution = new Map();
@@ -612,7 +631,8 @@ function successCountDistribution(node: DiceNode): Distribution | null {
 function shiftDistribution(dist: Distribution, offset: number): Distribution {
   const result: Distribution = new Map();
   for (const [v, p] of dist) {
-    result.set(v + offset, (result.get(v + offset) ?? 0) + p);
+    const shifted = (v + offset) || 0;
+    result.set(shifted, (result.get(shifted) ?? 0) + p);
   }
   return result;
 }
@@ -620,18 +640,43 @@ function shiftDistribution(dist: Distribution, offset: number): Distribution {
 function scaleDistribution(dist: Distribution, factor: number): Distribution {
   const result: Distribution = new Map();
   for (const [v, p] of dist) {
-    const scaled = v * factor;
+    const scaled = (v * factor) || 0;
     result.set(scaled, (result.get(scaled) ?? 0) + p);
   }
   return result;
 }
 
 function divideDistribution(dist: Distribution, divisor: number): Distribution {
-  if (divisor === 0) return new Map([[0, 1]]);
+  if (divisor === 0) {
+    throw new ParseError("Division by zero", 0);
+  }
   const result: Distribution = new Map();
   for (const [v, p] of dist) {
-    const divided = Math.floor(v / divisor);
+    const divided = Math.floor(v / divisor) || 0;
     result.set(divided, (result.get(divided) ?? 0) + p);
+  }
+  return result;
+}
+
+/** Exact floor-division of two independent distributions A and B (`Math.floor(a / b)`).
+ *  Throws ParseError("Division by zero") if B has positive mass at 0, and
+ *  ExactTooLargeError if |A|·|B| exceeds MAX_EXACT_STATES. */
+function divideDistributions(a: Distribution, b: Distribution): Distribution {
+  if ((b.get(0) ?? 0) > 0) {
+    throw new ParseError("Division by zero", 0);
+  }
+  if (a.size * b.size > MAX_EXACT_STATES) {
+    throw new ExactTooLargeError();
+  }
+  const result: Distribution = new Map();
+  for (const [va, pa] of a) {
+    if (pa <= 0) continue;
+    for (const [vb, pb] of b) {
+      if (pb <= 0) continue;
+      const divided = Math.floor(va / vb) || 0;
+      const prod = pa * pb || Number.MIN_VALUE;
+      result.set(divided, (result.get(divided) ?? 0) + prod);
+    }
   }
   return result;
 }
@@ -656,6 +701,20 @@ function divideDistribution(dist: Distribution, divisor: number): Distribution {
  *     exceed MAX_EXACT_STATES, e.g. `500d1000`. That case is within the dice
  *     budget, so it falls back to a bounded Monte-Carlo estimate rather than
  *     throwing.
+ *
+ *  Division-by-zero contract:
+ *  - Whenever a `/` divisor is exact (`tryExact(right)` succeeds), it is
+ *    evaluated and checked BEFORE the dividend can abort with `ExactTooLargeError`
+ *    (so `500d1000/(5d20-5)` deterministically throws `ParseError("Division by zero")`).
+ *    Any divisor with P(divisor = 0) > 0 throws `ParseError("Division by zero")`.
+ *  - When the divisor ITSELF is non-exact (`tryExact(right)` returns `null` or
+ *    exceeds `MAX_EXACT_STATES`, e.g. `1d6/(5d20!kh4-4)`), analysis falls back
+ *    to `monteCarloDistribution` (`DEFAULT_MONTE_CARLO_SAMPLES = 100_000` trials
+ *    via `evaluate()`). If any sampled trial rolls a 0 divisor (e.g.
+ *    `1d6/(4d6!kh3-12)`), `evaluate()` throws `ParseError("Division by zero")`
+ *    immediately; if a rare zero outcome is not hit within the 100k sample
+ *    horizon (e.g. `1d6/(5d20!kh4-4)`, P(0) = 20^-5), the result is returned
+ *    honestly as `method: "monte-carlo"` with `samples: 100_000` (never `"exact"`).
  */
 export function computeDistribution(ast: ASTNode): Distribution {
   return computeDistributionWithMethod(ast).distribution;
@@ -663,18 +722,11 @@ export function computeDistribution(ast: ASTNode): Distribution {
 
 /**
  * Like {@link computeDistribution}, but also reports HOW the distribution was
- * produced: `method:"exact"` for a closed-form result, or
- * `method:"monte-carlo"` with a `samples` count when the exact path was
- * abandoned and a sampled estimate was returned instead. (P-CORE-001)
- *
- * This is the method-aware primitive; `computeDistribution` is a thin wrapper
- * over it that returns just `.distribution`, so existing callers and the public
- * `computeDistribution` export are unbroken (additive change).
- *
- * The two cost guards are unchanged (see `computeDistribution`'s contract):
- * an over-budget dice count still throws a structured ParseError before any
- * work; an exact support/compute blow-up still falls back to Monte Carlo —
- * which is exactly the case this function now LABELS as approximate.
+ * produced: `method:"exact"` for a closed-form result (with `caps` populated
+ * whenever the engine's `MAX_EXPLOSIONS = 100` or `MAX_REROLLS = 100` loop caps
+ * were modelled), or `method:"monte-carlo"` with a `samples` count when the
+ * exact path was abandoned and a sampled estimate was returned instead.
+ * (P-CORE-001)
  */
 export function computeDistributionWithMethod(ast: ASTNode): DistributionWithMethod {
   // Guard 1: input-dice budget — reject the truly absurd before any work.
@@ -690,9 +742,10 @@ export function computeDistributionWithMethod(ast: ASTNode): DistributionWithMet
 
   // Guard 2: exact-state guard — try exact, but fall back to MC if the support
   // would blow up. ExactTooLargeError is internal; any other error propagates.
+  const caps: ModelledCaps = {};
   let result: Distribution | null;
   try {
-    result = tryExact(ast);
+    result = tryExact(ast, caps);
   } catch (e) {
     if (e instanceof ExactTooLargeError) {
       result = null; // abandon exact path, fall through to Monte Carlo
@@ -700,7 +753,13 @@ export function computeDistributionWithMethod(ast: ASTNode): DistributionWithMet
       throw e;
     }
   }
-  if (result) return { distribution: result, method: "exact" };
+  if (result) {
+    const hasCaps =
+      caps.maxExplosions !== undefined || caps.maxRerolls !== undefined;
+    return hasCaps
+      ? { distribution: result, method: "exact", caps }
+      : { distribution: result, method: "exact" };
+  }
 
   // Exact path abandoned → sampled estimate. Surface the method + sample count
   // so callers know these probabilities are approximate, not exact.
@@ -712,116 +771,182 @@ export function computeDistributionWithMethod(ast: ASTNode): DistributionWithMet
   };
 }
 
-function tryExact(node: ASTNode): Distribution | null {
+function mergeCaps(target: ModelledCaps, source: ModelledCaps): void {
+  if (source.maxExplosions !== undefined) {
+    target.maxExplosions = source.maxExplosions;
+  }
+  if (source.maxRerolls !== undefined) {
+    target.maxRerolls = source.maxRerolls;
+  }
+}
+
+function tryExact(node: ASTNode, caps: ModelledCaps): Distribution | null {
   switch (node.type) {
     case "number":
       return new Map([[node.value, 1]]);
 
     case "dice": {
       // P-CORE-002: route by an EXHAUSTIVE classification of each modifier kind,
-      // not independent `.some(m => m.kind === ...)` probes. The probes were not
-      // exhaustive — a new DiceModifier kind matched none and silently fell
-      // through to plain convolveDice (a wrong distribution). classifyModifier's
-      // switch forces a compile error for any unhandled kind, so the family set
-      // below can never silently miss a modifier. (display-only families —
-      // sort/cs_mark/cf_mark — intentionally contribute to NONE of these flags
-      // because they do not change the total.)
+      // not independent `.some(m => m.kind === ...)` probes.
       const families = new Set(node.modifiers.map(classifyModifier));
       const hasKeepDrop = families.has("keep-drop");
       const hasExplosion = families.has("explosion");
-      const hasReroll = families.has("reroll");
-      const hasMinMax = families.has("min-max");
       const isSuccessCount = node.resultMode === "success_count";
 
-      // Success counting pool (no keep/drop, no explosion)
-      if (isSuccessCount && !hasKeepDrop && !hasExplosion) {
-        return successCountDistribution(node);
-      }
+      // Compose Stage 1 (roll) -> Stage 2 (reroll / reroll_once) -> Stage 3
+      // (min / max) for a single die. Returns null when an unlimited reroll
+      // matches every face (F-AT-007), falling back to Monte Carlo.
+      const nodeCaps: ModelledCaps = {};
+      const singleDie = singleDiePreExplode(node, nodeCaps);
+      if (!singleDie) return null;
 
-      // F-AT-003: keep/drop combined with explosion or reroll cannot be modeled
-      // by enumerateKeepDrop — that function applies only min/max + keep/drop and
-      // would silently return a distribution AS IF the explosion/reroll did not
-      // exist (e.g. 4d6!kh3, 4d6r=1kh3). Return null so computeDistribution falls
-      // back to Monte Carlo, which reflects the engine's real capped behavior.
-      if (hasKeepDrop && (hasExplosion || hasReroll)) {
-        return null;
-      }
-
-      // Keep/drop present (no explosion, no reroll) — full enumeration. This
-      // path applies min/max per die then keep/drop; it does NOT model reroll
-      // or explosion (see the guard above which excludes those cases).
       if (hasKeepDrop) {
-        return enumerateKeepDrop(node);
+        if (hasExplosion) return null;
+        const dist = enumerateKeepDrop(node, singleDie);
+        if (!dist) return null;
+        mergeCaps(caps, nodeCaps);
+        return dist;
       }
 
-      // Explosion variants (no keep/drop)
       if (hasExplosion) {
-        return explosionDistribution(node);
+        if (isSuccessCount) return null;
+        const dist = explosionDistribution(node, singleDie, nodeCaps);
+        if (!dist) return null;
+        mergeCaps(caps, nodeCaps);
+        return dist;
       }
 
-      // Reroll (no keep/drop, no explosion)
-      if (hasReroll) {
-        return rerollDistribution(node);
+      if (isSuccessCount) {
+        const dist = successCountDistribution(node, singleDie);
+        if (!dist) return null;
+        mergeCaps(caps, nodeCaps);
+        return dist;
       }
 
-      // Min/max (no keep/drop, no explosion, no reroll)
-      if (hasMinMax) {
-        return minMaxDistribution(node);
-      }
-
-      // Plain NdM
-      return convolveDice(node.count, node.sides);
+      const dist = convolveN(singleDie, node.count);
+      mergeCaps(caps, nodeCaps);
+      return dist;
     }
 
     case "binary": {
-      const left = tryExact(node.left);
-      const right = tryExact(node.right);
+      // Evaluate and check `right` BEFORE `left` so an ExactTooLargeError on the
+      // dividend (e.g. `500d1000/(5d20-5)`) never skips a deterministic
+      // division-by-zero check on an exact divisor. Likewise isolate
+      // ExactTooLargeError on each branch so nested `/` errors on either side
+      // still propagate as ParseError("Division by zero").
+      const rightCaps: ModelledCaps = {};
+      let right: Distribution | null;
+      let rightTooLarge = false;
+      try {
+        right = tryExact(node.right, rightCaps);
+      } catch (e) {
+        if (e instanceof ExactTooLargeError) {
+          right = null;
+          rightTooLarge = true;
+        } else {
+          throw e;
+        }
+      }
+
+      if (node.op === "/" && right && (right.get(0) ?? 0) > 0) {
+        throw new ParseError("Division by zero", 0);
+      }
+
+      const leftCaps: ModelledCaps = {};
+      let left: Distribution | null;
+      let leftTooLarge = false;
+      try {
+        left = tryExact(node.left, leftCaps);
+      } catch (e) {
+        if (e instanceof ExactTooLargeError) {
+          left = null;
+          leftTooLarge = true;
+        } else {
+          throw e;
+        }
+      }
+
+      if (leftTooLarge || rightTooLarge) {
+        throw new ExactTooLargeError();
+      }
       if (!left || !right) return null;
 
       if (right.size === 1) {
         // right.size === 1, so the single key is always present.
         const rv = [...right.keys()][0]!;
+        let out: Distribution;
         switch (node.op) {
           case "+":
-            return shiftDistribution(left, rv);
+            out = shiftDistribution(left, rv);
+            break;
           case "-":
-            return shiftDistribution(left, -rv);
+            out = shiftDistribution(left, -rv);
+            break;
           case "*":
-            return scaleDistribution(left, rv);
+            out = scaleDistribution(left, rv);
+            break;
           case "/":
-            return divideDistribution(left, rv);
+            out = divideDistribution(left, rv);
+            break;
         }
+        mergeCaps(caps, leftCaps);
+        mergeCaps(caps, rightCaps);
+        return out;
       }
 
       if (left.size === 1) {
         // left.size === 1, so the single key is always present.
         const lv = [...left.keys()][0]!;
+        let out: Distribution;
         switch (node.op) {
           case "+":
-            return shiftDistribution(right, lv);
+            out = shiftDistribution(right, lv);
+            break;
           case "-": {
             const negated = scaleDistribution(right, -1);
-            return shiftDistribution(negated, lv);
+            out = shiftDistribution(negated, lv);
+            break;
           }
           case "*":
-            return scaleDistribution(right, lv);
+            out = scaleDistribution(right, lv);
+            break;
           case "/":
-            return null;
+            out = divideDistributions(left, right);
+            break;
         }
+        mergeCaps(caps, leftCaps);
+        mergeCaps(caps, rightCaps);
+        return out;
       }
 
-      if (node.op === "+") return convolve(left, right);
+      if (node.op === "+") {
+        const out = convolve(left, right);
+        mergeCaps(caps, leftCaps);
+        mergeCaps(caps, rightCaps);
+        return out;
+      }
       if (node.op === "-") {
         const negated = scaleDistribution(right, -1);
-        return convolve(left, negated);
+        const out = convolve(left, negated);
+        mergeCaps(caps, leftCaps);
+        mergeCaps(caps, rightCaps);
+        return out;
+      }
+      if (node.op === "/") {
+        const out = divideDistributions(left, right);
+        mergeCaps(caps, leftCaps);
+        mergeCaps(caps, rightCaps);
+        return out;
       }
 
       return null;
     }
 
     case "unary_minus": {
-      const inner = tryExact(node.operand);
+      const innerCaps: ModelledCaps = {};
+      const inner = tryExact(node.operand, innerCaps);
       if (!inner) return null;
+      mergeCaps(caps, innerCaps);
       return scaleDistribution(inner, -1);
     }
   }

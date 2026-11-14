@@ -104,7 +104,7 @@ Color is on by default. Disable it two ways:
 - `--no-color` — suppresses ANSI styling for a single invocation
 - `NO_COLOR=1` (environment variable) — honored per the [NO_COLOR](https://no-color.org/) standard
 
-When the analyzer falls back to Monte Carlo for a large or complex expression, `--analyze` and `--at-least` label the result as estimated (with the sample count) instead of presenting sampled numbers as exact. Exact results are noted as such. The `--json` output carries a `method` field (`"exact"` or `"monte-carlo"`, with `samples` when sampled) so machine consumers can tell them apart too.
+When the analyzer falls back to Monte Carlo for a large or complex expression, `--analyze` and `--at-least` label the result as estimated (with the sample count) instead of presenting sampled numbers as exact. Exact results are noted as such — and whenever an exact distribution relies on the engine's finite loop caps (`MAX_EXPLOSIONS = 100`, `MAX_REROLLS = 100`), the note names the cap(s) modelled (`exact probabilities (engine caps: ...)`). The `--json` output carries `method` (`"exact"` or `"monte-carlo"`), `samples` when sampled, and `caps` (`{ maxExplosions?: 100, maxRerolls?: 100 }`) when engine caps apply.
 
 ### Exit codes
 
@@ -178,7 +178,12 @@ The **high-level API is stable** and follows semver — breaking changes only on
 - `tokenize`, `Token`, `TokenType`
 - `runPipeline`, `matchesCompare`
 
-`analyze` also reports `.method` (`"exact"` | `"monte-carlo"`) and, for the sampled path, `.samples` — so callers can honor the exact-probabilities contract programmatically.
+`analyze` also reports `.method` (`"exact"` | `"monte-carlo"`), `.samples` for the sampled path, and `.caps` (`{ maxExplosions?: number; maxRerolls?: number }`) on the exact path whenever an engine loop cap is modelled — so callers can honor the exact-probabilities contract programmatically.
+
+### Exactness, Engine Caps, and Division by Zero
+
+- **What `"exact"` means with caps:** In pure mathematics, exploding dice (`!`, `!!`, `!p`) and unlimited rerolls (`r`) have no finite support. In Roll, `method: "exact"` means exact for the engine as built (`runPipeline`), including its loop caps (`MAX_EXPLOSIONS = 100` bonus rolls per initial die; `MAX_REROLLS = 100` rerolls per unlimited `r` modifier, after which the 100th roll stands). Whenever either cap is exercised, `analyze()` surfaces it in `.caps` (`{ maxExplosions: 100 }`, `{ maxRerolls: 100 }`) and the CLI prints `exact probabilities (engine caps: ...)`. If the capped support or convolution work exceeds `10,000,000` states, or if every face matches an unlimited reroll (`1d6r>=1`), analysis falls back to `method: "monte-carlo"`.
+- **Division by zero (`/`):** `roll()` throws `ParseError("Division by zero")` whenever an evaluated divisor is `0`. `analyze()` rejects any exact divisor with $P(\text{divisor} = 0) > 0$ with the same `ParseError("Division by zero")`, evaluating and checking the divisor *before* the dividend so a large dividend (`500d1000/(5d20-5)`) cannot skip the check via `ExactTooLargeError`. When the divisor *itself* cannot be computed exactly (for example `1d6/(5d20!kh4-4)`, where `5d20!kh4` combines explosion and keep/drop), `analyze()` falls back to Monte Carlo (`100,000` trials via `evaluate()`): if any sampled trial hits `0`, `ParseError("Division by zero")` is thrown; if a rare zero outcome is missed by sampling, the result is returned as `method: "monte-carlo"` (`samples: 100_000`) — never `"exact"`.
 
 ## JSON Bridge (Godot / Unreal / Rust)
 
@@ -216,11 +221,11 @@ Roll ships as an MCP server for Claude integration during game design:
 
 - **Exact distributions** via polynomial convolution for basic NdM
 - **Full enumeration** for keep/drop mechanics (4d6 = 1,296 states)
-- **Analytical reroll** — redistributes probability mass over non-matching faces
+- **Analytical reroll** — closed-form mass redistribution over non-matching faces plus the `MAX_REROLLS = 100` cap residual
 - **Analytical min/max** — truncates distribution and piles mass at clamp
 - **Analytical success counting** — maps faces to +1/0/-1, convolves N times
-- **Truncated recursion** for exploding/compounding/penetrating dice
-- **Monte Carlo fallback** (100k samples) when exact computation exceeds 10M states
+- **Exact engine-cap expansion** for exploding/compounding/penetrating dice up to `MAX_EXPLOSIONS = 100`
+- **Monte Carlo fallback** (100k samples) when exact computation exceeds 10M states or combines variable-count explosions with keep/drop or success counting
 
 Every modifier has exact probability analysis — not just simulation.
 

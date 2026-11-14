@@ -140,20 +140,22 @@ describe("probabilityAtLeast", () => {
 // ─── V2 Distribution Strategies ──────────────────────────────────────────────
 
 describe("reroll distribution", () => {
-  it("1d6r=1 has no probability on face 1", () => {
+  it("1d6r=1 has negligible cap-residual probability on face 1", () => {
     const { dist, stats } = analyze("1d6r=1");
+    // Engine caps unlimited rerolls at MAX_REROLLS = 100, leaving (1/6)^101 on face 1.
     expect(dist.get(1) ?? 0).toBeCloseTo(0, 10);
-    // Mean shifts up: faces 2-6 each have p=1/5
+    expect(dist.get(1)).toBeCloseTo(Math.pow(1 / 6, 101), 90);
+    // Mean shifts up: faces 2-6 each have p ≈ 1/5
     expect(stats.mean).toBeCloseTo(4, 5);
-    expect(stats.min).toBe(2);
+    expect(stats.min).toBe(1);
     expect(stats.max).toBe(6);
   });
 
-  it("1d6r<3 has no probability on faces 1 and 2", () => {
+  it("1d6r<3 has negligible cap-residual probability on faces 1 and 2", () => {
     const { dist, stats } = analyze("1d6r<3");
     expect(dist.get(1) ?? 0).toBeCloseTo(0, 10);
     expect(dist.get(2) ?? 0).toBeCloseTo(0, 10);
-    // Remaining 4 faces each have p=1/4
+    // Remaining 4 faces each have p ≈ 1/4
     expect(dist.get(3)).toBeCloseTo(0.25, 5);
     expect(stats.mean).toBeCloseTo(4.5, 5);
   });
@@ -162,7 +164,9 @@ describe("reroll distribution", () => {
     const plain = analyze("2d6");
     const rerolled = analyze("2d6r=1");
     expect(rerolled.stats.mean).toBeGreaterThan(plain.stats.mean);
-    expect(rerolled.stats.min).toBe(4); // each die min is 2, so 2+2=4
+    // With MAX_REROLLS = 100 modelled, each die can still land on 1 with p = 6^-101,
+    // so min sum is 1 + 1 = 2 (matching `roll("2d6r=1", () => 1).total === 2`).
+    expect(rerolled.stats.min).toBe(2);
   });
 
   it("1d6ro=1 still has probability on face 1 (reroll once)", () => {

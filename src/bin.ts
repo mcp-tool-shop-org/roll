@@ -543,14 +543,21 @@ function handleAnalyze(expression: string, json: boolean, io: IO): void {
   const ast = parse(expression);
   // Use the method-aware primitive so we can tell the user whether these numbers
   // are exact or a Monte-Carlo estimate (P-CORE-001 consumer side).
-  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+  const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
   const stats = computeStats(dist);
 
   if (json) {
     const entries = [...dist.entries()].sort((a, b) => a[0] - b[0]);
     io.out(
       JSON.stringify(
-        { expression, method, ...(samples !== undefined ? { samples } : {}), stats, distribution: entries },
+        {
+          expression,
+          method,
+          ...(samples !== undefined ? { samples } : {}),
+          ...(caps !== undefined ? { caps } : {}),
+          stats,
+          distribution: entries,
+        },
         null,
         2,
       ),
@@ -563,20 +570,27 @@ function handleAnalyze(expression: string, json: boolean, io: IO): void {
   io.out();
   io.out(formatStats(stats));
   // Honest labeling: only call out the estimate when sampled; a quiet "exact"
-  // note otherwise. This is the user-facing half of the exactness win.
-  io.out(formatMethodNote(method, samples));
+  // note (with any modelled engine caps) otherwise.
+  io.out(formatMethodNote(method, samples, caps));
   io.out();
 }
 
 function handleAtLeast(expression: string, target: number, json: boolean, io: IO): void {
   const ast = parse(expression);
-  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+  const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
   const prob = probabilityAtLeast(dist, target);
 
   if (json) {
     io.out(
       JSON.stringify(
-        { expression, target, probability: prob, method, ...(samples !== undefined ? { samples } : {}) },
+        {
+          expression,
+          target,
+          probability: prob,
+          method,
+          ...(samples !== undefined ? { samples } : {}),
+          ...(caps !== undefined ? { caps } : {}),
+        },
         null,
         2,
       ),
@@ -586,7 +600,7 @@ function handleAtLeast(expression: string, target: number, json: boolean, io: IO
 
   io.out();
   io.out(formatAtLeast(target, prob, expression));
-  io.out(formatMethodNote(method, samples));
+  io.out(formatMethodNote(method, samples, caps));
   io.out();
 }
 
@@ -654,7 +668,7 @@ function handleQuery(
   io: IO,
 ): void {
   const ast = parse(expression);
-  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+  const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
 
   let prob: number;
   let predicate: string;
@@ -687,6 +701,7 @@ function handleQuery(
           probability: prob,
           method,
           ...(samples !== undefined ? { samples } : {}),
+          ...(caps !== undefined ? { caps } : {}),
         },
         null,
         2,
@@ -697,7 +712,7 @@ function handleQuery(
 
   io.out();
   io.out(formatProbabilityQuery(predicate, prob));
-  io.out(formatMethodNote(method, samples));
+  io.out(formatMethodNote(method, samples, caps));
   io.out();
 }
 
@@ -707,7 +722,7 @@ function handleQuery(
  */
 function handleTargetFor(expression: string, p: number, json: boolean, io: IO): void {
   const ast = parse(expression);
-  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+  const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
   const target = targetForProbability(dist, p, "atLeast");
 
   if (json) {
@@ -719,6 +734,7 @@ function handleTargetFor(expression: string, p: number, json: boolean, io: IO): 
           target,
           method,
           ...(samples !== undefined ? { samples } : {}),
+          ...(caps !== undefined ? { caps } : {}),
         },
         null,
         2,
@@ -729,7 +745,7 @@ function handleTargetFor(expression: string, p: number, json: boolean, io: IO): 
 
   io.out();
   io.out(formatTargetFor(expression, p, target));
-  io.out(formatMethodNote(method, samples));
+  io.out(formatMethodNote(method, samples, caps));
   io.out();
 }
 
@@ -739,7 +755,7 @@ function handleTargetFor(expression: string, p: number, json: boolean, io: IO): 
  */
 function handleAtMostFor(expression: string, p: number, json: boolean, io: IO): void {
   const ast = parse(expression);
-  const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+  const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
   const target = targetForProbability(dist, p, "atMost");
 
   if (json) {
@@ -752,6 +768,7 @@ function handleAtMostFor(expression: string, p: number, json: boolean, io: IO): 
           direction: "atMost",
           method,
           ...(samples !== undefined ? { samples } : {}),
+          ...(caps !== undefined ? { caps } : {}),
         },
         null,
         2,
@@ -762,7 +779,7 @@ function handleAtMostFor(expression: string, p: number, json: boolean, io: IO): 
 
   io.out();
   io.out(formatTargetForAtMost(expression, p, target));
-  io.out(formatMethodNote(method, samples));
+  io.out(formatMethodNote(method, samples, caps));
   io.out();
 }
 

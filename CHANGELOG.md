@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Exact analysis for combined dice modifiers and engine loop caps** — `tryExact` now composes Stage 1 (roll), Stage 2 (`reroll` / `reroll_once`), and Stage 3 (`min` / `max`) per die before Stage 4 (`explode` / `compound` / `penetrate`), Stage 5 (`keep` / `drop`), or Stage 8 (`sum` / `success_count`), matching `runPipeline` instead of routing to single-family strategies that silently dropped earlier modifiers (`2d6r=1!`, `2d6min2!`, `2d6r=1min3`, `2d4ro=1min2!`, `3d4ro=1kh2`). Unlimited rerolls and explosions model the engine's exact `MAX_REROLLS = 100` and `MAX_EXPLOSIONS = 100` caps (within the 10M-state budget) and surface any exercised cap via `caps` (`{ maxExplosions?: 100, maxRerolls?: 100 }`) on `analyze()`, CLI, bridge, and MCP outputs. Combinations that add variable dice counts before keep/drop or success counting, or exceed the exact state budget, fall back to Monte Carlo (`method: "monte-carlo"`).
+- **Division-by-zero parity between `roll()` and `analyze()`** — `divideDistribution`, `divideDistributions`, and `tryExact` throw `ParseError("Division by zero")` whenever an exact divisor is `0` or has positive probability of rolling `0` (e.g. `1d6/0`, `1d6/(1d2-1)`, `1d6/(1d100r<=99-50)`), evaluating the divisor before the dividend so `500d1000/(5d20-5)` throws deterministically instead of escaping via `ExactTooLargeError`. Non-exact divisors (e.g. `1d6/(5d20!kh4-4)`) fall back to Monte Carlo (`method: "monte-carlo"`), never `"exact"`.
+
 ## 2.1.1
 
 ### Added
