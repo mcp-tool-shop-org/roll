@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Stacked-explosion cost guards across `analyze()`, Monte Carlo, and `roll()`** — `estimateAstAnalyzeRolls` accounts for stacked explosion modifiers (`101^k` per-sample roll amplification across `explode` / `compound` / `penetrate`) and rerolls in the `analyze()` input-dice guard, `monteCarloDistribution` enforces both the static per-sample roll cap and a live RNG-draw budget (`samples × 1,000`), `stageExplode` caps per-group bonus rolls at `MAX_EXPLOSION_ROLLS = 10_000` (throwing `ParseError` when exceeded), and CLI `--times` / MCP `roll_dice` use the explosion-aware roll estimate so crafted expressions like `2d3!<=4!!>=1` or `1d6!>=1!>=1!>=1` fail fast instead of stalling.
+- **Subnormal IEEE-754 underflow guard in `reroll_once`** — `singleDieWithReroll` preserves positive subnormal mass when `pMatch * pFace` would flush to `0` (`1d2000r=1ro=1` retains bucket `1` with `stats.min === 1`, and `1d6/(1d2000r=1ro=1-1)` throws `ParseError("Division by zero")` matching `roll()`).
+- **Zero-dice `caps` metadata** — `tryExact` short-circuits `count === 0` (`0d6!`, `0d6r=1`) to `{0: 1}` before per-die cap modelling so `caps` is omitted when zero dice are rolled.
+
 ## 2.1.2
 
 ### Fixed

@@ -6,7 +6,11 @@ import {
   computeDistributionWithMethod,
   type Distribution,
 } from "../src/analyze/distribution.js";
+import { monteCarloDistribution } from "../src/analyze/montecarlo.js";
 import { computeStats } from "../src/analyze/stats.js";
+import { analyze as analyzePublic, roll } from "../src/index.js";
+import { run as runCli } from "../src/bin.js";
+import { handleRequest as handleMcpRequest } from "../src/mcp/server.js";
 
 // ─── V1-001 / V1-002: the analyze path must be cost-bounded ───────────────────
 //
@@ -86,6 +90,84 @@ describe("V1-001/V1-002 analyze path is cost-bounded (DoS guard)", () => {
     }
     expect(threw).toBeInstanceOf(ParseError);
     expect((threw as Error).message.toLowerCase()).toContain("too complex");
+  });
+
+  it("stacked explosions ('2d3!<=4!!>=1', '1d6!>=1!>=1!>=1') refuse with ParseError within 200ms in analyze() and monteCarloDistribution()", () => {
+    // 2d3!<=4!!>=1: Stage 4 `!<=4` expands 2 -> 202 dice (200 bonus rolls), then
+    // `!!>=1` compounds 100 times on each of 202 dice (20,200 rolls) -> 20,402
+    // rolls per sample (> MAX_ANALYZE_DICE = 1,000). Without stacked-explosion
+    // accounting, 100,000 MC samples ran 2.04e9 rolls (>8s stall); 1d6!>=1!>=1!>=1
+    // attempted ~1.03e11 rolls. Both must refuse immediately with ParseError.
+    const crafted = [
+      "2d3!<=4!!>=1",
+      "2d3!<=4!!>=1cf<=2min3",
+      "1d6!>=1!>=1!>=1",
+      "1d6" + "!>=1".repeat(20),
+    ];
+
+    const start = performance.now();
+    for (const expr of crafted) {
+      let analyzeErr: unknown;
+      try {
+        analyzePublic(expr);
+      } catch (e) {
+        analyzeErr = e;
+      }
+      expect(analyzeErr).toBeInstanceOf(ParseError);
+      expect((analyzeErr as Error).message).toMatch(/too complex to analyze/i);
+
+      const ast = parse(expr);
+      let mcErr: unknown;
+      try {
+        monteCarloDistribution(ast, 100_000);
+      } catch (e) {
+        mcErr = e;
+      }
+      expect(mcErr).toBeInstanceOf(ParseError);
+      expect((mcErr as Error).message).toMatch(/too complex to analyze/i);
+    }
+    const elapsedMs = performance.now() - start;
+    // Stated time budget: 200ms across all crafted stacked-explosion calls.
+    expect(elapsedMs).toBeLessThan(200);
+  });
+
+  it("roll() and roll()-in-a-loop refuse crafted stacked explosions within 200ms with ParseError", () => {
+    // `stageExplode` caps per-group bonus rolls at MAX_EXPLOSION_ROLLS (10,000)
+    // and pre-checks guaranteed all-face blow-ups so neither a single `roll()`
+    // nor `roll()` in a loop (nor CLI `--times` / MCP `roll_dice`) can run 101^k work.
+    const start = performance.now();
+
+    for (let i = 0; i < 100; i++) {
+      expect(() => roll("2d3!<=4!!>=1")).toThrow(ParseError);
+      expect(() => roll("1d6!>=1!>=1!>=1")).toThrow(ParseError);
+      expect(() => roll("1d6" + "!>=1".repeat(20))).toThrow(ParseError);
+    }
+    expect(() => roll("2d3!<=4!!>=1")).toThrow(/explosion roll limit/i);
+    // Stochastic stacked chain (`!=2` explode, not `!!` compound) driven by worst-case RNG hits the 10,000 cap cleanly:
+    expect(() => roll("1d2" + "!=2".repeat(20), () => 2)).toThrow(ParseError);
+    expect(() => roll("1d2" + "!=2".repeat(20), () => 2)).toThrow(/explosion roll limit/i);
+
+    const errLines: string[] = [];
+    const cliCode = runCli(["2d3!<=4!!>=1", "--times", "100", "--no-color"], {
+      out: () => {},
+      err: (l = "") => errLines.push(l),
+    });
+    expect(cliCode).toBe(1);
+    expect(errLines.join("\n")).toContain("Error:");
+
+    const mcpRes = handleMcpRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: "roll_dice",
+        arguments: { expression: "2d3!<=4!!>=1", times: 100 },
+      },
+    });
+    expect((mcpRes.result as { isError?: boolean }).isError).toBe(true);
+
+    const elapsedMs = performance.now() - start;
+    expect(elapsedMs).toBeLessThan(200);
   });
 });
 

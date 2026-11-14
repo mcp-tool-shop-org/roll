@@ -22,6 +22,7 @@ export {
   runPipeline,
   matchesCompare,
   MAX_EXPLOSIONS,
+  MAX_EXPLOSION_ROLLS,
   MAX_REROLLS,
 } from "./engine/pipeline.js";
 export type { PipelineDie, PipelineResult } from "./engine/pipeline.js";
