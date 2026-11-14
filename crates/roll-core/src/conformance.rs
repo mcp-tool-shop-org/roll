@@ -231,6 +231,12 @@ struct AnalyzeErrorFixtureCase {
     description: &'static str,
     expression: &'static str,
     expected_error_kind: &'static str,
+    /// For `analysis_too_expensive`: the `samples_affordable` the normative cost model gives.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    samples_affordable: Option<u32>,
+    /// For `analysis_too_expensive`: the sample floor (`MIN_MONTE_CARLO_SAMPLES`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    min_samples: Option<u32>,
 }
 
 /// Builds the complete deterministic conformance suite in memory (`01`..`04` + `MANIFEST.sha256`).
@@ -1715,6 +1721,11 @@ fn build_04_exact_analysis() -> ExactAnalysisFile {
             "1000d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1!kh1",
             "draw_budget_exceeded",
         ),
+        (
+            "Monte Carlo sample floor refuses 20 chained drop-lowest over 1000d6! (cost model §5.3)",
+            "1000d6!dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1",
+            "analysis_too_expensive",
+        ),
     ];
 
     let mut error_cases = Vec::with_capacity(ERROR_INPUTS.len());
@@ -1726,10 +1737,19 @@ fn build_04_exact_analysis() -> ExactAnalysisFile {
             actual_kind, expected_error_kind,
             "unexpected error kind for {expression}: {err}"
         );
+        let (samples_affordable, min_samples) = match err {
+            RollError::AnalysisTooExpensive {
+                samples_affordable,
+                min_samples,
+            } => (Some(samples_affordable), Some(min_samples)),
+            _ => (None, None),
+        };
         error_cases.push(AnalyzeErrorFixtureCase {
             description,
             expression,
             expected_error_kind: actual_kind,
+            samples_affordable,
+            min_samples,
         });
     }
 

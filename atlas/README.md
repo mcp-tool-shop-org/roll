@@ -1,15 +1,14 @@
 # roll: how it works
 
-Mapped at 2026-11-14 from commit 4ea1305 by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit 41d6093 by Atlas 1.26.0.
 
 ## What this is
 
 8 parts, mostly TypeScript (58 files), Rust (24), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
 
-## What changed since 2026-11-14 (1b4e83a)
+## What changed since 2026-11-14 (4ea1305)
 
-- CI now also runs crates/roll-core/src/support.rs.
-- 1 file added and 13 changed content, across 3 parts.
+Nothing structural changed since 2026-11-14; 9 files changed content.
 
 ## What comes in
 

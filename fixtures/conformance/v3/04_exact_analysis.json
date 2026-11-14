@@ -6935,6 +6935,13 @@
       "description": "Monte Carlo draw budget exceeded surfaces on first sample without 100k retries",
       "expression": "1000d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1!kh1",
       "expected_error_kind": "draw_budget_exceeded"
+    },
+    {
+      "description": "Monte Carlo sample floor refuses 20 chained drop-lowest over 1000d6! (cost model §5.3)",
+      "expression": "1000d6!dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1dl1",
+      "expected_error_kind": "analysis_too_expensive",
+      "samples_affordable": 5435,
+      "min_samples": 10000
     }
   ]
 }

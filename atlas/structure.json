@@ -52,11 +52,11 @@
           "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
         },
         {
-          "hash": "642e936bb7cccc27c9889d0e014f116bf29e2cb7228b867ecfef5fd216142378",
+          "hash": "385c0ebac23f38b4bbc7813a4bdf816cc1f400bb0a35c5d367b642d464127835",
           "path": "fixtures/conformance/v3/04_exact_analysis.json"
         },
         {
-          "hash": "09e7646f1f93f313e88e0e0093e23876fea6786b6e0c533d91563dc9335b02a9",
+          "hash": "ec184aa7f5a3da36fe2d9c3000e734358546331654c340771836bf2c614f8054",
           "path": "fixtures/conformance/v3/MANIFEST.sha256"
         }
       ],
@@ -250,265 +250,265 @@
             {
               "in": "prob_exactly",
               "kind": "match-err",
-              "line": 397
+              "line": 409
             },
             {
               "in": "target_for_probability",
               "kind": "err",
-              "line": 444
+              "line": 456
             },
             {
               "in": "exact_phase",
               "kind": "err",
-              "line": 635
+              "line": 647
             },
             {
               "in": "exact_phase",
               "kind": "match-err",
-              "line": 656
+              "line": 668
             },
             {
               "in": "exact_phase",
               "kind": "err",
-              "line": 656
+              "line": 668
             },
             {
               "in": "exact_phase",
               "kind": "match-err",
-              "line": 657
+              "line": 669
             },
             {
               "in": "sampling_phase",
               "kind": "err",
-              "line": 674
+              "line": 686
             },
             {
               "in": "compare_with_min_samples",
               "kind": "match-err",
-              "line": 832
+              "line": 844
             },
             {
               "in": "compare_with_min_samples",
               "kind": "err",
-              "line": 832
+              "line": 844
             },
             {
               "in": "compare_with_min_samples",
               "kind": "match-err",
-              "line": 833
+              "line": 845
             },
             {
               "in": "charge_transitions",
               "kind": "err",
-              "line": 948
+              "line": 960
             },
             {
               "in": "reserve_live",
               "kind": "err",
-              "line": 958
+              "line": 970
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 1041
+              "line": 1053
             },
             {
               "in": "precheck_divisors",
               "kind": "match-err",
-              "line": 1079
+              "line": 1091
             },
             {
               "in": "precheck_divisors",
               "kind": "match-err",
-              "line": 1080
+              "line": 1092
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 1088
+              "line": 1100
             },
             {
               "in": "add_capped",
               "kind": "err",
-              "line": 1159
+              "line": 1171
             },
             {
               "in": "finish_node_frame",
               "kind": "match-err",
-              "line": 1260
+              "line": 1272
             },
             {
               "in": "finish_node_frame",
               "kind": "err",
-              "line": 1262
+              "line": 1274
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1284
+              "line": 1296
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1289
+              "line": 1301
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1302
+              "line": 1314
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1304
+              "line": 1316
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1309
+              "line": 1321
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1311
+              "line": 1323
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1395
+              "line": 1407
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1395
+              "line": 1407
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1409
+              "line": 1421
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1413
+              "line": 1425
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1426
+              "line": 1438
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1434
+              "line": 1446
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1434
+              "line": 1446
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1540
+              "line": 1552
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1549
+              "line": 1561
             },
             {
               "in": "explosion_chain_sum_pmf_inner",
               "kind": "err",
-              "line": 1826
+              "line": 1838
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 2010
+              "line": 2022
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 2027
+              "line": 2039
             },
             {
               "in": "divide_distribution_weighted",
               "kind": "err",
-              "line": 2464
+              "line": 2476
             },
             {
               "in": "convolve",
               "kind": "err",
-              "line": 2599
+              "line": 2611
             },
             {
               "in": "subtract_distributions",
               "kind": "err",
-              "line": 2640
+              "line": 2652
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2716
+              "line": 2728
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2720
+              "line": 2732
             },
             {
               "in": "convolve_n_inner",
               "kind": "err",
-              "line": 2893
+              "line": 2905
             },
             {
               "in": "multiply_distributions",
               "kind": "err",
-              "line": 2917
+              "line": 2929
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2963
+              "line": 2975
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2996
+              "line": 3008
             },
             {
               "in": "monte_carlo_fallback",
               "kind": "err",
-              "line": 3358
+              "line": 3370
             },
             {
               "in": "monte_carlo_fallback",
               "kind": "err",
-              "line": 3367
+              "line": 3379
             },
             {
               "in": "next_u64_word",
               "kind": "err",
-              "line": 3439
+              "line": 3451
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3491
+              "line": 3503
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3494
+              "line": 3506
             },
             {
               "in": "walk",
               "kind": "err",
-              "line": 3494
+              "line": 3506
             }
           ],
-          "hash": "9cb66590aef66928a4252951b7cd68ac2e19042fd65ce7852e75e48c62464933",
+          "hash": "19cbd899fab17d4285684774e3d647ec71ad85fd9c5af493c652f3d892c83918",
           "importOrder": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs",
@@ -605,30 +605,30 @@
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 903
+              "line": 909
             },
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 911
+              "line": 917
             },
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 919
+              "line": 925
             },
             {
               "in": "build_draw_budget_cases",
               "kind": "match-err",
-              "line": 1121
+              "line": 1127
             },
             {
               "in": "build_draw_budget_cases",
               "kind": "match-err",
-              "line": 1138
+              "line": 1144
             }
           ],
-          "hash": "d3cfa83fcced2c4de8dc11f63a0c54f714e2621e341fec7ec38854c6e7cb62bc",
+          "hash": "d15a68a010c1df659a304676b26de9063a103945277e3bcee41388296914da58",
           "importsFiles": [
             "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
@@ -676,7 +676,7 @@
           "path": "crates/roll-core/src/eval.rs"
         },
         {
-          "hash": "95ec9deb02f2a48155ac6b7e6a7fc05598da9635f78ddbda3714b6c0cd8e3377",
+          "hash": "90d47c5d90935c4ed479bd7207b2f23928916a8828afbde56d8ed964bcdbe983",
           "importsFiles": [
             "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
@@ -1066,7 +1066,7 @@
           "testsInside": true
         },
         {
-          "hash": "f4a15faa488fceabca2f144ecc1b8315a5ad1586350cbb1d816c4e5d8f792d76",
+          "hash": "2083d3aae7570045041ff1a1a10d232ffc7aac3c9756797e7b3e337880ba33a1",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -1151,7 +1151,7 @@
           "testsInside": true
         },
         {
-          "hash": "9d1cf5cce01dd2d73b64c747fbe8b07c34be777121639012c444fa2788ecb8a4",
+          "hash": "327a0f8b4ae1e8b851f058976db86eda734dea9f4a169a54ec5176f4aba13f9c",
           "importsFiles": [
             "crates/roll-core/src/conformance.rs"
           ],
@@ -1200,7 +1200,7 @@
           "path": ".gitignore"
         },
         {
-          "hash": "0961f48c168a587bf59ee1d59a496776cddfd17d1202209b99efb06813be2588",
+          "hash": "af8a0b03c890808611ca4727c007cd16aeb4b58b1f9f1c45b628f5e0c5c6c01f",
           "path": "CHANGELOG.md"
         },
         {
@@ -8153,7 +8153,7 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "4ea1305c84021fb83fe08613cb5f653715a9ea81",
+    "commit": "41d6093ca661815acd69e8d0112b1c12591d5349",
     "tracked": 129
   },
   "landings": [
@@ -8407,7 +8407,7 @@
   "testFiles": 40,
   "unassigned": [
     {
-      "hash": "543dfad704b74204d193ec76b8b92f4eeb639a0750073b49bcdb425b61829054",
+      "hash": "6571ddbdbcc60b41377f12439d2c379d4e51b6ae1682d43fa96b2979f885f053",
       "path": "docs/spec/roll-3.0.md"
     }
   ]

@@ -97,7 +97,12 @@ const FLAT_CONTIGUOUS_PAIRS_PER_STATE: u128 = 16;
 /// Maximum distinct finished totals retained by `explosion_chain_sum_pmf` before aborting to Monte Carlo.
 const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 
-/// Work ceiling of one [`analyze`] or [`compare`] call, in work units (`§5.3`).
+/// Work ceiling of one [`analyze`] call, in work units (`§5.3`).
+///
+/// The cost model below (this ceiling, [`MAX_COMPARE_WORK`], [`EXACT_TRANSITION_WORK`], every
+/// `MC_WORK_PER_*` weight and the counting rules) is **normative**, spec `§5.3.1`: the TypeScript
+/// port must reproduce the same refusals and sample counts. The calibration figures below are a
+/// note, not part of the contract.
 ///
 /// ### Work units and calibration
 /// One work unit is a quarter of a nanosecond of release-build time on the reference machine
@@ -110,7 +115,7 @@ const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 ///
 /// The ceiling covers the exact phase and the Monte Carlo phase together: exact transitions are
 /// charged at [`EXACT_TRANSITION_WORK`] each, and the sampler gets what is left. [`compare`]
-/// shares one ceiling between both sides.
+/// has a ceiling of its own, [`MAX_COMPARE_WORK`], shared between both sides.
 ///
 /// ### Per-sample charge
 /// After `completed` samples the sampler has charged
@@ -133,6 +138,13 @@ const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 ///   [`MC_WORK_PER_MIXED_DIE`] per `4 * kept' * (len - kept') / len` for the `kept'` left after it;
 /// - [`MC_WORK_PER_POOL_TEST`] per pool die per `cs`/`cf` compare point.
 pub const MAX_ANALYSIS_WORK: u64 = 3_710_000_000;
+
+/// Work ceiling of one [`compare`] call: two analyses' worth (`§5.3`, Publisher ruling 2026-11-14).
+///
+/// Both sides' exact phases are charged against it, and the sides that need sampling split what
+/// is left equally, so one sampled side against an exact one can use up to twice
+/// [`MAX_ANALYSIS_WORK`].
+pub const MAX_COMPARE_WORK: u64 = 2 * MAX_ANALYSIS_WORK;
 
 /// Work charged per exact transition against [`MAX_ANALYSIS_WORK`] (`§5.3`).
 pub const EXACT_TRANSITION_WORK: u64 = 40;
@@ -725,8 +737,8 @@ pub fn analyze_with_min_samples(
 ///
 /// ### One work ceiling for both sides
 /// Both sides run their exact phase first. The sides that need sampling then share what is left
-/// of [`MAX_ANALYSIS_WORK`] equally, so `compare` costs no more than one `analyze`, and each sampled
-/// side must still reach [`MIN_MONTE_CARLO_SAMPLES`]. A side is sampled exactly as [`analyze`] would
+/// of [`MAX_COMPARE_WORK`] (twice [`MAX_ANALYSIS_WORK`]) equally, so `compare` costs no more than
+/// two `analyze` calls, and each sampled side must still reach [`MIN_MONTE_CARLO_SAMPLES`]. A side is sampled exactly as [`analyze`] would
 /// sample it, under its share of the ceiling. Errors are reported in this order: left exact phase,
 /// right exact phase, left sampling, right sampling.
 pub fn compare(left: &Expr, right: &Expr) -> Result<ComparisonReport, RollError> {
@@ -750,7 +762,7 @@ pub fn compare_with_min_samples(
             sampled_sides += 1;
         }
     }
-    let share = MAX_ANALYSIS_WORK.saturating_sub(used) / sampled_sides.max(1);
+    let share = MAX_COMPARE_WORK.saturating_sub(used) / sampled_sides.max(1);
     let finish = |expr: &Expr, phase: ExactPhase| match phase {
         ExactPhase::Done(report) => Ok(report),
         ExactPhase::NeedsSampling {

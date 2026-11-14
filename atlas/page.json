@@ -45,32 +45,24 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
-      "changed": 13,
+      "added": 0,
+      "changed": 9,
       "moved": 0,
       "parts": 3,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also runs crates/roll-core/src/support.rs.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "crates/roll-core/src/support.rs"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "1 file added and 13 changed content, across 3 parts.",
+        "sentence": "Nothing structural changed since 2026-11-14; 9 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "1b4e83a4cb2599da5f907d913ed481f328b5ff79",
-      "generatedAt": "2026-11-14T17:03:09.216Z"
+      "commit": "4ea1305c84021fb83fe08613cb5f653715a9ea81",
+      "generatedAt": "2026-11-14T19:11:41.927Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
@@ -154,7 +146,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "4ea1305c84021fb83fe08613cb5f653715a9ea81",
+  "commit": "41d6093ca661815acd69e8d0112b1c12591d5349",
   "defaultBranch": "main",
   "derived": "8 parts, mostly TypeScript (58 files), Rust (24), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).",
   "doors": [
@@ -443,7 +435,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T19:11:41.927Z",
+  "generatedAt": "2026-11-14T19:36:02.681Z",
   "limits": [
     "3 writes and 2 reads go to a path their caller passes, not to this repository.",
     "1 file belongs to no part: docs/spec/roll-3.0.md.",

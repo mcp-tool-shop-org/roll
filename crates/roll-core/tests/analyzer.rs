@@ -1282,39 +1282,51 @@ fn monte_carlo_floor_refuses_low_sample_results_unless_opted_in() {
 }
 
 #[test]
-fn compare_shares_one_work_ceiling_between_sampled_sides() {
-    use roll_core::compare_with_min_samples;
+fn compare_has_two_analyses_of_work_shared_between_sampled_sides() {
+    use roll_core::{MAX_ANALYSIS_WORK, MAX_COMPARE_WORK};
 
+    assert_eq!(MAX_COMPARE_WORK, 2 * MAX_ANALYSIS_WORK);
     if !runs_ceiling_inputs() {
         return;
     }
-    // #20 review C2: `compare(E, E)` with E = 124 x `d2!>1kh+` then `1` took about 1.10 s; each side
-    // now samples under half of the ceiling.
+    // #20 review C2: `compare(E, E)` with E = 124 x `d2!>1kh+` then `1` took about 1.10 s. Each
+    // side now samples under half of `MAX_COMPARE_WORK`, which is what `analyze` alone gets.
     let n10 = parse(&format!("{}1", "d2!>1kh+".repeat(124))).unwrap();
-    let alone = mc_samples(analyze(&n10).unwrap().method);
-    assert_eq!(alone, 69_821);
+    assert_eq!(mc_samples(analyze(&n10).unwrap().method), 69_821);
     let cmp = compare(&n10, &n10).unwrap();
-    let side = mc_samples(cmp.left.method);
-    assert_eq!(side, mc_samples(cmp.right.method));
-    assert_eq!(mc_samples(cmp.method), side);
-    assert!(side >= MIN_MONTE_CARLO_SAMPLES && side < alone, "{side}");
+    assert_eq!(mc_samples(cmp.left.method), 69_821);
+    assert_eq!(mc_samples(cmp.right.method), 69_821);
+    assert_eq!(mc_samples(cmp.method), 69_821);
     assert_eq!(cmp.p_left_greater, cmp.p_right_greater);
 
-    // One sampled side against an exact side gets the whole remainder.
-    let kh500 = parse("1000d6!>=2kh500").unwrap();
-    let vs_exact = compare(&kh500, &parse("3d6").unwrap()).unwrap();
-    assert_eq!(mc_samples(vs_exact.method), 10_302);
+    // The #20 review inputs that must reach the floor reach it on both sides of `compare(E, E)`.
+    for (src, samples) in [
+        ("1000d6!p>=2", 13_207),
+        ("1000d6!>=2kh500", 10_302),
+        ("1000d6r<=5!kh999", 10_749),
+    ] {
+        let e = parse(src).unwrap();
+        let cmp = compare(&e, &e).unwrap();
+        assert_eq!(mc_samples(cmp.left.method), samples, "{src} left");
+        assert_eq!(mc_samples(cmp.right.method), samples, "{src} right");
+        assert_eq!(mc_samples(cmp.method), samples, "{src}");
+    }
+
+    // One sampled side against an exact side gets the whole remainder of `MAX_COMPARE_WORK`.
+    let vs_exact = compare(&parse("1000d6!>=2kh500").unwrap(), &parse("3d6").unwrap()).unwrap();
+    assert_eq!(mc_samples(vs_exact.method), 20_601);
     assert!(matches!(
         vs_exact.right.method,
         AnalysisMethod::Exact { .. }
     ));
 
-    // Two such sides do not both fit: refused, unless the caller lowers the floor.
+    // Below the floor `compare` refuses, and only an explicit floor returns fewer samples.
+    let q1_15 = parse(&format!("996d6!kh995{}", "r=7".repeat(240))).unwrap();
     assert!(matches!(
-        compare(&kh500, &kh500),
+        compare(&q1_15, &q1_15),
         Err(RollError::AnalysisTooExpensive { .. })
     ));
-    let low = compare_with_min_samples(&kh500, &kh500, 1).unwrap();
+    let low = roll_core::compare_with_min_samples(&q1_15, &q1_15, 1).unwrap();
     assert!(mc_samples(low.method) < MIN_MONTE_CARLO_SAMPLES);
 }
 
