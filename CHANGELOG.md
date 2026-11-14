@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- **Roll 3.0 design specification (`docs/spec/roll-3.0.md`).** The design basis for the Rust core and the pure TypeScript port, now in the repository. §5.3 states the AST-wide exact budget and the variable Monte Carlo sample count; §5.4 states the divisor pre-pass, which makes a reachable zero divisor error whatever the sibling order, and the error precedence; §9.1 item 4 separates the Rust byte-determinism check from the cross-language value check (probabilities within 1e-12 absolute, moments within 1e-12 relative to max(1, |x|)), and adds knife-edge margins, Monte Carlo counts and classified fixture diffs. §4 adds a parser nesting-depth limit.
+
 ### Fixed
 
 - **Roll 3.0 analyzer hardening: AST-wide exact budgets, wide-clamp unit mass, and oracle/differential parity (`crates/roll-core/src/analyze.rs`)** — threads one `ExactBudget` across `try_exact` enforcing cumulative weighted transitions (`MAX_EXACT_STATES = 10_000_000`) and simultaneously live state slots (`MAX_EXACT_LIVE_STATES = 2_000_000`, `SPARSE_STATE_SLOTS = 4`, `SPARSE_TRANSITION_WEIGHT = 10`) checked before every allocation, caps `explosion_chain_sum_pmf` `finished` entries (`MAX_EXPLOSION_FINISHED_STATES = 250_000`), preserves `§5.4` divisor-first divide-by-zero precedence without starving right-hand divisors behind oversized left siblings, bounds per-call Monte Carlo fallback work (`MAX_MC_WORK = 28_000_000`) with honest `MonteCarlo { samples }` provenance, counts clamped faces in integers (with Neumaier compensated summation for post-reroll clamps, queries, stats, and `compare` scans) while normalizing singletons to `1.0` and returning `stats.max`/`stats.min` at `target_for_probability(1.0, ...)`, and adds prefix-tape oracle coverage (`d%`, `>`/`<`, `sa`/`sd`, `1d4max3!`, clamp/`ro`/`r` + pools, `2d2!!kh1cs>=2`, `r` + `dh` + pool), the `5d9!!>2kl2 / -2` `MonteCarlo` regression, and a 23,998-run differential unit test between `evaluate_total_with_source` and `evaluate_with_source`.
