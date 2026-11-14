@@ -6,11 +6,17 @@
 
 - **Roll 3.0 reference core (`crates/roll-core`) and conformance fixture generator (`crates/roll-cli`)** — introduces the `no_std` + `alloc`, `#![forbid(unsafe_code)]` Rust 2024 workspace (`MSRV 1.88`) implementing deterministic `ChaCha12Rng` streams keyed via length-prefixed SHA-256 `RollAddress` derivation (`roll.v3.seed_kdf\x00\x01`, `rules_version: "roll.v3"`), 64-bit Lemire unbiased range sampling, RFC 8785 JCS canonical receipts (`schema_version: "roll.receipt.v1"`) with `verify_receipt`, and the v3 modal scannerless dice grammar and checked `i64` evaluator (floor division toward -∞, parse-time `min <= max` and 10,000-dice AST budget, and unambiguous modifier parsing for `1d20cscf`, `4d6khsa`, and `2d6rsa`). `roll-cli fixtures --out fixtures/conformance/v3/` generates the byte-reproducible v3 conformance suite (`MANIFEST.sha256` verified identically on native and `wasm32-wasip1`); the npm package remains a pure TypeScript port for zero install friction and synchronous use everywhere, verified against these fixtures in a follow-up PR.
 
+## 2.1.3
+
 ### Fixed
 
 - **Stacked-explosion cost guards across `analyze()`, Monte Carlo, and `roll()`** — `estimateAstAnalyzeRolls` accounts for stacked explosion modifiers (`101^k` per-sample roll amplification across `explode` / `compound` / `penetrate`) and rerolls in the `analyze()` input-dice guard, `monteCarloDistribution` enforces both the static per-sample roll cap and a live RNG-draw budget (`samples × 1,000`), `stageExplode` caps per-group bonus rolls at `MAX_EXPLOSION_ROLLS = 10_000` (throwing `ParseError` when exceeded), and CLI `--times` / MCP `roll_dice` use the explosion-aware roll estimate so crafted expressions like `2d3!<=4!!>=1` or `1d6!>=1!>=1!>=1` fail fast instead of stalling.
 - **Subnormal IEEE-754 underflow guard in `reroll_once`** — `singleDieWithReroll` preserves positive subnormal mass when `pMatch * pFace` would flush to `0` (`1d2000r=1ro=1` retains bucket `1` with `stats.min === 1`, and `1d6/(1d2000r=1ro=1-1)` throws `ParseError("Division by zero")` matching `roll()`).
 - **Zero-dice `caps` metadata** — `tryExact` short-circuits `count === 0` (`0d6!`, `0d6r=1`) to `{0: 1}` before per-die cap modelling so `caps` is omitted when zero dice are rolled.
+
+### Behaviour change
+
+- `roll()` throws `ParseError("Explosion roll limit of 10000 exceeded")` when one dice group's explosions pass `MAX_EXPLOSION_ROLLS = 10,000`. The CLI and the MCP `roll_dice` tool refuse a request, including a single roll, whose estimated dice work times `--times`/`times` exceeds 1,000,000. `analyze()` throws `ParseError("Expression too complex to analyze…")` when the estimated work exceeds its budget. Before 2.1.3 these inputs could take seconds, use gigabytes of memory, or crash the process.
 
 ## 2.1.2
 
