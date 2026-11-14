@@ -2,7 +2,7 @@ import type { ASTNode } from "../parser/ast.js";
 import { ParseError } from "../parser/parser.js";
 import { estimateAstAnalyzeRolls } from "../engine/pipeline.js";
 import { evaluate } from "../engine/roller.js";
-import { seededRng, type RngFn } from "../engine/random.js";
+import { seededRngWithDraws } from "../engine/random.js";
 import type { Distribution } from "./distribution.js";
 
 /** Default number of Monte-Carlo iterations. Exported so the analyze path can
@@ -46,22 +46,19 @@ export function monteCarloDistribution(
   // first outputs — successive samples were then a correlated low-discrepancy
   // lattice (mulberry32's first output is largely determined by its seed), not
   // independent draws. Seed once with a fixed constant for determinism.
-  const baseRng = seededRng(0x9e3779b9); // fixed seed → reproducible runs
+  const { rng, takeDraws } = seededRngWithDraws(0x9e3779b9); // fixed seed → reproducible runs
   const maxRolls = Math.max(1, samples) * MAX_ANALYZE_DICE;
   let totalRolls = 0;
-  const rng: RngFn = (min, max) => {
-    totalRolls++;
+
+  for (let i = 0; i < samples; i++) {
+    const result = evaluate(ast, rng);
+    totalRolls += takeDraws();
     if (totalRolls > maxRolls) {
       throw new ParseError(
         `Expression too complex to analyze: Monte Carlo roll budget (${maxRolls}) exceeded.`,
         0,
       );
     }
-    return baseRng(min, max);
-  };
-
-  for (let i = 0; i < samples; i++) {
-    const result = evaluate(ast, rng);
     counts.set(result.total, (counts.get(result.total) ?? 0) + 1);
   }
 

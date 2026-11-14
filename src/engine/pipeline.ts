@@ -413,43 +413,52 @@ export function stageExplode(
 
   // Fast pre-check when all raw faces match: reject guaranteed >MAX_EXPLOSION_ROLLS
   // blow-ups (e.g. `2d3!<=4!!>=1`, `1d6!>=1!>=1!>=1`) in O(mods) before drawing
-  // thousands of CSPRNG samples.
-  let exactInitial = true;
-  let guaranteedRawDice = 0;
-  let guaranteedBonus = 0;
-  for (const mod of [...explodeMods, ...compoundMods, ...penetrateMods]) {
-    const threshold = getExplosionThreshold(mod, maxSide);
-    if (countMatchingFaces(sides, threshold) !== maxSide) {
-      break;
-    }
-    if (exactInitial) {
-      let matchingInitial = 0;
-      let inRangeKept = 0;
-      for (const d of dice) {
-        if (!d.kept) continue;
-        if (matchesCompare(d.value, threshold)) matchingInitial++;
-        if (d.value >= 1 && d.value <= maxSide) inRangeKept++;
+  // thousands of CSPRNG samples. A single modifier on <=100 dice can do at most
+  // `dice.length * MAX_EXPLOSIONS <= MAX_EXPLOSION_ROLLS` bonus rolls, so skip
+  // the spread allocation and scan in that common case.
+  const totalExplodeMods =
+    explodeMods.length + compoundMods.length + penetrateMods.length;
+  if (
+    totalExplodeMods > 1 ||
+    dice.length * MAX_EXPLOSIONS > MAX_EXPLOSION_ROLLS
+  ) {
+    let exactInitial = true;
+    let guaranteedRawDice = 0;
+    let guaranteedBonus = 0;
+    for (const mod of [...explodeMods, ...compoundMods, ...penetrateMods]) {
+      const threshold = getExplosionThreshold(mod, maxSide);
+      if (countMatchingFaces(sides, threshold) !== maxSide) {
+        break;
       }
-      guaranteedBonus += matchingInitial * MAX_EXPLOSIONS;
-      if (guaranteedBonus > MAX_EXPLOSION_ROLLS) {
-        throw new ParseError(
-          `Explosion roll limit of ${MAX_EXPLOSION_ROLLS} exceeded`,
-          0,
-        );
+      if (exactInitial) {
+        let matchingInitial = 0;
+        let inRangeKept = 0;
+        for (const d of dice) {
+          if (!d.kept) continue;
+          if (matchesCompare(d.value, threshold)) matchingInitial++;
+          if (d.value >= 1 && d.value <= maxSide) inRangeKept++;
+        }
+        guaranteedBonus += matchingInitial * MAX_EXPLOSIONS;
+        if (guaranteedBonus > MAX_EXPLOSION_ROLLS) {
+          throw new ParseError(
+            `Explosion roll limit of ${MAX_EXPLOSION_ROLLS} exceeded`,
+            0,
+          );
+        }
+        if (mod.kind === "compound") break;
+        guaranteedRawDice = matchingInitial * MAX_EXPLOSIONS + inRangeKept;
+        exactInitial = false;
+      } else {
+        guaranteedBonus += guaranteedRawDice * MAX_EXPLOSIONS;
+        if (guaranteedBonus > MAX_EXPLOSION_ROLLS) {
+          throw new ParseError(
+            `Explosion roll limit of ${MAX_EXPLOSION_ROLLS} exceeded`,
+            0,
+          );
+        }
+        if (mod.kind === "compound") break;
+        guaranteedRawDice += guaranteedRawDice * MAX_EXPLOSIONS;
       }
-      if (mod.kind === "compound") break;
-      guaranteedRawDice = matchingInitial * MAX_EXPLOSIONS + inRangeKept;
-      exactInitial = false;
-    } else {
-      guaranteedBonus += guaranteedRawDice * MAX_EXPLOSIONS;
-      if (guaranteedBonus > MAX_EXPLOSION_ROLLS) {
-        throw new ParseError(
-          `Explosion roll limit of ${MAX_EXPLOSION_ROLLS} exceeded`,
-          0,
-        );
-      }
-      if (mod.kind === "compound") break;
-      guaranteedRawDice += guaranteedRawDice * MAX_EXPLOSIONS;
     }
   }
 
@@ -629,6 +638,7 @@ export function stageCriticalMark(
 
   const allCsMods = [...csCountMods, ...csMarkMods];
   const allCfMods = [...cfCountMods, ...cfMarkMods];
+  if (allCsMods.length === 0 && allCfMods.length === 0) return;
 
   for (const die of dice) {
     if (!die.kept) continue;
@@ -654,11 +664,15 @@ export function stageTotal(
   resultMode: "sum" | "success_count",
   mods: DiceModifier[],
 ): number {
-  const keptDice = dice.filter((d) => d.kept);
-
   if (resultMode === "sum") {
-    return keptDice.reduce((sum, d) => sum + d.value, 0);
+    let sum = 0;
+    for (const d of dice) {
+      if (d.kept) sum += d.value;
+    }
+    return sum;
   }
+
+  const keptDice = dice.filter((d) => d.kept);
 
   // Success counting mode
   const csCountMods = getModsByKind(mods, "cs_count");
@@ -695,23 +709,25 @@ export function runPipeline(
   // Stage 1: Roll
   const dice = stageRoll(count, sides, rng);
 
-  // Stage 2: Reroll
-  stageReroll(dice, modifiers, sides, rng);
+  if (modifiers.length > 0) {
+    // Stage 2: Reroll
+    stageReroll(dice, modifiers, sides, rng);
 
-  // Stage 3: Min/Max
-  stageMinMax(dice, modifiers);
+    // Stage 3: Min/Max
+    stageMinMax(dice, modifiers);
 
-  // Stage 4: Explode / Compound / Penetrate
-  stageExplode(dice, modifiers, sides, rng);
+    // Stage 4: Explode / Compound / Penetrate
+    stageExplode(dice, modifiers, sides, rng);
 
-  // Stage 5: Keep/Drop
-  stageKeepDrop(dice, modifiers);
+    // Stage 5: Keep/Drop
+    stageKeepDrop(dice, modifiers);
 
-  // Stage 6: Sort
-  stageSort(dice, modifiers);
+    // Stage 6: Sort
+    stageSort(dice, modifiers);
 
-  // Stage 7: Critical Mark
-  stageCriticalMark(dice, modifiers);
+    // Stage 7: Critical Mark
+    stageCriticalMark(dice, modifiers);
+  }
 
   // Stage 8: Total
   const total = stageTotal(dice, resultMode, modifiers);
