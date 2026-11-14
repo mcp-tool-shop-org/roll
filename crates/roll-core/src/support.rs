@@ -18,17 +18,17 @@ use alloc::vec::Vec;
 
 use crate::ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSpec, ExplosionVariant, Expr, KeepDropOp,
-    MAX_EXPLOSIONS, ResultMode,
+    MAX_EXPLOSIONS, MAX_TOTAL_DRAWS, ResultMode,
 };
 
 /// Maximum intervals kept per set before it is coarsened.
 const MAX_INTERVALS: usize = 128;
 
 /// Maximum points enumerated for one interval product before falling back to corners or the hull.
-const MAX_ENUMERATED_PRODUCT: i128 = 256;
+const MAX_ENUMERATED_PRODUCT: u128 = 256;
 
 /// Maximum points enumerated across one set product.
-const MAX_ENUMERATED_POINTS: i128 = 4_096;
+const MAX_ENUMERATED_POINTS: u128 = 4_096;
 
 /// Intervals each operand of a set product is coarsened to first (`32^2` interval pairs at most).
 const MAX_MUL_OPERAND_INTERVALS: usize = 32;
@@ -258,22 +258,39 @@ impl IvSet {
                 } else {
                     (None, (0, 0))
                 };
-                let points = (b - a + 1) * (d - c + 1);
-                let enumerate = points <= MAX_ENUMERATED_PRODUCT && points <= enumerable;
+                // Widths in `u128` (each at most 2^64): their product can overflow, and an overflow
+                // means "too many points", never "enumerate".
+                let width = |lo: i128, hi: i128| (hi - lo) as u128 + 1;
+                let points = width(a, b).checked_mul(width(c, d));
+                let enumerate =
+                    points.is_some_and(|p| p <= MAX_ENUMERATED_PRODUCT && p <= enumerable);
                 if enumerate {
-                    enumerable -= points;
+                    enumerable -= points.unwrap_or(0);
                 }
                 match scalar {
                     // `{-1, 0, 1} * interval` is an interval.
                     Some(k) if (-1..=1).contains(&k) => pieces.push((lo, hi)),
                     Some(k) if enumerate => {
+                        // Hard cap independent of the precomputed count (defence in depth).
+                        let mut steps: u128 = 0;
                         for v in span.0..=span.1 {
+                            steps += 1;
+                            if steps > MAX_ENUMERATED_PRODUCT {
+                                pieces.push((lo, hi));
+                                break;
+                            }
                             pieces.push((k * v, k * v));
                         }
                     }
                     None if enumerate => {
-                        for x in a..=b {
+                        let mut steps: u128 = 0;
+                        'outer: for x in a..=b {
                             for y in c..=d {
+                                steps += 1;
+                                if steps > MAX_ENUMERATED_PRODUCT {
+                                    pieces.push((lo, hi));
+                                    break 'outer;
+                                }
                                 pieces.push((x * y, x * y));
                             }
                         }
@@ -324,10 +341,13 @@ impl IvSet {
                     }
                     Kind::Must => {
                         // For one fixed divisor `k`, `a -> floor(a / k)` moves by at most 1 per step,
-                        // so it covers a whole interval. Use the divisor closest to zero.
-                        let k = if c > 0 { c } else { d };
-                        let (x, y) = (floor_div(a, k), floor_div(b, k));
-                        pieces.push((x.min(y), x.max(y)));
+                        // so it covers a whole interval. Use both ends of the divisor interval: the
+                        // one closest to zero and the one farthest from it (which reaches the small
+                        // quotients, `0` among them).
+                        for k in [c, d] {
+                            let (x, y) = (floor_div(a, k), floor_div(b, k));
+                            pieces.push((x.min(y), x.max(y)));
+                        }
                     }
                 }
             }
@@ -432,6 +452,14 @@ pub(crate) struct Abs {
 }
 
 impl Abs {
+    /// A subexpression that always errors.
+    const fn never() -> Self {
+        Self {
+            must: IvSet::empty(),
+            may: IvSet::empty(),
+        }
+    }
+
     fn exact(set: IvSet) -> Self {
         Self {
             must: set.clone(),
@@ -520,6 +548,51 @@ fn chain_set(
     finished
 }
 
+/// The kept total of one concrete execution of an exploding keep/drop group in which every one of
+/// the `n` initial dice shows `v0` (an exploding post-clamp value) and its chain ends on the lowest
+/// stopping face, or, when every face matches, runs `MAX_EXPLOSIONS` children on the lowest face.
+fn exploding_witness(
+    spec: &DiceSpec,
+    rule: crate::ast::ExplosionRule,
+    v0: i64,
+    pool: Option<(&[ComparePoint], &[ComparePoint])>,
+) -> Option<i64> {
+    let n = u128::from(spec.count.get());
+    let (lo, hi) = (spec.sides.min_face(), spec.sides.max_face());
+    let stop = IvSet::range(lo, hi)
+        .filter(rule.threshold, false, Kind::May)
+        .iv
+        .first()
+        .map(|i| i.0);
+    let (raw, per_die) = match stop {
+        Some(f) => (f, 1_u128),
+        None => (lo, u128::from(MAX_EXPLOSIONS)),
+    };
+    let child = match rule.variant {
+        ExplosionVariant::Penetrate => (raw - 1).max(1),
+        ExplosionVariant::Standard | ExplosionVariant::Compound => raw,
+    };
+    let value = |v: i64| -> i128 {
+        match pool {
+            Some((cs, cf)) => i128::from(crate::eval::pool_die_delta(v, cs, cf)),
+            None => i128::from(v),
+        }
+    };
+    // The pool sorted by value: `n` copies of the smaller value, then the rest.
+    let (small, small_n, large, large_n) = if v0 <= child {
+        (v0, n, child, n * per_die)
+    } else {
+        (child, n * per_die, v0, n)
+    };
+    let len = usize::try_from(small_n + large_n).ok()?;
+    let (l, r) = crate::analyze::reduce_keep_drop_interval(len, &spec.keep_drop);
+    let (l, r) = (l as u128, r as u128);
+    let from_small = r.min(small_n).saturating_sub(l.min(small_n));
+    let from_large = (r - l) - from_small;
+    let total = value(small) * from_small as i128 + value(large) * from_large as i128;
+    i64::try_from(total).ok()
+}
+
 fn kept_count(pool: usize, ops: &[KeepDropOp]) -> u64 {
     let (l, r) = crate::analyze::reduce_keep_drop_interval(pool, ops);
     (r - l) as u64
@@ -541,9 +614,11 @@ fn dice_set(spec: &DiceSpec, kind: Kind) -> IvSet {
         None => s.clone(),
     };
 
+    // An explosion whose first test (on the post-clamp value) can never pass leaves a fixed pool.
     let variable_pool = matches!(
         spec.explode,
         Some(r) if r.variant != ExplosionVariant::Compound
+            && !pre.filter(r.threshold, true, kind).is_empty()
     );
     if variable_pool {
         if spec.keep_drop.is_empty() {
@@ -555,11 +630,28 @@ fn dice_set(spec: &DiceSpec, kind: Kind) -> IvSet {
             Kind::Must => {
                 // Executions where no die explodes: `n` dice from the non-matching post-clamp values.
                 let calm = pre.filter(rule.threshold, false, kind);
-                if calm.is_empty() {
+                let mut must = if calm.is_empty() {
                     IvSet::empty()
                 } else {
                     contributions(&calm).nfold(kept_count(n, &spec.keep_drop), kind)
+                };
+                // Plus two concrete executions in which every die explodes, so `must` is never
+                // empty: every initial die shows the lowest (or the highest) exploding post-clamp
+                // value, and each chain ends on the lowest stopping face (or, when every face
+                // matches, runs `MAX_EXPLOSIONS` children on the lowest face).
+                let exploding = pre.filter(rule.threshold, true, kind);
+                for v0 in [
+                    exploding.iv.first().map(|i| i.0),
+                    exploding.iv.last().map(|i| i.1),
+                ]
+                .into_iter()
+                .flatten()
+                {
+                    if let Some(w) = exploding_witness(spec, rule, v0, pool) {
+                        must = must.union(&IvSet::point(w), kind);
+                    }
                 }
+                must
             }
             Kind::May => {
                 // Every pool value is a post-clamp initial value or a child value; the kept count
@@ -573,10 +665,16 @@ fn dice_set(spec: &DiceSpec, kind: Kind) -> IvSet {
                 let Some((vlo, vhi)) = values.hull() else {
                     return IvSet::empty();
                 };
-                let k_lo = i128::from(kept_count(n, &spec.keep_drop) as i64);
-                let k_hi = i128::from(
-                    kept_count(n * (MAX_EXPLOSIONS as usize + 1), &spec.keep_drop) as i64,
+                let k_lo = kept_count(n, &spec.keep_drop);
+                let k_hi = kept_count(
+                    n.saturating_mul(MAX_EXPLOSIONS as usize + 1),
+                    &spec.keep_drop,
                 );
+                if k_lo == k_hi {
+                    // A fixed kept count: the kept sum is a `k`-fold sum of pool values.
+                    return values.nfold(k_lo, kind);
+                }
+                let (k_lo, k_hi) = (i128::from(k_lo), i128::from(k_hi));
                 let (vlo, vhi) = (i128::from(vlo), i128::from(vhi));
                 IvSet::from_pieces(
                     alloc::vec![((k_lo * vlo).min(k_hi * vlo), (k_lo * vhi).max(k_hi * vhi))],
@@ -645,26 +743,48 @@ pub(crate) struct DivisorRecord<'a> {
 /// are walked iteratively; recursion follows right operands and unary operands only, whose depth
 /// the parser caps at `MAX_NESTING_DEPTH`.
 pub(crate) fn walk<'a>(expr: &'a Expr, reach: Tri, out: &mut Vec<DivisorRecord<'a>>) -> Abs {
+    walk_inner(expr, reach, 0, out).0
+}
+
+/// Draws every evaluation of `spec` takes, whatever the faces (`analyze`'s certain-draw rule).
+fn group_certain_draws(spec: &DiceSpec) -> u64 {
+    u64::from(spec.count.get()).saturating_mul(crate::analyze::certain_draws_per_die(spec))
+}
+
+/// [`walk`], also carrying the draws every evaluation certainly takes before `expr` (`prefix`).
+/// A subexpression whose certain draws, with everything evaluated before it, exceed
+/// `MAX_TOTAL_DRAWS` always raises `DrawBudgetExceeded`, so its success set is empty: nothing
+/// after it is reached, which is what `precheck_divisors` and the main pass both rely on.
+fn walk_inner<'a>(
+    expr: &'a Expr,
+    reach: Tri,
+    prefix: u64,
+    out: &mut Vec<DivisorRecord<'a>>,
+) -> (Abs, u64) {
+    let over = |draws: u64| prefix.saturating_add(draws) > u64::from(MAX_TOTAL_DRAWS);
     let mut spine: Vec<(BinaryOp, &'a Expr)> = Vec::new();
     let mut leftmost = expr;
     while let Expr::Binary { op, left, right } = leftmost {
         spine.push((*op, right));
         leftmost = left;
     }
-    let mut acc = match leftmost {
-        Expr::Number(v) => Abs::exact(IvSet::point(*v)),
-        Expr::Dice(spec) => dice_abs(spec),
+    let (mut acc, mut draws) = match leftmost {
+        Expr::Number(v) => (Abs::exact(IvSet::point(*v)), 0),
+        Expr::Dice(spec) => (dice_abs(spec), group_certain_draws(spec)),
         Expr::UnaryNeg(inner) => {
-            let a = walk(inner, reach, out);
+            let (a, d) = walk_inner(inner, reach, prefix, out);
             let must = a.must.neg(Kind::Must);
             let may = a.may.neg(Kind::May).union(&must, Kind::May);
-            Abs { must, may }
+            (Abs { must, may }, d)
         }
         Expr::Binary { .. } => unreachable!("spine walk stops at a non-binary node"),
     };
+    if over(draws) {
+        acc = Abs::never();
+    }
     for &(op, right) in spine.iter().rev() {
         let left_ok = acc.can_succeed();
-        let r = walk(right, reach.and(left_ok), out);
+        let (r, r_draws) = walk_inner(right, reach.and(left_ok), prefix.saturating_add(draws), out);
         if op == BinaryOp::DivFloor {
             out.push(DivisorRecord {
                 divisor: right,
@@ -672,9 +792,20 @@ pub(crate) fn walk<'a>(expr: &'a Expr, reach: Tri, out: &mut Vec<DivisorRecord<'
                 zero: r.reaches(0),
             });
         }
-        acc = binary_abs(op, &acc, &r);
+        draws = draws.saturating_add(r_draws);
+        acc = if over(draws) {
+            Abs::never()
+        } else {
+            binary_abs(op, &acc, &r)
+        };
     }
-    acc
+    (acc, draws)
+}
+
+/// Draws every evaluation of `expr` certainly takes.
+pub(crate) fn certain_draws(expr: &Expr) -> u64 {
+    let mut sink = Vec::new();
+    walk_inner(expr, Tri::Yes, 0, &mut sink).1
 }
 
 /// Whether `expr` can be evaluated without an error (`Tri::Yes` only when a witness value is known).

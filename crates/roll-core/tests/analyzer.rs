@@ -1282,15 +1282,12 @@ fn monte_carlo_floor_refuses_low_sample_results_unless_opted_in() {
 }
 
 #[test]
-fn compare_has_two_analyses_of_work_shared_between_sampled_sides() {
-    use roll_core::{MAX_ANALYSIS_WORK, MAX_COMPARE_WORK};
-
-    assert_eq!(MAX_COMPARE_WORK, 2 * MAX_ANALYSIS_WORK);
+fn compare_samples_each_side_under_analyze_own_ceiling() {
     if !runs_ceiling_inputs() {
         return;
     }
-    // #20 review C2: `compare(E, E)` with E = 124 x `d2!>1kh+` then `1` took about 1.10 s. Each
-    // side now samples under half of `MAX_COMPARE_WORK`, which is what `analyze` alone gets.
+    // #20 review C2: `compare(E, E)` with E = 124 x `d2!>1kh+` then `1` took about 1.10 s. Each side
+    // is now sampled exactly as `analyze` samples it.
     let n10 = parse(&format!("{}1", "d2!>1kh+".repeat(124))).unwrap();
     assert_eq!(mc_samples(analyze(&n10).unwrap().method), 69_821);
     let cmp = compare(&n10, &n10).unwrap();
@@ -1312,9 +1309,10 @@ fn compare_has_two_analyses_of_work_shared_between_sampled_sides() {
         assert_eq!(mc_samples(cmp.method), samples, "{src}");
     }
 
-    // One sampled side against an exact side gets the whole remainder of `MAX_COMPARE_WORK`.
+    // Against an exact side, the sampled side gets what `analyze` gives it (10,302), no more: an
+    // expression `analyze` refuses cannot pass inside `compare`.
     let vs_exact = compare(&parse("1000d6!>=2kh500").unwrap(), &parse("3d6").unwrap()).unwrap();
-    assert_eq!(mc_samples(vs_exact.method), 20_601);
+    assert_eq!(mc_samples(vs_exact.method), 10_302);
     assert!(matches!(
         vs_exact.right.method,
         AnalysisMethod::Exact { .. }
@@ -1323,11 +1321,226 @@ fn compare_has_two_analyses_of_work_shared_between_sampled_sides() {
     // Below the floor `compare` refuses, and only an explicit floor returns fewer samples.
     let q1_15 = parse(&format!("996d6!kh995{}", "r=7".repeat(240))).unwrap();
     assert!(matches!(
-        compare(&q1_15, &q1_15),
+        compare(&q1_15, &parse("3d6").unwrap()),
         Err(RollError::AnalysisTooExpensive { .. })
     ));
     let low = roll_core::compare_with_min_samples(&q1_15, &q1_15, 1).unwrap();
     assert!(mc_samples(low.method) < MIN_MONTE_CARLO_SAMPLES);
+}
+
+#[test]
+fn compare_checks_unchecked_divisors_on_both_sides_before_sampling() {
+    // Never zero (1000003 is prime and above the die size), but undecidable here.
+    let unchecked = "1/(1d1000000*1d1000000-1000003)";
+    let two_unchecked = "1/(1d1000000*1d1000000-1000003)+1/(1d1000000*1d1000000-1000033)";
+    assert_eq!(
+        analyze(&parse(two_unchecked).unwrap()),
+        Err(RollError::DivisorUnchecked { divisors: 2 })
+    );
+
+    // A left side that samples cleanly (about 0.8 s of sampling in release) and an unchecked right:
+    // refused before any sample is drawn.
+    let clean = parse("1000d6!>=2kh500").unwrap();
+    let t0 = std::time::Instant::now();
+    let res = compare(&clean, &parse(unchecked).unwrap());
+    let elapsed = t0.elapsed();
+    assert_eq!(res, Err(RollError::DivisorUnchecked { divisors: 1 }));
+    if runs_ceiling_inputs() {
+        assert!(
+            elapsed < std::time::Duration::from_millis(300),
+            "compare sampled before refusing: {elapsed:?}"
+        );
+    }
+
+    // Both sides unchecked: the count is the sum.
+    assert_eq!(
+        compare(&parse(two_unchecked).unwrap(), &parse(unchecked).unwrap()),
+        Err(RollError::DivisorUnchecked { divisors: 3 })
+    );
+
+    // A left side that would be refused as too expensive does not mask the right side's
+    // unchecked divisor.
+    let q1_15 = parse(&format!("996d6!kh995{}", "r=7".repeat(240))).unwrap();
+    assert!(matches!(
+        analyze(&q1_15),
+        Err(RollError::AnalysisTooExpensive { .. })
+    ));
+    assert_eq!(
+        compare(&q1_15, &parse(unchecked).unwrap()),
+        Err(RollError::DivisorUnchecked { divisors: 1 })
+    );
+}
+
+/// Each case finishes within the quick bound, under the 2 GiB memory cap the test process runs in.
+fn assert_quick(src: &str, want: &Result<(), RollError>) {
+    let expr = parse(src).unwrap();
+    let t0 = std::time::Instant::now();
+    let got = analyze(&expr).map(|_| ());
+    let elapsed = t0.elapsed();
+    assert_eq!(&got, want, "{src}");
+    assert!(elapsed < quick_bound(), "{src}: {elapsed:?}");
+}
+
+#[test]
+fn support_pass_full_range_products_do_not_hang() {
+    // #21 fix 1, item 1: the `i128` width product wrapped to 0 and the enumeration ran without
+    // end (27.7 GiB in 10 s in release; a panic in debug). Both errors are reachable in the first:
+    // a factor of 0 makes the divisor 0, so the zero wins (`§5.4` item 6).
+    assert_quick(
+        "1 / ((((10d100 - 500) * 1000000000) * 100000000) * (((10d100 - 500) * 1000000000) * 100000000))",
+        &Err(RollError::DivisionByZero),
+    );
+    assert_quick(
+        "(d257-129)*99999999999999999*((d257-129)*99999999999999999)/1",
+        &Err(RollError::ArithmeticOverflow),
+    );
+}
+
+#[test]
+fn always_exploding_keep_drop_groups_have_a_witness_and_order_does_not_matter() {
+    // #21 fix 1, item 2: an exploding keep/drop group whose every face explodes had an empty
+    // `must` set, so whatever followed it read "may not be reached".
+    for (a, b) in [
+        ("1/(3d4!>=1kl2)", "1d6/(1d6-1)"),
+        ("1/(1d6min6!kh1)", "1d6/(1d3000+1d50000-2)"),
+        ("(1/(1d2-1))", "(1d6min6!kh1 + 200d50000*200d50000)"),
+    ] {
+        assert_quick(&format!("{a}+{b}"), &Err(RollError::DivisionByZero));
+        assert_quick(&format!("{b}+{a}"), &Err(RollError::DivisionByZero));
+    }
+    for src in [
+        "(1d6min6!kh1 + 200d50000*200d50000) / 0",
+        "1 / (0 * (1d6min6!kh1 + 200d50000*200d50000))",
+        "(1d6!>=1kh1) / 0",
+        "(1d6min6!kh1) / (1d2-1)",
+        "1d6/(4d6!kh3-18)",
+        "1d6/(1d6min6!kh1-6)",
+        "1d20/(1d6min6!kh1 * 0)",
+    ] {
+        assert_quick(src, &Err(RollError::DivisionByZero));
+    }
+    // The group is always 6, so this divides by 6 and succeeds.
+    assert_quick("1 / (1d6min6!kh1)", &Ok(()));
+}
+
+#[test]
+fn a_left_operand_over_the_draw_budget_hides_later_errors() {
+    // #21 fix 1, item 3: 990 x 2,201 = 2,178,990 certain draws, over `MAX_TOTAL_DRAWS`, so every
+    // evaluation raises `DrawBudgetExceeded` before the right operand.
+    let group = format!("990d2{}", "r>=1".repeat(22));
+    let budget = Err(RollError::DrawBudgetExceeded {
+        limit: roll_core::MAX_TOTAL_DRAWS,
+    });
+    assert_quick(&format!("{group}+1/(1d2-1)"), &budget);
+    assert_quick(&format!("{group}+(9223372036854775807+1d2)"), &budget);
+}
+
+#[test]
+fn divisor_rounds_are_not_coupled_and_partial_overflow_does_not_mask_a_zero() {
+    // #21 fix 1, item 4. A zero divisor that needs the second exact round (`1d1000*1d300-7`),
+    // placed after undecided siblings that each need more than 2^20 transitions. At 7b58b2a the
+    // second round was all-or-nothing under the 20M reserve, so 19 or more siblings skipped it and
+    // the result was `DivisorUnchecked`; 18 gave `DivisionByZero`.
+    for n in [18, 19, 39] {
+        let src = format!(
+            "{}1/(1d1000*1d300-7)",
+            (0..n)
+                .map(|i| format!("1/(1d1000*1d1000-{})+", 999_999 - i))
+                .collect::<String>()
+        );
+        assert!(src.len() <= roll_core::MAX_EXPRESSION_BYTES, "{n}");
+        assert_eq!(
+            analyze(&parse(&src).unwrap()),
+            Err(RollError::DivisionByZero),
+            "{n} siblings"
+        );
+    }
+    // Both errors are reachable (a quotient of 0 gives a zero divisor, one of 2 overflows), and
+    // the zero wins (`§5.4` item 6).
+    assert_quick(
+        "1d4/((1d2/(1d3))*4611686018427387904)",
+        &Err(RollError::DivisionByZero),
+    );
+    assert_quick(
+        "1d4/((2d2/(4d2cf-1d3))*4611686018427387904)",
+        &Err(RollError::DivisionByZero),
+    );
+}
+
+#[test]
+fn provably_decidable_divisors_are_decided() {
+    // #21 fix 1, item 6. Zero reachable whenever the exploding sum exceeds 108.
+    assert_quick("1d10/(108/2d100!)", &Err(RollError::DivisionByZero));
+    assert_quick("1d10/(108/5d100!)", &Err(RollError::DivisionByZero));
+    // Three kept dice each contribute +1 or -1, so the count is odd and never 0.
+    assert_quick("1 / (20d50000!kh3cs>=25000cf<25000)", &Ok(()));
+    // No die can explode after `max2`, the pool keeps no dice, and the divisor is always -5.
+    assert_quick("3/((2*3d4max2!dh3dh2)-5)", &Ok(()));
+    // Known imprecision, listed in the PR: the divisor is always odd, but interval sets do not
+    // track parity.
+    assert_quick(
+        "1 / ((1d50000+1d50000+1d50000)*2 - 7)",
+        &Err(RollError::DivisorUnchecked { divisors: 1 }),
+    );
+}
+
+#[test]
+fn mode_on_a_subnormal_mass_sum_is_not_silently_the_first_entry() {
+    // #21 fix 1, item 12: `1.0 / mass_sum` is infinite below about 5.56e-309.
+    let d: Distribution =
+        serde_json::from_str("{\"entries\":[[1,1e-310],[2,3e-310],[3,1e-310]]}").unwrap();
+    assert_eq!(compute_stats(&d).mode, 2);
+}
+
+proptest::proptest! {
+    // 256 cases in native release (the capped CI step); 24 in debug and wasm, where a sampled
+    // case is about 20x slower.
+    #![proptest_config(proptest::test_runner::Config {
+        cases: if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) { 256 } else { 24 },
+        failure_persistence: None,
+        ..proptest::test_runner::Config::default()
+    })]
+
+    /// #21 fix 1, item 8: random parsed expressions with large multipliers and nested products
+    /// analyze within the quick bound, and never panic (debug has overflow checks). Run under the
+    /// 2 GiB memory cap (CI: `ulimit -v` on the release analyzer step).
+    #[test]
+    fn prop_large_products_analyze_quickly_without_panic(
+        terms in proptest::collection::vec((0usize..12, 0usize..4, 0usize..3), 2..7),
+        divide in 0usize..3,
+    ) {
+        const LEAVES: [&str; 12] = [
+            "(10d100-500)", "(d257-129)", "(1d6-3)", "(2d6!-7)", "1d2", "(1d6min6!kh1)",
+            "99999999999999999", "4611686018427387904", "9223372036854775807", "1000000000",
+            "(1d1000000-500000)", "(3d4!>=1kl2-2)",
+        ];
+        const OPS: [&str; 4] = ["*", "*", "+", "-"];
+        let mut src = String::new();
+        let mut open = 0;
+        for (i, &(leaf, op, paren)) in terms.iter().enumerate() {
+            if i > 0 {
+                src.push_str(OPS[op]);
+            }
+            if paren == 0 {
+                src.push('(');
+                open += 1;
+            }
+            src.push_str(LEAVES[leaf]);
+        }
+        for _ in 0..open {
+            src.push(')');
+        }
+        let src = match divide {
+            0 => format!("1/({src})"),
+            1 => format!("({src})/1d6"),
+            _ => format!("1d6/(1d2-1)+{src}"),
+        };
+        let expr = parse(&src).unwrap();
+        let t0 = std::time::Instant::now();
+        let _ = analyze(&expr);
+        let elapsed = t0.elapsed();
+        proptest::prop_assert!(elapsed < quick_bound(), "{} took {:?}", src, elapsed);
+    }
 }
 
 #[test]

@@ -99,7 +99,7 @@ const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 
 /// Work ceiling of one [`analyze`] call, in work units (`§5.3`).
 ///
-/// The cost model below (this ceiling, [`MAX_COMPARE_WORK`], [`EXACT_TRANSITION_WORK`], every
+/// The cost model below (this ceiling, [`EXACT_TRANSITION_WORK`], every
 /// `MC_WORK_PER_*` weight and the counting rules) is **normative**, spec `§5.3.1`: the TypeScript
 /// port must reproduce the same refusals and sample counts. The calibration figures below are a
 /// note, not part of the contract.
@@ -109,13 +109,15 @@ const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 /// (Intel Core Ultra 9 285K, `x86_64-pc-windows-msvc`, `rustc 1.98.1`). The weights below were fitted
 /// to per-sample `monte_carlo_distribution` timings of 95 input shapes, taking for each shape the
 /// slowest of three differently linked release binaries (the same source runs tight loops up to
-/// 3x slower in one code layout than another). Charged work is then within a factor of 3 of that
-/// time for every shape, and never below about 0.9 times it, so no input that the sampler runs to
-/// this ceiling takes much more than `MAX_ANALYSIS_WORK / 4` nanoseconds there (about 0.93 s).
+/// 3x slower in one code layout than another). Against that slowest-of-three envelope, charged work
+/// was within a factor of about 3 of measured time and never below about 0.9 times it. On a single
+/// build the spread is wider: an independent tester measured about 5.8x over sampled runs (7.9x
+/// counting one refusal). No run to this ceiling took more than about 0.93 s on that machine. These
+/// figures are a calibration note only.
 ///
 /// The ceiling covers the exact phase and the Monte Carlo phase together: exact transitions are
-/// charged at [`EXACT_TRANSITION_WORK`] each, and the sampler gets what is left. [`compare`]
-/// has a ceiling of its own, [`MAX_COMPARE_WORK`], shared between both sides.
+/// charged at [`EXACT_TRANSITION_WORK`] each, and the sampler gets what is left. Each side of
+/// [`compare`] gets this same ceiling, less that side's own exact work.
 ///
 /// ### Per-sample charge
 /// After `completed` samples the sampler has charged
@@ -133,18 +135,11 @@ const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 /// - per keep/drop modifier over a pool of `len` dice of which `kept` are still kept:
 ///   [`MC_WORK_PER_KEEP_OP`] (plus [`MC_WORK_PER_LARGE_SORT`] when `kept > 20`),
 ///   [`MC_WORK_PER_COLLECTED_DIE`] per pool die (plus [`MC_WORK_PER_RECOLLECTED_DIE`] after the
-///   first modifier), [`MC_WORK_PER_SORT_STEP`] per `kept * floor(log2(min(kept, distinct)))`
+///   first modifier), [`MC_WORK_PER_SORT_STEP`] per `kept * ilog2(max(min(kept, distinct), 2))`
 ///   (plus [`MC_WORK_PER_WIDE_SORT_STEP`] when the die has more than 16 distinct values), and
 ///   [`MC_WORK_PER_MIXED_DIE`] per `4 * kept' * (len - kept') / len` for the `kept'` left after it;
 /// - [`MC_WORK_PER_POOL_TEST`] per pool die per `cs`/`cf` compare point.
 pub const MAX_ANALYSIS_WORK: u64 = 3_710_000_000;
-
-/// Work ceiling of one [`compare`] call: two analyses' worth (`§5.3`, Publisher ruling 2026-11-14).
-///
-/// Both sides' exact phases are charged against it, and the sides that need sampling split what
-/// is left equally, so one sampled side against an exact one can use up to twice
-/// [`MAX_ANALYSIS_WORK`].
-pub const MAX_COMPARE_WORK: u64 = 2 * MAX_ANALYSIS_WORK;
 
 /// Work charged per exact transition against [`MAX_ANALYSIS_WORK`] (`§5.3`).
 pub const EXACT_TRANSITION_WORK: u64 = 40;
@@ -184,7 +179,7 @@ const MC_WORK_PER_LARGE_SORT: u64 = 8_800;
 const MC_WORK_PER_COLLECTED_DIE: u64 = 3;
 /// Monte Carlo work per die collected again for each keep/drop modifier after the first.
 const MC_WORK_PER_RECOLLECTED_DIE: u64 = 9;
-/// Monte Carlo work per keep/drop sort step (`kept * floor(log2(min(kept, distinct)))`).
+/// Monte Carlo work per keep/drop sort step (`kept * ilog2(max(min(kept, distinct), 2))`).
 const MC_WORK_PER_SORT_STEP: u64 = 3;
 /// Extra Monte Carlo work per sort step when a die has more than 16 distinct values.
 const MC_WORK_PER_WIDE_SORT_STEP: u64 = 13;
@@ -549,7 +544,10 @@ pub fn compute_stats(dist: &Distribution) -> DistributionStats {
     }
 
     let mass_sum = neumaier_sum_entries(&dist.entries);
-    let needs_norm = (mass_sum - 1.0).abs() > 1e-12 && mass_sum > 0.0;
+    // A mass sum below about 5.56e-309 makes `1.0 / mass_sum` infinite: then work on the raw
+    // probabilities (the mode's relative tolerance does not depend on the scale).
+    let needs_norm =
+        (mass_sum - 1.0).abs() > 1e-12 && mass_sum > 0.0 && (1.0 / mass_sum).is_finite();
     let inv_norm = if needs_norm { 1.0 / mass_sum } else { 1.0 };
 
     let min = dist.entries[0].0;
@@ -735,12 +733,14 @@ pub fn analyze_with_min_samples(
 /// the exact budget, and falls back to an $O(|A| + |B|)$ symmetric two-pointer linear scan
 /// (`margin: None`) when `A - B` exceeds the budget (such as `compare("100d100", "100d100")`).
 ///
-/// ### One work ceiling for both sides
-/// Both sides run their exact phase first. The sides that need sampling then share what is left
-/// of [`MAX_COMPARE_WORK`] (twice [`MAX_ANALYSIS_WORK`]) equally, so `compare` costs no more than
-/// two `analyze` calls, and each sampled side must still reach [`MIN_MONTE_CARLO_SAMPLES`]. A side is sampled exactly as [`analyze`] would
-/// sample it, under its share of the ceiling. Errors are reported in this order: left exact phase,
-/// right exact phase, left sampling, right sampling.
+/// ### Each side under `analyze`'s own ceiling
+/// Both sides run their exact phase first. A side that needs sampling is then sampled exactly as
+/// [`analyze`] would sample it: under [`MAX_ANALYSIS_WORK`] less that side's own exact work, with
+/// the same floor. So `compare` is two `analyze` calls, and an expression `analyze` refuses is
+/// refused here too. Errors are reported in this order: left exact phase, right exact phase,
+/// [`RollError::DivisorUnchecked`] (summed over the sides that need sampling, before any sample
+/// is drawn), left sampling, right sampling. Both sides sample from the same seed, so their
+/// sampling errors are not independent.
 pub fn compare(left: &Expr, right: &Expr) -> Result<ComparisonReport, RollError> {
     compare_with_min_samples(left, right, MIN_MONTE_CARLO_SAMPLES)
 }
@@ -754,20 +754,33 @@ pub fn compare_with_min_samples(
     let left_phase = exact_phase(left)?;
     let right_phase = exact_phase(right)?;
 
-    let mut used = 0_u64;
-    let mut sampled_sides = 0_u64;
+    // §5.4 item 4: unchecked divisors on either side refuse before any sample is drawn, and the
+    // count is the sum over the sides that need sampling.
+    let mut unchecked = 0_u32;
     for phase in [&left_phase, &right_phase] {
-        if let ExactPhase::NeedsSampling { exact_work, .. } = phase {
-            used = used.saturating_add(*exact_work);
-            sampled_sides += 1;
+        if let ExactPhase::NeedsSampling {
+            unchecked_divisors, ..
+        } = phase
+        {
+            unchecked = unchecked.saturating_add(*unchecked_divisors);
         }
     }
-    let share = MAX_COMPARE_WORK.saturating_sub(used) / sampled_sides.max(1);
+    if unchecked > 0 {
+        return Err(RollError::DivisorUnchecked {
+            divisors: unchecked,
+        });
+    }
+    // Each sampled side gets exactly what `analyze` would give it: `MAX_ANALYSIS_WORK` minus that
+    // side's own exact work. So `compare` is two `analyze` calls, and an expression `analyze`
+    // refuses is refused here too.
     let finish = |expr: &Expr, phase: ExactPhase| match phase {
         ExactPhase::Done(report) => Ok(report),
-        ExactPhase::NeedsSampling {
-            unchecked_divisors, ..
-        } => sampling_phase(expr, share, min_samples, unchecked_divisors),
+        ExactPhase::NeedsSampling { exact_work, .. } => sampling_phase(
+            expr,
+            MAX_ANALYSIS_WORK.saturating_sub(exact_work),
+            min_samples,
+            0,
+        ),
     };
     let left_report = finish(left, left_phase)?;
     let right_report = finish(right, right_phase)?;
@@ -1068,9 +1081,13 @@ fn precheck_divisors(expr: &Expr) -> Result<DivisorCheck, RollError> {
         if pending.is_empty() {
             break;
         }
-        let remaining = MAX_DIVISOR_PREPASS_STATES.saturating_sub(check.transitions);
-        if pending.len().saturating_mul(cap) > remaining {
-            break;
+        // Rounds 1 and 2 run for every pending divisor whatever their number, so no sibling can
+        // keep a cheap divisor from being decided. Only the last round shares the reserve.
+        if cap == MAX_EXACT_STATES {
+            let remaining = MAX_DIVISOR_PREPASS_STATES.saturating_sub(check.transitions);
+            if pending.len().saturating_mul(cap) > remaining {
+                break;
+            }
         }
         let mut retry = Vec::new();
         for (divisor, idxs) in pending {
@@ -1086,6 +1103,10 @@ fn precheck_divisors(expr: &Expr) -> Result<DivisorCheck, RollError> {
                     };
                     for &i in &idxs {
                         records[i].zero = zero;
+                        // A zero the engine reaches is the answer, whatever is still pending.
+                        if zero == Tri::Yes && records[i].reached == Tri::Yes {
+                            return Err(RollError::DivisionByZero);
+                        }
                     }
                 }
                 Err(ExactAbort::TooLarge) => retry.push((divisor, idxs)),
@@ -1278,11 +1299,17 @@ fn finish_node_frame(
 
 /// Whether an error found in the right operand is one the engine can raise: `eval.rs` evaluates
 /// the left operand first and stops at its first error, so the right operand's error is reachable
-/// only when the left operand can succeed. An exact left distribution always can; otherwise the
-/// support pass decides, and when it cannot show a success the error is not reported here (the
-/// node aborts as too large, and the Monte Carlo fallback evaluates the engine itself).
+/// only when the left operand can succeed. An exact left distribution can, unless its certain
+/// draws exceed `MAX_TOTAL_DRAWS` (then every evaluation raises `DrawBudgetExceeded` first, the
+/// same rule the support pass applies for `precheck_divisors`); otherwise the support pass decides.
+/// When neither can show a success the error is not reported here: the node aborts as too large,
+/// and the Monte Carlo fallback evaluates the engine itself.
 fn right_error_reachable(left_exact: bool, left: &Expr) -> bool {
-    left_exact || crate::support::can_succeed(left) == Tri::Yes
+    if left_exact {
+        crate::support::certain_draws(left) <= u64::from(MAX_TOTAL_DRAWS)
+    } else {
+        crate::support::can_succeed(left) == Tri::Yes
+    }
 }
 
 fn combine_binary_exact(
@@ -3171,7 +3198,7 @@ fn expected_pool_len(spec: &DiceSpec) -> u64 {
 /// Draws one die of `spec` takes in every evaluation: Stage 1, every `r` that matches every face
 /// (exactly `MAX_REROLLS` draws), every `ro` that matches every face (one draw), and the explosion
 /// draws forced when every post-clamp value (and every raw face) matches.
-fn certain_draws_per_die(spec: &DiceSpec) -> u64 {
+pub(crate) fn certain_draws_per_die(spec: &DiceSpec) -> u64 {
     let s = side_count(spec.sides) as u64;
     let mut draws: u64 = 1;
     for &cp in &spec.reroll_unlimited {

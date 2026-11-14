@@ -183,8 +183,15 @@ jobs:
         run: cargo check -p roll-core --no-default-features --target wasm32-unknown-unknown
       - name: Test (native)
         run: cargo test --workspace < /dev/null
+      # Built first, then run under a 2 GiB virtual-memory cap, so a runaway analysis fails the
+      # step instead of exhausting the runner (#21 fix 1: an unbounded support-pass product once
+      # took 27.7 GiB in 10 s).
+      - name: Build (native release analyzer bounds)
+        run: cargo test --release -p roll-core --test analyzer --no-run < /dev/null
       - name: Test (native release analyzer bounds)
-        run: cargo test --release -p roll-core --test analyzer < /dev/null
+        run: |
+          ulimit -v 2097152
+          cargo test --release -p roll-core --test analyzer < /dev/null
       - name: Test (wasm32-wasip1)
         env:
           CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime run --dir=.

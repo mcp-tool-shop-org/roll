@@ -1,14 +1,14 @@
 # roll: how it works
 
-Mapped at 2026-11-14 from commit 41d6093 by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit 7b58b2a by Atlas 1.26.0.
 
 ## What this is
 
 8 parts, mostly TypeScript (58 files), Rust (24), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
 
-## What changed since 2026-11-14 (4ea1305)
+## What changed since 2026-11-14 (41d6093)
 
-Nothing structural changed since 2026-11-14; 9 files changed content.
+Nothing structural changed since 2026-11-14; 7 files changed content.
 
 ## What comes in
 
@@ -55,11 +55,11 @@ CI writes nothing this map can see.
 
 ## What tends to change together
 
-- **crates/roll-core/src/analyze.rs** and **crates/roll-core/src/lib.rs** changed together in 5 of 5 commits, inside the roll-core part.
-- **crates/roll-core/src/analyze.rs** and **crates/roll-core/tests/properties.rs** changed together in 5 of 5 commits, inside the roll-core part.
-- **crates/roll-core/src/lib.rs** and **crates/roll-core/tests/properties.rs** changed together in 5 of 5 commits, inside the roll-core part.
+- **crates/roll-core/src/analyze.rs** and **crates/roll-core/src/lib.rs** changed together in 6 of 6 commits, inside the roll-core part.
 - **src/bin.ts** and **src/mcp/server.ts** changed together in 7 of 8 commits, inside the src part.
 - **src/bridge/handler.ts** and **src/mcp/server.ts** changed together in 6 of 7 commits, inside the src part.
+- **crates/roll-core/src/analyze.rs** and **crates/roll-core/src/conformance.rs** changed together in 5 of 6 commits, inside the roll-core part.
+- **crates/roll-core/src/analyze.rs** and **crates/roll-core/tests/properties.rs** changed together in 5 of 6 commits, inside the roll-core part.
 
 Confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
