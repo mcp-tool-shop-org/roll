@@ -169,6 +169,38 @@ describe("V1-001/V1-002 analyze path is cost-bounded (DoS guard)", () => {
     const elapsedMs = performance.now() - start;
     expect(elapsedMs).toBeLessThan(200);
   });
+
+  it("monteCarloDistribution enforces live RNG draw budget (samples * MAX_ANALYZE_DICE) when empirical draws exceed static expectedRolls", () => {
+    // `15d100r<=99+43d6` has static expectedRolls = 957 + 43 = 1,000 (right at
+    // MAX_ANALYZE_DICE = 1,000), but high reroll variance causes 3 deterministic
+    // samples on seed 0x9e3779b9 to exceed `3 * 1,000 = 3,000` RNG draws, hitting
+    // the live RNG draw guard in `src/analyze/montecarlo.ts`.
+    const ast = parse("15d100r<=99+43d6");
+    expect(() => monteCarloDistribution(ast, 3)).toThrow(ParseError);
+    expect(() => monteCarloDistribution(ast, 3)).toThrow(
+      /monte carlo roll budget \(3000\) exceeded/i,
+    );
+    // Unary-minus AST wrapper also forwards stacked-explosion cost:
+    expect(() => analyzePublic("-2d3!<=4!!>=1")).toThrow(ParseError);
+  });
+
+  it("explosionDistribution falls back to Monte Carlo when node.count * MAX_EXPLOSIONS > MAX_EXPLOSION_ROLLS on an active threshold, and stays exact when threshold matches 0 faces", () => {
+    // 101d6!>6: 101 * 100 > 10,000, but `!>6` matches 0 faces on d6 so no explosions
+    // can ever occur -> stays exact with mean 353.5 and no caps.
+    const inactive = analyzePublic("101d6!>6");
+    expect(inactive.method).toBe("exact");
+    expect(inactive.caps).toBeUndefined();
+    expect(inactive.stats.mean).toBeCloseTo(101 * 3.5, 8);
+
+    // 101d100!: 101 * 100 = 10,100 > MAX_EXPLOSION_ROLLS (10,000) with active `>=100`
+    // threshold (expectedRolls = 103 <= 1,000) -> abandons exact single-die convolution
+    // and falls back to bounded Monte Carlo rather than ignoring the group cap.
+    const active = analyzePublic("101d100!");
+    expect(active.method).toBe("monte-carlo");
+    expect(active.samples).toBe(100_000);
+    expect(active.stats.mean).toBeGreaterThan(5000);
+    expect(active.stats.mean).toBeLessThan(5300);
+  });
 });
 
 // ─── Regression locks: real RPG analysis still works and stays exact/fast ──────
