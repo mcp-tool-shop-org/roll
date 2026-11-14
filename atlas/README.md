@@ -1,14 +1,18 @@
 # roll: how it works
 
-Mapped at 2026-11-14 from commit 40f43a1 by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit 7984126 by Atlas 1.26.0.
 
 ## What this is
 
 8 parts, mostly TypeScript (58 files), Rust (23), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
 
-## What changed since 2026-11-14 (461e2c4)
+## What changed since 2026-11-14 (40f43a1)
 
-Nothing structural changed since 2026-11-14; 1 file changed content.
+- fixtures/ is now read by docs/spec/roll-3.0.md.
+- fixtures/conformance/v3/ is now also read by docs/spec/roll-3.0.md.
+- site/ is now read by docs/spec/roll-3.0.md.
+- docs/spec/roll-3.0.md is new and belongs to no part, so atlas check fails on it against the previous map.
+- 1 file added.
 
 ## What comes in
 
@@ -96,6 +100,7 @@ Beside the path, src/bin.ts also calls src/loot/table.ts.
 ## What this map cannot see
 
 - 3 writes and 2 reads go to a path their caller passes, not to this repository.
+- 1 file belongs to no part: docs/spec/roll-3.0.md.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.

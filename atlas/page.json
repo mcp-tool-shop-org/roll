@@ -45,24 +45,55 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 1,
+      "added": 1,
+      "changed": 0,
       "moved": 0,
-      "parts": 1,
+      "parts": 0,
       "removed": 0
     },
     "items": [
       {
+        "kind": "landing",
+        "sentence": "fixtures/ is now read by docs/spec/roll-3.0.md.",
+        "subjects": [
+          "fixtures/",
+          "docs/spec/roll-3.0.md"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "fixtures/conformance/v3/ is now also read by docs/spec/roll-3.0.md.",
+        "subjects": [
+          "fixtures/conformance/v3/",
+          "docs/spec/roll-3.0.md"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "site/ is now read by docs/spec/roll-3.0.md.",
+        "subjects": [
+          "site/",
+          "docs/spec/roll-3.0.md"
+        ]
+      },
+      {
+        "kind": "unassigned",
+        "sentence": "docs/spec/roll-3.0.md is new and belongs to no part, so atlas check fails on it against the previous map.",
+        "subjects": [
+          "docs/spec/roll-3.0.md"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-14; 1 file changed content.",
+        "sentence": "1 file added.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "461e2c4dade587deba5c3a6b40653f257ea4e3a1",
-      "generatedAt": "2026-11-14T13:55:46.696Z"
+      "commit": "40f43a12137167fc73f8446dbb5c16efebd8d243",
+      "generatedAt": "2026-11-14T14:29:47.825Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -146,7 +177,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "40f43a12137167fc73f8446dbb5c16efebd8d243",
+  "commit": "79841260f85466434d3fb8c13395c954f438f652",
   "defaultBranch": "main",
   "derived": "8 parts, mostly TypeScript (58 files), Rust (23), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).",
   "doors": [
@@ -434,9 +465,10 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T14:29:47.825Z",
+  "generatedAt": "2026-11-14T14:47:10.412Z",
   "limits": [
     "3 writes and 2 reads go to a path their caller passes, not to this repository.",
+    "1 file belongs to no part: docs/spec/roll-3.0.md.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
   "mainDoor": ".github/workflows/ci.yml",

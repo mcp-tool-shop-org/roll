@@ -8087,8 +8087,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "40f43a12137167fc73f8446dbb5c16efebd8d243",
-    "tracked": 127
+    "commit": "79841260f85466434d3fb8c13395c954f438f652",
+    "tracked": 128
   },
   "landings": [
     {
@@ -8142,7 +8142,23 @@
     {
       "readers": [
         {
+          "by": "docs/spec/roll-3.0.md",
+          "call": "--",
+          "confidence": "text"
+        }
+      ],
+      "target": "fixtures",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "CHANGELOG.md",
+          "call": "--out",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/spec/roll-3.0.md",
           "call": "--out",
           "confidence": "text"
         }
@@ -8239,6 +8255,17 @@
     {
       "readers": [
         {
+          "by": "docs/spec/roll-3.0.md",
+          "call": "--prefix",
+          "confidence": "text"
+        }
+      ],
+      "target": "site",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "site/astro.config.mjs",
           "call": "content-collection",
           "confidence": "ast"
@@ -8312,5 +8339,10 @@
   "submodules": [],
   "symlinks": [],
   "testFiles": 39,
-  "unassigned": []
+  "unassigned": [
+    {
+      "hash": "76b5554e1340822b9289a1a56c449e7f78b1e79a8af0c625c777716549087080",
+      "path": "docs/spec/roll-3.0.md"
+    }
+  ]
 }
