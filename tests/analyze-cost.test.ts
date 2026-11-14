@@ -6,8 +6,9 @@ import {
   computeDistributionWithMethod,
   type Distribution,
 } from "../src/analyze/distribution.js";
-import { monteCarloDistribution } from "../src/analyze/montecarlo.js";
+import { MAX_ANALYZE_DICE, monteCarloDistribution } from "../src/analyze/montecarlo.js";
 import { computeStats } from "../src/analyze/stats.js";
+import { estimateAstAnalyzeRolls, MAX_EXPLOSION_ROLLS } from "../src/engine/pipeline.js";
 import { analyze as analyzePublic, roll } from "../src/index.js";
 import { run as runCli } from "../src/bin.js";
 import { handleRequest as handleMcpRequest } from "../src/mcp/server.js";
@@ -92,7 +93,7 @@ describe("V1-001/V1-002 analyze path is cost-bounded (DoS guard)", () => {
     expect((threw as Error).message.toLowerCase()).toContain("too complex");
   });
 
-  it("stacked explosions ('2d3!<=4!!>=1', '1d6!>=1!>=1!>=1') refuse with ParseError within 200ms in analyze() and monteCarloDistribution()", () => {
+  it("stacked explosions ('2d3!<=4!!>=1', '1d6!>=1!>=1!>=1') refuse with ParseError within 2000ms in analyze() and monteCarloDistribution()", () => {
     // 2d3!<=4!!>=1: Stage 4 `!<=4` expands 2 -> 202 dice (200 bonus rolls), then
     // `!!>=1` compounds 100 times on each of 202 dice (20,200 rolls) -> 20,402
     // rolls per sample (> MAX_ANALYZE_DICE = 1,000). Without stacked-explosion
@@ -117,6 +118,7 @@ describe("V1-001/V1-002 analyze path is cost-bounded (DoS guard)", () => {
       expect((analyzeErr as Error).message).toMatch(/too complex to analyze/i);
 
       const ast = parse(expr);
+      expect(estimateAstAnalyzeRolls(ast)).toBeGreaterThan(MAX_ANALYZE_DICE);
       let mcErr: unknown;
       try {
         monteCarloDistribution(ast, 100_000);
@@ -127,11 +129,11 @@ describe("V1-001/V1-002 analyze path is cost-bounded (DoS guard)", () => {
       expect((mcErr as Error).message).toMatch(/too complex to analyze/i);
     }
     const elapsedMs = performance.now() - start;
-    // Stated time budget: 200ms across all crafted stacked-explosion calls.
-    expect(elapsedMs).toBeLessThan(200);
+    // 2,000ms gives shared CI runners + v8 coverage instrumentation ample headroom while still catching runaways (v2.1.2 stalled >8s on 2d3!<=4!!>=1 and hung unboundedly on 101^20).
+    expect(elapsedMs).toBeLessThan(2000);
   });
 
-  it("roll() and roll()-in-a-loop refuse crafted stacked explosions within 200ms with ParseError", () => {
+  it("roll() and roll()-in-a-loop refuse crafted stacked explosions within 2000ms with ParseError", () => {
     // `stageExplode` caps per-group bonus rolls at MAX_EXPLOSION_ROLLS (10,000)
     // and pre-checks guaranteed all-face blow-ups so neither a single `roll()`
     // nor `roll()` in a loop (nor CLI `--times` / MCP `roll_dice`) can run 101^k work.
@@ -146,6 +148,31 @@ describe("V1-001/V1-002 analyze path is cost-bounded (DoS guard)", () => {
     // Stochastic stacked chain (`!=2` explode, not `!!` compound) driven by worst-case RNG hits the 10,000 cap cleanly:
     expect(() => roll("1d2" + "!=2".repeat(20), () => 2)).toThrow(ParseError);
     expect(() => roll("1d2" + "!=2".repeat(20), () => 2)).toThrow(/explosion roll limit/i);
+
+    // Clock-independent RNG-draw bounds: pre-check throws after initial Stage 1 rolls (0 bonus draws),
+    // and stochastic chains throw after at most 1 + MAX_EXPLOSION_ROLLS draws.
+    for (const [expr, expectedInitialDraws] of [
+      ["2d3!<=4!!>=1", 2],
+      ["1d6!>=1!>=1!>=1", 1],
+      ["1d6" + "!>=1".repeat(20), 1],
+    ] as const) {
+      let draws = 0;
+      expect(() =>
+        roll(expr, (_min, max) => {
+          draws++;
+          return max;
+        }),
+      ).toThrow(ParseError);
+      expect(draws).toBe(expectedInitialDraws);
+    }
+    let stochasticDraws = 0;
+    expect(() =>
+      roll("1d2" + "!=2".repeat(20), () => {
+        stochasticDraws++;
+        return 2;
+      }),
+    ).toThrow(ParseError);
+    expect(stochasticDraws).toBe(1 + MAX_EXPLOSION_ROLLS);
 
     const errLines: string[] = [];
     const cliCode = runCli(["2d3!<=4!!>=1", "--times", "100", "--no-color"], {
@@ -167,7 +194,8 @@ describe("V1-001/V1-002 analyze path is cost-bounded (DoS guard)", () => {
     expect((mcpRes.result as { isError?: boolean }).isError).toBe(true);
 
     const elapsedMs = performance.now() - start;
-    expect(elapsedMs).toBeLessThan(200);
+    // 2,000ms avoids CI runner + v8 coverage flake (310ms observed on CI) while separating bounded rejection from v2.1.2's multi-second 1.03e8-roll stall and unbounded 101^20 hang.
+    expect(elapsedMs).toBeLessThan(2000);
   });
 
   it("monteCarloDistribution enforces live RNG draw budget (samples * MAX_ANALYZE_DICE) when empirical draws exceed static expectedRolls", () => {
