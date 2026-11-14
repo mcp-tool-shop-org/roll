@@ -1,6 +1,8 @@
 import type { ASTNode } from "../parser/ast.js";
+import { ParseError } from "../parser/parser.js";
+import { estimateAstAnalyzeRolls } from "../engine/pipeline.js";
 import { evaluate } from "../engine/roller.js";
-import { seededRng } from "../engine/random.js";
+import { seededRngWithDraws } from "../engine/random.js";
 import type { Distribution } from "./distribution.js";
 
 /** Default number of Monte-Carlo iterations. Exported so the analyze path can
@@ -10,22 +12,32 @@ import type { Distribution } from "./distribution.js";
  *  count actually run. (P-CORE-001) */
 export const DEFAULT_MONTE_CARLO_SAMPLES = 100_000;
 
+/** Per-sample roll budget shared with `computeDistributionWithMethod`. */
+export const MAX_ANALYZE_DICE = 1_000;
+
 const DEFAULT_SAMPLES = DEFAULT_MONTE_CARLO_SAMPLES;
 
 /** Monte Carlo simulation to estimate distribution.
  *
  *  COST CONTRACT (V1-001 / V1-002): this runs DEFAULT_SAMPLES iterations, each
- *  calling evaluate(ast) which rolls EVERY die in the expression. Cost is
- *  therefore O(samples × totalDice). The bound on totalDice is enforced UPSTREAM
- *  in computeDistribution (MAX_ANALYZE_DICE), which throws a structured
- *  ParseError before this function is ever reached for an over-budget AST. With
- *  that cap (1000 dice) the worst case here is ~1e8 rolls — acceptable. Callers
- *  that invoke monteCarloDistribution directly with an unbounded AST bypass that
- *  guard and own the cost; the public analyze path never does. */
+ *  calling evaluate(ast). Cost is O(samples × rollsPerSample). Both the static
+ *  AST roll estimate (accounting for stacked explosions `101^k` and rerolls) AND
+ *  a live RNG-draw counter (`samples × MAX_ANALYZE_DICE`) are enforced here so
+ *  neither `analyze()` nor direct `monteCarloDistribution()` callers can run
+ *  unbounded work. */
 export function monteCarloDistribution(
   ast: ASTNode,
   samples: number = DEFAULT_SAMPLES,
 ): Distribution {
+  const estimatedRolls = estimateAstAnalyzeRolls(ast);
+  if (estimatedRolls > MAX_ANALYZE_DICE) {
+    throw new ParseError(
+      `Expression too complex to analyze: ${estimatedRolls} dice rolls per sample exceeds the ` +
+        `analysis limit of ${MAX_ANALYZE_DICE}.`,
+      0,
+    );
+  }
+
   const counts = new Map<number, number>();
 
   // F-AT-005: use ONE generator for the whole run so each sample is an
@@ -34,10 +46,19 @@ export function monteCarloDistribution(
   // first outputs — successive samples were then a correlated low-discrepancy
   // lattice (mulberry32's first output is largely determined by its seed), not
   // independent draws. Seed once with a fixed constant for determinism.
-  const rng = seededRng(0x9e3779b9); // fixed seed → reproducible runs
+  const { rng, takeDraws } = seededRngWithDraws(0x9e3779b9); // fixed seed → reproducible runs
+  const maxRolls = Math.max(1, samples) * MAX_ANALYZE_DICE;
+  let totalRolls = 0;
 
   for (let i = 0; i < samples; i++) {
     const result = evaluate(ast, rng);
+    totalRolls += takeDraws();
+    if (totalRolls > maxRolls) {
+      throw new ParseError(
+        `Expression too complex to analyze: Monte Carlo roll budget (${maxRolls}) exceeded.`,
+        0,
+      );
+    }
     counts.set(result.total, (counts.get(result.total) ?? 0) + 1);
   }
 
