@@ -6,11 +6,11 @@ use std::time::Instant;
 use rand_chacha::ChaCha12Rng;
 use rand_core::{Rng, SeedableRng};
 use roll_core::{
-    DEFAULT_MONTE_CARLO_SAMPLES, ExpressionOutcome, MAX_EXPRESSION_BYTES, MAX_TOTAL_DRAWS,
-    RECEIPT_SCHEMA_VERSION, ReceiptResult, ReceiptSpec, ReceiptVerifyError, RollAddress, RollError,
-    RollReceipt, RollRng, SeedMaterial, analyze, compute_receipt_sha256, derive_roll_key,
-    evaluate_addressed, evaluate_with_rng, evaluate_with_tape, lemire_witness_word,
-    monte_carlo_distribution, parse, verify_receipt,
+    DEFAULT_MONTE_CARLO_SAMPLES, MAX_EXPRESSION_BYTES, MAX_TOTAL_DRAWS, RECEIPT_SCHEMA_VERSION,
+    ReceiptResult, ReceiptSpec, ReceiptVerifyError, RollAddress, RollError, RollReceipt, RollRng,
+    SeedMaterial, analyze, compute_receipt_sha256, derive_roll_key, evaluate_addressed,
+    evaluate_with_rng, evaluate_with_tape, lemire_witness_word, monte_carlo_distribution, parse,
+    verify_receipt,
 };
 
 #[test]
@@ -247,81 +247,85 @@ fn multi_group_shared_counter_rejects_combined_over_budget_expression() {
 #[test]
 fn hand_built_receipt_claiming_more_draws_than_budget_fails_verification_with_named_error() {
     let addr = RollAddress::new(SeedMaterial::Int64(555), 2, "forged_budget", "entity:1", 0);
-    let key = derive_roll_key(&addr).unwrap();
-    let mut stream = ChaCha12Rng::from_seed(key);
     let over_limit_len = (MAX_TOTAL_DRAWS as usize) + 1;
-    let genuine_draws: Vec<u64> = (0..over_limit_len).map(|_| stream.next_u64()).collect();
 
-    // Case A: Canonical expression genuinely demands `2,100,001` draws (`MAX_TOTAL_DRAWS + 1`),
-    // `raw_draws` carries `2,100,001` genuine ChaCha12 words, and `receipt_sha256` is valid.
-    // `verify_receipt` replays the engine, which aborts at `MAX_TOTAL_DRAWS` -> `ExecutionError`.
-    let over_expr_str = String::from(
-        "9999d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1+1d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1",
-    );
-    let mut forged_over_budget = RollReceipt {
-        address: addr.clone(),
-        eligible_weight_total: None,
-        engine_version: String::from(roll_core::ENGINE_VERSION),
-        raw_draws: genuine_draws.clone(),
-        receipt_sha256: [0u8; 32],
-        result: ReceiptResult::Expression {
-            expression_outcome: ExpressionOutcome {
-                canonical_expression: over_expr_str.clone(),
-                total: 10_000,
-                groups: Vec::new(),
-            },
-        },
-        rules_version: addr.rules_version.clone(),
-        schema_version: String::from(RECEIPT_SCHEMA_VERSION),
-        spec: ReceiptSpec::Expression {
-            canonical_expression: over_expr_str,
-        },
-    };
-    forged_over_budget.receipt_sha256 = compute_receipt_sha256(&forged_over_budget).unwrap();
-
-    let t_verify_a = Instant::now();
-    match verify_receipt(&forged_over_budget) {
-        Err(RollError::ReceiptInvalid(ReceiptVerifyError::ExecutionError { message })) => {
-            assert!(
-                message.contains(&MAX_TOTAL_DRAWS.to_string()),
-                "expected ExecutionError mentioning draw budget {MAX_TOTAL_DRAWS}, got: {message}"
-            );
-        }
-        other => panic!("expected ReceiptInvalid(ExecutionError), got {other:?}"),
-    }
-    let elapsed_verify_a = t_verify_a.elapsed();
-
-    // Case B: Canonical expression needs `1` draw (`1d6`), while `raw_draws` claims `2,100,001` genuine ChaCha12 words -> `UnconsumedDraws`.
+    // Case A: `raw_draws.len() > MAX_TOTAL_DRAWS` (`2,100,001`) with bogus draw words and zeroed
+    // `receipt_sha256` MUST be refused immediately with `ReceiptVerifyError::DrawBudgetExceeded`
+    // BEFORE `compute_receipt_sha256` or any `ChaCha12Rng` walk (`DigestMismatch` / `PrngStreamMismatch`
+    // would fire instead if hashing or ChaCha ran first).
     let (_, valid_1d6) = evaluate_addressed(&parse("1d6").unwrap(), &addr).unwrap();
     let ReceiptResult::Expression { expression_outcome } = valid_1d6.result;
-    let mut padded_receipt = RollReceipt {
+    let bogus_over_budget = RollReceipt {
         address: addr.clone(),
         eligible_weight_total: None,
         engine_version: String::from(roll_core::ENGINE_VERSION),
-        raw_draws: genuine_draws,
+        raw_draws: vec![0xdead_beef_cafe_babe; over_limit_len],
         receipt_sha256: [0u8; 32],
-        result: ReceiptResult::Expression { expression_outcome },
-        rules_version: addr.rules_version,
+        result: ReceiptResult::Expression {
+            expression_outcome: expression_outcome.clone(),
+        },
+        rules_version: addr.rules_version.clone(),
         schema_version: String::from(RECEIPT_SCHEMA_VERSION),
         spec: ReceiptSpec::Expression {
             canonical_expression: String::from("1d6"),
         },
     };
-    padded_receipt.receipt_sha256 = compute_receipt_sha256(&padded_receipt).unwrap();
 
-    let t_verify_b = Instant::now();
+    let t_verify_fast = Instant::now();
     assert_eq!(
-        verify_receipt(&padded_receipt),
+        verify_receipt(&bogus_over_budget),
         Err(RollError::ReceiptInvalid(
-            ReceiptVerifyError::UnconsumedDraws {
-                consumed: 1,
+            ReceiptVerifyError::DrawBudgetExceeded {
                 total: over_limit_len,
+                limit: MAX_TOTAL_DRAWS,
             }
         ))
     );
-    let elapsed_verify_b = t_verify_b.elapsed();
+    let elapsed_fast = t_verify_fast.elapsed();
+    assert!(
+        elapsed_fast.as_millis() < 50,
+        "over-limit raw_draws check must reject in O(1) before hashing/ChaCha, took {elapsed_fast:?}"
+    );
+
+    // Case B: Even with genuine ChaCha12 words and a valid `receipt_sha256`, `2,100,001` draws is
+    // refused upfront with `ReceiptVerifyError::DrawBudgetExceeded`.
+    let key = derive_roll_key(&addr).unwrap();
+    let mut stream = ChaCha12Rng::from_seed(key);
+    let genuine_draws: Vec<u64> = (0..over_limit_len).map(|_| stream.next_u64()).collect();
+    let mut signed_over_budget = bogus_over_budget;
+    signed_over_budget.raw_draws = genuine_draws;
+    signed_over_budget.receipt_sha256 = compute_receipt_sha256(&signed_over_budget).unwrap();
+    assert_eq!(
+        verify_receipt(&signed_over_budget),
+        Err(RollError::ReceiptInvalid(
+            ReceiptVerifyError::DrawBudgetExceeded {
+                total: over_limit_len,
+                limit: MAX_TOTAL_DRAWS,
+            }
+        ))
+    );
+
+    // Case C: At exactly `MAX_TOTAL_DRAWS` (`2,100,000 <= MAX_TOTAL_DRAWS`), the length pre-check
+    // passes and replay catches trailing unconsumed words on `"1d6"` -> `UnconsumedDraws`.
+    let exact_limit_len = MAX_TOTAL_DRAWS as usize;
+    let mut exact_limit_receipt = signed_over_budget;
+    exact_limit_receipt.raw_draws.truncate(exact_limit_len);
+    exact_limit_receipt.result = ReceiptResult::Expression { expression_outcome };
+    exact_limit_receipt.receipt_sha256 = compute_receipt_sha256(&exact_limit_receipt).unwrap();
+
+    let t_verify_c = Instant::now();
+    assert_eq!(
+        verify_receipt(&exact_limit_receipt),
+        Err(RollError::ReceiptInvalid(
+            ReceiptVerifyError::UnconsumedDraws {
+                consumed: 1,
+                total: exact_limit_len,
+            }
+        ))
+    );
+    let elapsed_verify_c = t_verify_c.elapsed();
     println!(
-        "timing verify_receipt over-budget: ExecutionError={elapsed_verify_a:?}, UnconsumedDraws={elapsed_verify_b:?}"
+        "timing verify_receipt budget boundary: DrawBudgetExceeded={elapsed_fast:?}, exact-limit UnconsumedDraws={elapsed_verify_c:?}"
     );
 }
 

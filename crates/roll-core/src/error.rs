@@ -28,6 +28,8 @@ pub enum ReceiptVerifyError {
     InvalidSpecExpression { message: String },
     /// `spec.canonical_expression` parsed, but was not in canonical form.
     NonCanonicalExpression { given: String, canonical: String },
+    /// `raw_draws.len()` exceeded [`crate::MAX_TOTAL_DRAWS`].
+    DrawBudgetExceeded { total: usize, limit: u32 },
     /// `raw_draws[draw_index]` disagreed with `ChaCha12Rng` keyed from `address`.
     PrngStreamMismatch {
         draw_index: usize,
@@ -90,6 +92,10 @@ impl fmt::Display for ReceiptVerifyError {
                 f,
                 "spec expression '{given}' is not canonical (expected '{canonical}')"
             ),
+            Self::DrawBudgetExceeded { total, limit } => write!(
+                f,
+                "raw_draws length {total} exceeds maximum draw budget of {limit}"
+            ),
             Self::PrngStreamMismatch {
                 draw_index,
                 expected,
@@ -124,6 +130,11 @@ pub enum RollError {
     ExpressionTooLong {
         len: usize,
         max: usize,
+    },
+    ExpressionTooDeep {
+        depth: usize,
+        max: usize,
+        byte_offset: usize,
     },
     Lex {
         message: String,
@@ -168,6 +179,14 @@ impl fmt::Display for RollError {
             Self::ExpressionTooLong { len, max } => write!(
                 f,
                 "expression length {len} bytes exceeds maximum of {max} bytes"
+            ),
+            Self::ExpressionTooDeep {
+                depth,
+                max,
+                byte_offset,
+            } => write!(
+                f,
+                "expression nesting depth {depth} at byte {byte_offset} exceeds maximum depth of {max}"
             ),
             Self::Lex {
                 message,
