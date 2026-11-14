@@ -15,6 +15,21 @@ fn assert_close(actual: f64, expected: f64, tol: f64, label: &str) {
     );
 }
 
+fn sum_pmf_compensated(dist: &Distribution) -> f64 {
+    let mut sum = 0.0_f64;
+    let mut comp = 0.0_f64;
+    for &(_, p) in dist.entries() {
+        let t = sum + p;
+        if sum.abs() >= p.abs() {
+            comp += (sum - t) + p;
+        } else {
+            comp += (p - t) + sum;
+        }
+        sum = t;
+    }
+    sum + comp
+}
+
 #[test]
 fn single_die_stages_rerolls_clamps_explosions_pools_and_caps() {
     // 1. Standard 2d6: Exact with `caps: None`.
@@ -279,18 +294,15 @@ fn order_statistic_dp_interval_reduction_exactness_and_cost_guard() {
 
     // §5.2 Cost guard: stays within `MAX_ANALYZE_DICE = 1_000` and has final support `<< 10^7`,
     // yet inner DP transitions exceed `MAX_EXACT_STATES`, cleanly aborting to Monte Carlo!
-    let dp_guard_expr = if cfg!(target_arch = "wasm32") {
-        "50d1000kh25"
-    } else {
-        "200d1000kh100"
-    };
-    let dp_fallback = analyze(&parse(dp_guard_expr).unwrap()).unwrap();
-    assert_eq!(
-        dp_fallback.method,
-        AnalysisMethod::MonteCarlo {
-            samples: DEFAULT_MONTE_CARLO_SAMPLES
-        }
-    );
+    for dp_guard_expr in ["50d1000kh25", "200d1000kh100"] {
+        let dp_fallback = analyze(&parse(dp_guard_expr).unwrap()).unwrap();
+        assert_eq!(
+            dp_fallback.method,
+            AnalysisMethod::MonteCarlo {
+                samples: DEFAULT_MONTE_CARLO_SAMPLES
+            }
+        );
+    }
 }
 
 #[test]
@@ -557,5 +569,203 @@ fn section_5_4_reachability_underflow_and_four_numbered_divide_by_zero_cases() {
     assert_eq!(
         analyze(&parse("1d6/(4d6!kh3-12)").unwrap()),
         Err(RollError::DivisionByZero)
+    );
+}
+
+#[test]
+fn wide_clamps_preserve_unit_mass_and_quantile_one_returns_true_extrema() {
+    // Single-point wide clamps normalize to exact `(v, 1.0)` with zero drift across 1,000 dice.
+    for (expr_str, expected_point) in [
+        ("1000d999997min999997", 999_997_000_i64),
+        ("1000d777777min777777", 777_777_000_i64),
+        ("1000d999997max1", 1_000_i64),
+    ] {
+        let rep = analyze(&parse(expr_str).unwrap()).unwrap();
+        assert_eq!(rep.method, AnalysisMethod::Exact { caps: None });
+        assert_eq!(rep.distribution, Distribution::point(expected_point));
+        let mass: f64 = rep.distribution.entries().iter().map(|&(_, p)| p).sum();
+        assert_eq!(mass, 1.0, "{expr_str} singleton mass must be 1.0");
+        assert_eq!(
+            rep.distribution
+                .target_for_probability(1.0, TargetDirection::AtMost)
+                .unwrap(),
+            rep.stats.max
+        );
+        assert_eq!(
+            rep.distribution
+                .target_for_probability(1.0, TargetDirection::AtLeast)
+                .unwrap(),
+            rep.stats.min
+        );
+    }
+
+    // Two-point and multi-point wide clamps (both direct integer-count path and post-`ro` Neumaier path)
+    // conserve mass within `1e-12` and return `stats.max` on `target_for_probability(1.0, AtMost)`.
+    for (expr_str, expected_min, expected_max) in [
+        ("1000d777777min777776", 777_776_000_i64, 777_777_000_i64),
+        ("1000d999997min999995", 999_995_000_i64, 999_997_000_i64),
+        ("1000d777777max2", 1_000_i64, 2_000_i64),
+        ("1000d777777ro=1min777776", 777_776_000_i64, 777_777_000_i64),
+    ] {
+        let rep = analyze(&parse(expr_str).unwrap()).unwrap();
+        assert_eq!(rep.method, AnalysisMethod::Exact { caps: None });
+        assert_eq!(rep.stats.min, expected_min);
+        assert_eq!(rep.stats.max, expected_max);
+        let mass: f64 = rep.distribution.entries().iter().map(|&(_, p)| p).sum();
+        assert_close(mass, 1.0, 1e-12, expr_str);
+        assert_eq!(
+            rep.distribution
+                .target_for_probability(1.0, TargetDirection::AtMost)
+                .unwrap(),
+            expected_max,
+            "{expr_str} target_for_probability(1.0, AtMost) must hit true max"
+        );
+        assert_eq!(
+            rep.distribution
+                .target_for_probability(1.0, TargetDirection::AtLeast)
+                .unwrap(),
+            expected_min,
+            "{expr_str} target_for_probability(1.0, AtLeast) must hit true min"
+        );
+    }
+}
+
+#[test]
+fn ast_wide_budget_bounds_adversarial_inputs_in_time_and_method() {
+    use std::time::{Duration, Instant};
+
+    let bound = if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
+        Duration::from_secs(1)
+    } else {
+        Duration::from_secs(60)
+    };
+
+    // 1. Reported input #1: 52 copies of `(3163*d3162+d3162)` on a left-associative `+` spine (987 B, 104 dice).
+    let spine_left = vec!["(3163*d3162+d3162)"; 52].join("+");
+    assert_eq!(spine_left.len(), 987);
+
+    // 2. Right-associative parenthesized mirror: 47 nested `(term+(term+...))` copies (984 B, 94 dice).
+    let mut spine_right = String::from("(3163*d3162+d3162)");
+    for _ in 1..47 {
+        spine_right = format!("((3163*d3162+d3162)+{spine_right})");
+    }
+    assert_eq!(spine_right.len(), 984);
+
+    // 3. Reported input #2: `"d999999"` followed by 248 `"/d10"` steps (999 B, 249 dice).
+    let div_chain = format!("d999999{}", "/d10".repeat(248));
+    assert_eq!(div_chain.len(), 999);
+
+    let full_mc_cases: &[(&str, &str)] = &[
+        ("spine_k52_left", &spine_left),
+        ("spine_k47_right", &spine_right),
+        ("div_k248", &div_chain),
+        ("wide_explosion_1m", "1d1000000!"),
+        ("deep_explosion_100k", "1d100000!>=1"),
+        ("dp_200d1000kh100", "200d1000kh100"),
+        ("sparse_mul_3162", "(1d3162)*(1d3162)"),
+    ];
+
+    for &(label, expr_str) in full_mc_cases {
+        assert!(expr_str.len() <= roll_core::MAX_EXPRESSION_BYTES);
+        let expr = parse(expr_str).unwrap();
+        let t0 = Instant::now();
+        let rep = analyze(&expr).unwrap();
+        let elapsed = t0.elapsed();
+        assert!(
+            elapsed < bound,
+            "{label} exceeded time bound {:?}: {:?}",
+            bound,
+            elapsed
+        );
+        assert_eq!(
+            rep.method,
+            AnalysisMethod::MonteCarlo {
+                samples: DEFAULT_MONTE_CARLO_SAMPLES
+            },
+            "{label} must report full 100k MonteCarlo fallback"
+        );
+        let mass = sum_pmf_compensated(&rep.distribution);
+        assert_close(mass, 1.0, 1e-12, label);
+    }
+
+    // 4. Adversarial `< 1,000`-byte expressions whose per-sample evaluation cost exercises the
+    //    deterministic Monte Carlo work budget (`50 <= samples < 100_000`, honest `MonteCarlo { samples }` tag).
+    let chained_reroll_mc = format!("10d6{}!kh1", "r>=1".repeat(240));
+    let chained_keep_mc = format!("1000d6!{}", "kh999".repeat(198));
+    let budgeted_mc_cases: &[(&str, &str)] = &[
+        ("uniform_1000d100", "1000d100"),
+        ("dp_1000d1m_kh500", "1000d1000000kh500"),
+        ("capped_reroll_explode_1000d6", "1000d6r>=1!>=1kh500"),
+        ("chained_240_rerolls", &chained_reroll_mc),
+        ("chained_198_keep_drops", &chained_keep_mc),
+    ];
+
+    for &(label, expr_str) in budgeted_mc_cases {
+        assert!(expr_str.len() <= roll_core::MAX_EXPRESSION_BYTES);
+        let expr = parse(expr_str).unwrap();
+        let t0 = Instant::now();
+        let rep = analyze(&expr).unwrap();
+        let elapsed = t0.elapsed();
+        assert!(
+            elapsed < bound,
+            "{label} exceeded time bound {:?}: {:?}",
+            bound,
+            elapsed
+        );
+        match rep.method {
+            AnalysisMethod::MonteCarlo { samples } => {
+                assert!(
+                    (50..DEFAULT_MONTE_CARLO_SAMPLES).contains(&samples),
+                    "{label} unexpected MC sample count {samples}"
+                );
+            }
+            other => panic!("{label} expected MonteCarlo, got {other:?}"),
+        }
+        let mass = sum_pmf_compensated(&rep.distribution);
+        assert_close(mass, 1.0, 1e-12, label);
+    }
+
+    // 5. §5.4 Divisor-first interaction with the AST-wide budget: an oversized left sibling on `+`
+    //    must NOT starve an exact divisor with reachable `0` on the right!
+    assert_eq!(
+        analyze(&parse("500d1000+(1d6/(5d20-5))").unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+    let spine_then_zero_div = format!(
+        "{}+(1d6/(5d20-5))",
+        vec!["(3163*d3162+d3162)"; 40].join("+")
+    );
+    assert!(spine_then_zero_div.len() <= roll_core::MAX_EXPRESSION_BYTES);
+    assert_eq!(
+        analyze(&parse(&spine_then_zero_div).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+}
+
+#[test]
+fn regression_flaky_proptest_5d9_compound_keep_lowest_returns_monte_carlo() {
+    // Regression for CI run 43596669077: each `d9!!>2` die has 908 reachable outcomes up to
+    // `MAX_EXPLOSIONS = 100` (`1..=909` skipping `3`), so `5d9!!>2kl2` legitimately requires
+    // ~10.29M order-statistic DP transitions across `dp[0..=5]`, exceeding `MAX_EXACT_STATES`
+    // (`10,000,000`) and falling back to `AnalysisMethod::MonteCarlo` (PR #17 bounded the
+    // exact-only proptest generator accordingly).
+    let expr = parse("5d9!!>2kl2 / -2").unwrap();
+    assert_eq!(expr.to_canonical_string(), "5d9!!>2kl2/-2");
+
+    let rep = analyze(&expr).unwrap();
+    assert_eq!(
+        rep.method,
+        AnalysisMethod::MonteCarlo {
+            samples: DEFAULT_MONTE_CARLO_SAMPLES,
+        }
+    );
+    assert!(rep.stats.min >= -909 && rep.stats.max <= -1);
+    let mass = sum_pmf_compensated(&rep.distribution);
+    assert_close(mass, 1.0, 1e-12, "5d9!!>2kl2/-2 mass");
+    assert_eq!(
+        rep.distribution
+            .target_for_probability(1.0, TargetDirection::AtMost)
+            .unwrap(),
+        rep.stats.max
     );
 }

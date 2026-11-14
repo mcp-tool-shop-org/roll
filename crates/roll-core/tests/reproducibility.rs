@@ -12,7 +12,7 @@ fn cross_target_conformance_manifest_matches_committed_bytes_and_digest() {
         "MANIFEST.sha256 entries differed on target"
     );
     assert_eq!(
-        bundle.manifest_sha256, "3533b69c95de895aaa84b2e6df05c93bed7b7fbc914e6693981bb395f3f8ccbf",
+        bundle.manifest_sha256, "e8ae39428b7fd1e73e19f368fca2cdb979c43deac0c714da1eef7a4386d4ef25",
         "top-level MANIFEST.sha256 digest differed on target"
     );
 }
