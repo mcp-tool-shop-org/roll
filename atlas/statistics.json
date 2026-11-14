@@ -49,7 +49,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "roll-cli",
-      "qualifyingSourceCommits": 0,
+      "qualifyingSourceCommits": 1,
       "rebaseline": null
     },
     {
@@ -67,7 +67,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "roll-core",
-      "qualifyingSourceCommits": 0,
+      "qualifyingSourceCommits": 1,
       "rebaseline": null
     },
     {
@@ -117,7 +117,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "src",
-      "qualifyingSourceCommits": 16,
+      "qualifyingSourceCommits": 18,
       "rebaseline": null
     },
     {
@@ -133,7 +133,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "tests",
-      "qualifyingSourceCommits": 16,
+      "qualifyingSourceCommits": 19,
       "rebaseline": null
     }
   ],
@@ -141,13 +141,13 @@
     "definition": "commits is how many commits in the window touch the file, including merges and commits dropped from coupling. lines is added plus deleted in those commits.",
     "files": [
       {
-        "commits": 2,
-        "lines": 12,
+        "commits": 3,
+        "lines": 18,
         "path": ".gitattributes"
       },
       {
-        "commits": 18,
-        "lines": 396,
+        "commits": 19,
+        "lines": 451,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -161,23 +161,23 @@
         "path": ".github/workflows/release.yml"
       },
       {
-        "commits": 3,
-        "lines": 5,
+        "commits": 4,
+        "lines": 7,
         "path": ".gitignore"
       },
       {
-        "commits": 10,
-        "lines": 143,
+        "commits": 19,
+        "lines": 197,
         "path": "CHANGELOG.md"
       },
       {
-        "commits": 2,
-        "lines": 978,
+        "commits": 3,
+        "lines": 1467,
         "path": "Cargo.lock"
       },
       {
-        "commits": 2,
-        "lines": 52,
+        "commits": 3,
+        "lines": 78,
         "path": "Cargo.toml"
       },
       {
@@ -231,33 +231,33 @@
         "path": "SECURITY.md"
       },
       {
-        "commits": 4,
-        "lines": 84,
+        "commits": 7,
+        "lines": 90,
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 9,
-        "lines": 363,
+        "commits": 12,
+        "lines": 460,
         "path": "atlas/README.md"
       },
       {
-        "commits": 4,
-        "lines": 68,
+        "commits": 5,
+        "lines": 80,
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 9,
-        "lines": 1415,
+        "commits": 12,
+        "lines": 1932,
         "path": "atlas/page.json"
       },
       {
-        "commits": 9,
-        "lines": 2429,
+        "commits": 12,
+        "lines": 3034,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 9,
-        "lines": 18654,
+        "commits": 12,
+        "lines": 21385,
         "path": "atlas/structure.json"
       },
       {
@@ -266,133 +266,158 @@
         "path": "codecov.yml"
       },
       {
-        "commits": 2,
-        "lines": 44,
+        "commits": 3,
+        "lines": 66,
         "path": "crates/roll-cli/Cargo.toml"
       },
       {
-        "commits": 2,
-        "lines": 194,
+        "commits": 3,
+        "lines": 291,
         "path": "crates/roll-cli/src/lib.rs"
       },
       {
-        "commits": 2,
-        "lines": 22,
+        "commits": 3,
+        "lines": 33,
         "path": "crates/roll-cli/src/main.rs"
       },
       {
-        "commits": 2,
-        "lines": 306,
+        "commits": 5,
+        "lines": 521,
         "path": "crates/roll-cli/tests/cli_fixtures.rs"
       },
       {
-        "commits": 2,
-        "lines": 52,
+        "commits": 3,
+        "lines": 78,
         "path": "crates/roll-core/Cargo.toml"
       },
       {
         "commits": 2,
-        "lines": 760,
+        "lines": 3442,
+        "path": "crates/roll-core/src/analyze.rs"
+      },
+      {
+        "commits": 5,
+        "lines": 1148,
         "path": "crates/roll-core/src/ast.rs"
       },
       {
-        "commits": 2,
-        "lines": 182,
+        "commits": 3,
+        "lines": 273,
         "path": "crates/roll-core/src/canonical_json.rs"
       },
       {
-        "commits": 2,
-        "lines": 432,
+        "commits": 3,
+        "lines": 648,
         "path": "crates/roll-core/src/codec.rs"
       },
       {
-        "commits": 2,
-        "lines": 2468,
+        "commits": 5,
+        "lines": 4506,
         "path": "crates/roll-core/src/conformance.rs"
       },
       {
-        "commits": 2,
-        "lines": 410,
+        "commits": 5,
+        "lines": 645,
         "path": "crates/roll-core/src/error.rs"
       },
       {
-        "commits": 2,
-        "lines": 792,
+        "commits": 5,
+        "lines": 1664,
         "path": "crates/roll-core/src/eval.rs"
       },
       {
-        "commits": 2,
-        "lines": 90,
+        "commits": 5,
+        "lines": 167,
         "path": "crates/roll-core/src/lib.rs"
       },
       {
         "commits": 2,
-        "lines": 1188,
+        "lines": 254,
+        "path": "crates/roll-core/src/math.rs"
+      },
+      {
+        "commits": 5,
+        "lines": 1826,
         "path": "crates/roll-core/src/parser.rs"
       },
       {
-        "commits": 2,
-        "lines": 532,
+        "commits": 3,
+        "lines": 798,
         "path": "crates/roll-core/src/receipt.rs"
       },
       {
-        "commits": 2,
-        "lines": 630,
+        "commits": 3,
+        "lines": 945,
         "path": "crates/roll-core/src/rng.rs"
       },
       {
         "commits": 2,
-        "lines": 780,
+        "lines": 1122,
+        "path": "crates/roll-core/tests/analyzer.rs"
+      },
+      {
+        "commits": 5,
+        "lines": 1482,
         "path": "crates/roll-core/tests/grammar_and_eval.rs"
       },
       {
         "commits": 2,
-        "lines": 710,
+        "lines": 400,
+        "path": "crates/roll-core/tests/oracle.rs"
+      },
+      {
+        "commits": 5,
+        "lines": 1527,
         "path": "crates/roll-core/tests/properties.rs"
       },
       {
-        "commits": 2,
-        "lines": 496,
+        "commits": 5,
+        "lines": 880,
         "path": "crates/roll-core/tests/receipts.rs"
       },
       {
-        "commits": 2,
-        "lines": 36,
+        "commits": 5,
+        "lines": 58,
         "path": "crates/roll-core/tests/reproducibility.rs"
       },
       {
-        "commits": 2,
-        "lines": 464,
+        "commits": 3,
+        "lines": 696,
         "path": "crates/roll-core/tests/rng_and_address.rs"
       },
       {
-        "commits": 2,
-        "lines": 11652,
+        "commits": 3,
+        "lines": 17478,
         "path": "fixtures/conformance/v3/01_kdf_and_rng.json"
       },
       {
-        "commits": 2,
-        "lines": 3884,
+        "commits": 5,
+        "lines": 6150,
         "path": "fixtures/conformance/v3/02_grammar_and_ast.json"
       },
       {
-        "commits": 2,
-        "lines": 3524,
+        "commits": 3,
+        "lines": 5286,
         "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
       },
       {
         "commits": 2,
-        "lines": 6,
+        "lines": 13864,
+        "path": "fixtures/conformance/v3/04_exact_analysis.json"
+      },
+      {
+        "commits": 5,
+        "lines": 15,
         "path": "fixtures/conformance/v3/MANIFEST.sha256"
       },
       {
-        "commits": 9,
-        "lines": 3624,
+        "commits": 12,
+        "lines": 3636,
         "path": "package-lock.json"
       },
       {
-        "commits": 9,
-        "lines": 25,
+        "commits": 12,
+        "lines": 31,
         "path": "package.json"
       },
       {
@@ -446,13 +471,13 @@
         "path": "site/src/site-config.ts"
       },
       {
-        "commits": 8,
-        "lines": 1867,
+        "commits": 11,
+        "lines": 2038,
         "path": "src/analyze/distribution.ts"
       },
       {
-        "commits": 3,
-        "lines": 29,
+        "commits": 7,
+        "lines": 164,
         "path": "src/analyze/montecarlo.ts"
       },
       {
@@ -461,8 +486,8 @@
         "path": "src/analyze/stats.ts"
       },
       {
-        "commits": 8,
-        "lines": 1056,
+        "commits": 11,
+        "lines": 1113,
         "path": "src/bin.ts"
       },
       {
@@ -501,9 +526,14 @@
         "path": "src/display/histogram.ts"
       },
       {
-        "commits": 3,
-        "lines": 22,
+        "commits": 7,
+        "lines": 1202,
         "path": "src/engine/pipeline.ts"
+      },
+      {
+        "commits": 3,
+        "lines": 99,
+        "path": "src/engine/random.ts"
       },
       {
         "commits": 2,
@@ -516,8 +546,8 @@
         "path": "src/entry.ts"
       },
       {
-        "commits": 5,
-        "lines": 135,
+        "commits": 8,
+        "lines": 138,
         "path": "src/index.ts"
       },
       {
@@ -526,8 +556,8 @@
         "path": "src/loot/table.ts"
       },
       {
-        "commits": 7,
-        "lines": 561,
+        "commits": 10,
+        "lines": 588,
         "path": "src/mcp/server.ts"
       },
       {
@@ -566,13 +596,13 @@
         "path": "src/tables/validate.ts"
       },
       {
-        "commits": 4,
-        "lines": 2136,
+        "commits": 7,
+        "lines": 2334,
         "path": "tests/analyze-correctness.test.ts"
       },
       {
-        "commits": 4,
-        "lines": 214,
+        "commits": 9,
+        "lines": 652,
         "path": "tests/analyze-cost.test.ts"
       },
       {
@@ -666,6 +696,11 @@
         "path": "tests/muse-target.test.ts"
       },
       {
+        "commits": 3,
+        "lines": 696,
+        "path": "tests/pipeline.test.ts"
+      },
+      {
         "commits": 1,
         "lines": 5,
         "path": "tests/roller.test.ts"
@@ -696,17 +731,17 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T11:31:39.532Z",
+  "generatedAt": "2026-11-14T12:56:51.090Z",
   "generatedFrom": {
-    "commit": "f5002bc8b82c4931df2078dcda95713f2adfc6bb"
+    "commit": "2742ebb4d8df45951e6ec11e15f931485238845b"
   },
   "pairs": [
     {
       "a": "README.md",
       "b": "src/bin.ts",
-      "either": 7,
+      "either": 8,
       "shared": 5,
-      "strength": 0.714286
+      "strength": 0.625
     },
     {
       "a": "README.md",
@@ -725,37 +760,79 @@
     {
       "a": "README.md",
       "b": "src/mcp/server.ts",
-      "either": 6,
-      "shared": 5,
-      "strength": 0.833333
-    },
-    {
-      "a": "package-lock.json",
-      "b": "package.json",
-      "either": 10,
-      "shared": 5,
-      "strength": 0.5
-    },
-    {
-      "a": "src/bin.ts",
-      "b": "src/bridge/handler.ts",
-      "either": 7,
-      "shared": 6,
-      "strength": 0.857143
-    },
-    {
-      "a": "src/bin.ts",
-      "b": "src/display/format.ts",
       "either": 7,
       "shared": 5,
       "strength": 0.714286
     },
     {
+      "a": "atlas/README.md",
+      "b": "atlas/page.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/statistics.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/README.md",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/page.json",
+      "b": "atlas/statistics.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/page.json",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "atlas/statistics.json",
+      "b": "atlas/structure.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "package-lock.json",
+      "b": "package.json",
+      "either": 11,
+      "shared": 6,
+      "strength": 0.545455
+    },
+    {
+      "a": "src/bin.ts",
+      "b": "src/bridge/handler.ts",
+      "either": 8,
+      "shared": 6,
+      "strength": 0.75
+    },
+    {
+      "a": "src/bin.ts",
+      "b": "src/display/format.ts",
+      "either": 8,
+      "shared": 5,
+      "strength": 0.625
+    },
+    {
       "a": "src/bin.ts",
       "b": "src/mcp/server.ts",
-      "either": 7,
-      "shared": 6,
-      "strength": 0.857143
+      "either": 8,
+      "shared": 7,
+      "strength": 0.875
     },
     {
       "a": "src/bridge/handler.ts",
@@ -767,20 +844,20 @@
     {
       "a": "src/bridge/handler.ts",
       "b": "src/mcp/server.ts",
-      "either": 6,
+      "either": 7,
       "shared": 6,
-      "strength": 1
+      "strength": 0.857143
     },
     {
       "a": "src/display/format.ts",
       "b": "src/mcp/server.ts",
-      "either": 7,
+      "either": 8,
       "shared": 4,
-      "strength": 0.571429
+      "strength": 0.5
     }
   ],
   "parameters": {
-    "appliedChangesetLimit": 32.75,
+    "appliedChangesetLimit": 33,
     "changeset": 50,
     "changesetFraction": 0.25,
     "cohesionDrop": 0.2,
@@ -789,16 +866,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T05:42:02-05:00",
-    "inScopeFiles": 131,
+    "headDate": "2026-11-14T07:20:14-05:00",
+    "inScopeFiles": 132,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 37,
+    "qualifyingCommits": 44,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T10:42:02.000Z",
+    "since": "2026-05-18T12:20:14.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 use crate::analyze::{AnalysisMethod, DistributionStats, TargetDirection, analyze, compare};
-use crate::ast::Expr;
+use crate::ast::{Expr, MAX_TOTAL_DRAWS};
 use crate::canonical_json::{cmp_utf16_code_units, to_canonical_json};
 use crate::codec::{encode_hex_lower, encode_u64_hex};
 use crate::error::{ReceiptVerifyError, RollError};
@@ -120,7 +120,22 @@ struct RollsAndReceiptsFile {
     canonical_json_cases: Vec<CanonicalJsonCase>,
     valid_receipts: Vec<ValidReceiptCase>,
     tampered_receipts: Vec<TamperedReceiptCase>,
+    draw_budget_cases: Vec<DrawBudgetCase>,
     ten_thousand_receipts_sha256: String,
+}
+
+#[derive(serde::Serialize)]
+struct DrawBudgetCase {
+    description: &'static str,
+    expression: String,
+    seed_int64: String,
+    expected_outcome: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expected_total: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expected_raw_draws_count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expected_limit: Option<u32>,
 }
 
 #[derive(serde::Serialize)]
@@ -1031,7 +1046,10 @@ fn build_03_rolls_and_receipts() -> RollsAndReceiptsFile {
     let tampered_receipts = build_50_tampered_receipts(&base_receipt_structs);
     assert_eq!(tampered_receipts.len(), 50);
 
-    // 4. Spec §2.4 10,000-receipt canonical JSON running SHA-256 digest.
+    // 4. Per-evaluation RNG draw budget boundary and multi-group cases (`MAX_TOTAL_DRAWS = 2,100,000`).
+    let draw_budget_cases = build_draw_budget_cases();
+
+    // 5. Spec §2.4 10,000-receipt canonical JSON running SHA-256 digest.
     let ten_thousand_receipts_sha256 = compute_10k_receipts_sha256();
 
     RollsAndReceiptsFile {
@@ -1039,8 +1057,88 @@ fn build_03_rolls_and_receipts() -> RollsAndReceiptsFile {
         canonical_json_cases,
         valid_receipts,
         tampered_receipts,
+        draw_budget_cases,
         ten_thousand_receipts_sha256,
     }
+}
+
+fn build_draw_budget_cases() -> Vec<DrawBudgetCase> {
+    let inputs: [(&str, String, &'static str); 5] = [
+        (
+            "exact draw budget boundary pass (2,100,000 draws)",
+            String::from("10000d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1"),
+            "ok",
+        ),
+        (
+            "one draw over budget fails (2,100,001 draws)",
+            String::from(
+                "9999d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1+1d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1",
+            ),
+            "draw_budget_exceeded",
+        ),
+        (
+            "multi-group shared evaluation counter exceeds budget (1,060,000 + 1,060,000 draws)",
+            String::from(
+                "5000d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1+5000d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1",
+            ),
+            "draw_budget_exceeded",
+        ),
+        (
+            "stacked unlimited rerolls DoS expression 10000d1 + r=1 x 330 fails at budget",
+            format!("10000d1{}", "r=1".repeat(330)),
+            "draw_budget_exceeded",
+        ),
+        (
+            "legitimate capped explosion worst case 10000d6!>=1 passes (1,010,000 draws)",
+            String::from("10000d6!>=1"),
+            "ok",
+        ),
+    ];
+
+    let seed_int64: i64 = 42;
+    let addr = RollAddress::new(SeedMaterial::Int64(seed_int64), 0, "cli", "", 0);
+    let mut out = Vec::with_capacity(inputs.len());
+
+    for (description, expression, expected_outcome) in inputs {
+        let ast = parse(&expression).expect("draw budget fixture expression must parse");
+        let mut rng = RollRng::from_address(&addr).expect("valid fixture address");
+        match evaluate_with_rng(&ast, &mut rng) {
+            Ok(outcome) => {
+                assert_eq!(expected_outcome, "ok", "expected failure for {description}");
+                out.push(DrawBudgetCase {
+                    description,
+                    expression,
+                    seed_int64: seed_int64.to_string(),
+                    expected_outcome: "ok",
+                    expected_total: Some(outcome.total.to_string()),
+                    expected_raw_draws_count: Some(rng.draws().len()),
+                    expected_limit: None,
+                });
+            }
+            Err(RollError::DrawBudgetExceeded { limit }) => {
+                assert_eq!(
+                    expected_outcome, "draw_budget_exceeded",
+                    "unexpected budget failure for {description}"
+                );
+                assert_eq!(limit, MAX_TOTAL_DRAWS);
+                assert_eq!(rng.draws().len(), MAX_TOTAL_DRAWS as usize);
+                out.push(DrawBudgetCase {
+                    description,
+                    expression,
+                    seed_int64: seed_int64.to_string(),
+                    expected_outcome: "draw_budget_exceeded",
+                    expected_total: None,
+                    expected_raw_draws_count: None,
+                    expected_limit: Some(limit),
+                });
+            }
+            Err(other) => {
+                panic!("unexpected error in draw budget fixture '{description}': {other}")
+            }
+        }
+    }
+
+    out
 }
 
 fn build_canonical_json_case(description: &'static str, input: Value) -> CanonicalJsonCase {
@@ -1379,6 +1477,7 @@ fn classify_analyze_error(err: &RollError) -> &'static str {
     match err {
         RollError::DivisionByZero => "division_by_zero",
         RollError::AnalysisBudgetExceeded { .. } => "analysis_budget_exceeded",
+        RollError::DrawBudgetExceeded { .. } => "draw_budget_exceeded",
         RollError::ArithmeticOverflow => "arithmetic_overflow",
         RollError::InvalidProbability { .. } => "invalid_probability",
         _ => "other",
@@ -1604,6 +1703,11 @@ fn build_04_exact_analysis() -> ExactAnalysisFile {
             "i64::MIN / -1 floor division overflow in analyzer (-9223372036854775808)/-1",
             "(-9223372036854775808)/-1",
             "arithmetic_overflow",
+        ),
+        (
+            "Monte Carlo draw budget exceeded surfaces on first sample without 100k retries",
+            "1000d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1!kh1",
+            "draw_budget_exceeded",
         ),
     ];
 

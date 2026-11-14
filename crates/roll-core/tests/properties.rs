@@ -510,7 +510,9 @@ fn arb_exact_analyzable_expr() -> impl Strategy<Value = Expr> {
                 sort,
             )| {
                 // Avoid Standard/Penetrate + non-empty keep_drop (`4d6!kh3` is the §5.1 MC case)
-                // and cap Percentile explosions with keep_drop so state space stays compact.
+                // and bound exploding / Percentile groups so intermediate DP and binary state
+                // products remain strictly below `MAX_EXACT_STATES = 10_000_000` on every seed
+                // (e.g. `5d9!!>2kl2` has ~909 faces x 5 dice > 10M DP transitions).
                 let explode = if sides == DiceSides::Fate || sides == DiceSides::Percentile {
                     None
                 } else {
@@ -527,14 +529,22 @@ fn arb_exact_analyzable_expr() -> impl Strategy<Value = Expr> {
                         None => None,
                     }
                 };
-                let effective_count = if sides == DiceSides::Percentile && !keep_drop.is_empty() {
+                let effective_sides = match (sides, explode.is_some()) {
+                    (DiceSides::Standard(n), true) if n.get() > 3 => {
+                        DiceSides::Standard(NonZeroU32::new(2 + (n.get() % 2)).unwrap())
+                    }
+                    _ => sides,
+                };
+                let effective_count = if explode.is_some() {
                     c.min(3)
+                } else if effective_sides == DiceSides::Percentile {
+                    c.min(2)
                 } else {
                     c
                 };
                 Expr::Dice(DiceSpec {
                     count: NonZeroU32::new(effective_count).unwrap(),
-                    sides,
+                    sides: effective_sides,
                     reroll_unlimited,
                     reroll_once,
                     clamp,
@@ -546,16 +556,32 @@ fn arb_exact_analyzable_expr() -> impl Strategy<Value = Expr> {
             },
         );
 
+    let compact_mul_lhs = prop_oneof![
+        (-5i64..=5i64).prop_map(Expr::Number),
+        (1u32..=2u32, 2u32..=4u32).prop_map(|(c, s)| {
+            Expr::Dice(DiceSpec {
+                count: NonZeroU32::new(c).unwrap(),
+                sides: DiceSides::Standard(NonZeroU32::new(s).unwrap()),
+                reroll_unlimited: Vec::new(),
+                reroll_once: Vec::new(),
+                clamp: None,
+                explode: None,
+                keep_drop: Vec::new(),
+                mode: ResultMode::Sum {
+                    crit_success_max: false,
+                    crit_failure_min: false,
+                },
+                sort: None,
+            })
+        }),
+    ];
+
     let leaf = prop_oneof![(-20i64..=20i64).prop_map(Expr::Number), exact_dice];
-    leaf.prop_recursive(2, 5, 2, |inner| {
+    leaf.prop_recursive(2, 5, 2, move |inner| {
         prop_oneof![
             inner.clone().prop_map(|e| Expr::UnaryNeg(Box::new(e))),
             (
-                prop_oneof![
-                    Just(BinaryOp::Add),
-                    Just(BinaryOp::Sub),
-                    Just(BinaryOp::Mul),
-                ],
+                prop_oneof![Just(BinaryOp::Add), Just(BinaryOp::Sub)],
                 inner.clone(),
                 inner.clone(),
             )
@@ -564,6 +590,11 @@ fn arb_exact_analyzable_expr() -> impl Strategy<Value = Expr> {
                     left: Box::new(left),
                     right: Box::new(right),
                 }),
+            (compact_mul_lhs.clone(), inner.clone()).prop_map(|(left, right)| Expr::Binary {
+                op: BinaryOp::Mul,
+                left: Box::new(left),
+                right: Box::new(right),
+            }),
             (inner, prop_oneof![-6i64..=-1i64, 1i64..=6i64],).prop_map(|(left, div)| {
                 Expr::Binary {
                     op: BinaryOp::DivFloor,

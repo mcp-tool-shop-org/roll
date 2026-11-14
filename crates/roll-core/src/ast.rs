@@ -16,6 +16,35 @@ pub const MAX_DIE_SIDES: u32 = 1_000_000;
 pub const MAX_EXPLOSIONS: u32 = 100;
 /// Maximum iterations per unlimited reroll modifier per die in Stage 2a.
 pub const MAX_REROLLS: u32 = 100;
+/// Maximum raw `u64` RNG draws permitted across one complete expression evaluation (`2,100,000`).
+///
+/// ### Derivation from `eval::roll_single_die` call sites
+/// Across all groups in a parsed expression, `sum(count) <= MAX_TOTAL_DICE_PER_EXPR = 10,000`.
+/// For an expression carrying **at most one modifier of each kind** per group, each base die can
+/// invoke `roll_single_die` at most:
+/// - **Stage 1** (initial roll): `1` draw
+/// - **Stage 2a** (one unlimited reroll `r`, capped at `MAX_REROLLS = 100`): `100` draws
+/// - **Stage 2b** (one reroll-once `ro`): `1` draw
+/// - **Stage 3** (`min` / `max` clamp): `0` draws
+/// - **Stage 4** (one explosion `!` / `!!` / `!p`, singleton enforced by the parser and capped at
+///   `MAX_EXPLOSIONS = 100` per initial die; exploded children are added after Stages 2a/2b): `100` draws
+/// - **Stages 5–8** (`keep` / `drop`, `sort`, critical / pool total): `0` draws
+///
+/// That gives at most `1 + 100 + 1 + 100 = 202` die rolls per base die, or
+/// `10,000 * 202 = 2,020,000` die rolls across an entire evaluation (whether in one group or split
+/// across multiple groups). Setting `MAX_TOTAL_DRAWS = 2,100,000` leaves `80,000` raw `u64` draws
+/// of headroom (covering any 64-bit Lemire rejection-sampling retries, whose per-draw retry
+/// probability for `s <= MAX_DIE_SIDES = 1,000,000` is `(2^64 mod s) / 2^64 < 5.5e-14`) while
+/// aborting stacked-reroll expressions (such as `10000d1` + `r=1` × 330) in milliseconds.
+pub const MAX_TOTAL_DRAWS: u32 = 2_100_000;
+
+const _: () = {
+    let worst_case_single_mod_per_die = 1 + MAX_REROLLS + 1 + MAX_EXPLOSIONS;
+    assert!(worst_case_single_mod_per_die == 202);
+    let worst_case_expr_draws = MAX_TOTAL_DICE_PER_EXPR * worst_case_single_mod_per_die;
+    assert!(worst_case_expr_draws == 2_020_000);
+    assert!(MAX_TOTAL_DRAWS > worst_case_expr_draws);
+};
 
 /// Comparison operator for dice modifiers (`r`, `ro`, `!`, `!!`, `!p`, `cs`, `cf`).
 #[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

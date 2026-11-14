@@ -1758,5 +1758,44 @@
       "expected_error_code": "malformed_json"
     }
   ],
+  "draw_budget_cases": [
+    {
+      "description": "exact draw budget boundary pass (2,100,000 draws)",
+      "expression": "10000d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1",
+      "seed_int64": "42",
+      "expected_outcome": "ok",
+      "expected_total": "10000",
+      "expected_raw_draws_count": 2100000
+    },
+    {
+      "description": "one draw over budget fails (2,100,001 draws)",
+      "expression": "9999d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1+1d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1",
+      "seed_int64": "42",
+      "expected_outcome": "draw_budget_exceeded",
+      "expected_limit": 2100000
+    },
+    {
+      "description": "multi-group shared evaluation counter exceeds budget (1,060,000 + 1,060,000 draws)",
+      "expression": "5000d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1+5000d1r=1r=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1ro=1",
+      "seed_int64": "42",
+      "expected_outcome": "draw_budget_exceeded",
+      "expected_limit": 2100000
+    },
+    {
+      "description": "stacked unlimited rerolls DoS expression 10000d1 + r=1 x 330 fails at budget",
+      "expression": "10000d1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1r=1",
+      "seed_int64": "42",
+      "expected_outcome": "draw_budget_exceeded",
+      "expected_limit": 2100000
+    },
+    {
+      "description": "legitimate capped explosion worst case 10000d6!>=1 passes (1,010,000 draws)",
+      "expression": "10000d6!>=1",
+      "seed_int64": "42",
+      "expected_outcome": "ok",
+      "expected_total": "3536322",
+      "expected_raw_draws_count": 1010000
+    }
+  ],
   "ten_thousand_receipts_sha256": "427ba348d881b78a311d2caddc4b3cb8443aefdaeadb05848ec82b8599d040e8"
 }

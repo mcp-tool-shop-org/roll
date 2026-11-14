@@ -45,38 +45,45 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 5,
-      "changed": 14,
+      "added": 1,
+      "changed": 26,
       "moved": 0,
-      "parts": 4,
+      "parts": 5,
       "removed": 0
     },
     "items": [
       {
-        "kind": "landing",
-        "sentence": "fixtures/conformance/v3/04_exact_analysis.json is now read by crates/roll-cli/tests/cli_fixtures.rs.",
-        "subjects": [
-          "fixtures/conformance/v3/04_exact_analysis.json",
-          "crates/roll-cli/tests/cli_fixtures.rs"
-        ]
-      },
-      {
         "kind": "counts",
-        "sentence": "5 files added and 14 changed content, across 4 parts.",
+        "sentence": "Nothing structural changed since 2026-11-14; 1 file added and 26 changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "caeb56c6a5e00dfcd5e392a0e971d5b370c8e9e6",
-      "generatedAt": "2026-11-14T09:41:39.382Z"
+      "commit": "f5002bc8b82c4931df2078dcda95713f2adfc6bb",
+      "generatedAt": "2026-11-14T11:31:39.532Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [
     {
+      "a": "src/bin.ts",
+      "b": "src/mcp/server.ts",
+      "either": 8,
+      "partLabels": [
+        "src",
+        "src"
+      ],
+      "parts": [
+        "src",
+        "src"
+      ],
+      "relation": "inside",
+      "shared": 7
+    },
+    {
       "a": "src/bridge/handler.ts",
       "b": "src/mcp/server.ts",
-      "either": 6,
+      "either": 7,
       "partLabels": [
         "src",
         "src"
@@ -91,22 +98,7 @@
     {
       "a": "src/bin.ts",
       "b": "src/bridge/handler.ts",
-      "either": 7,
-      "partLabels": [
-        "src",
-        "src"
-      ],
-      "parts": [
-        "src",
-        "src"
-      ],
-      "relation": "inside",
-      "shared": 6
-    },
-    {
-      "a": "src/bin.ts",
-      "b": "src/mcp/server.ts",
-      "either": 7,
+      "either": 8,
       "partLabels": [
         "src",
         "src"
@@ -121,7 +113,7 @@
     {
       "a": "src/bin.ts",
       "b": "src/display/format.ts",
-      "either": 7,
+      "either": 8,
       "partLabels": [
         "src",
         "src"
@@ -154,9 +146,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "f5002bc8b82c4931df2078dcda95713f2adfc6bb",
+  "commit": "2742ebb4d8df45951e6ec11e15f931485238845b",
   "defaultBranch": "main",
-  "derived": "8 parts, mostly TypeScript (58 files), Rust (22), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).",
+  "derived": "8 parts, mostly TypeScript (58 files), Rust (23), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).",
   "doors": [
     {
       "builds": [
@@ -182,7 +174,7 @@
         {
           "boundary": "roll-core",
           "depth": 0,
-          "files": 19
+          "files": 20
         },
         {
           "boundary": "src",
@@ -203,7 +195,7 @@
         "tests/"
       ],
       "runsCount": 5,
-      "runsMore": 34,
+      "runsMore": 35,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -441,7 +433,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T11:31:39.532Z",
+  "generatedAt": "2026-11-14T12:56:51.090Z",
   "limits": [
     "3 writes and 2 reads go to a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
@@ -478,10 +470,10 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 37,
+  "testFiles": 38,
   "testedBy": {
     "roll-cli": 1,
-    "roll-core": 8,
+    "roll-core": 9,
     "src": 27
   },
   "testedCodeParts": 3,
