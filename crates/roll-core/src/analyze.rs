@@ -1037,12 +1037,19 @@ struct DivisorCheck {
 /// may end an evaluation before the division, so no division counts as `reached == Yes`.
 ///
 /// ### Order and bound
-/// Each division's facts depend only on the expression, never on a shared budget that an earlier
-/// sibling could exhaust, and each round runs for all pending divisors or for none, so reordering
-/// siblings changes the answer only where it changes what the engine evaluates first. The support
-/// pass costs at most `O(nodes * 128^2 * log2(count))` interval operations, and the exact rounds at
-/// most [`MAX_DIVISOR_PREPASS_STATES`] transitions in total and [`MAX_EXACT_LIVE_STATES`] live slots
-/// per divisor.
+/// Each division's support-pass facts depend only on the expression. Rounds 1 and 2 run for every
+/// pending divisor, so no sibling can keep a cheaper divisor undecided there. Round 3 runs for all
+/// pending divisors or for none, under the shared [`MAX_DIVISOR_PREPASS_STATES`] reserve, so it
+/// is the one place where siblings can change whether a divisor is decided (spec `§5.4` item 3
+/// lists the cases where the error kind is not yet guaranteed).
+///
+/// Bounds:
+/// - the support pass costs at most `O(nodes * 128^2 * log2(count))` interval operations;
+/// - rounds 1 and 2 cost at most `D * (2^16 + 2^20)` transitions for `D` distinct pending divisors,
+///   which the 1,000-byte input caps at about 70 to 85 (about `9.5e7` transitions); they are not
+///   bounded by [`MAX_DIVISOR_PREPASS_STATES`];
+/// - round 3 costs at most what is left of [`MAX_DIVISOR_PREPASS_STATES`];
+/// - every round uses at most [`MAX_EXACT_LIVE_STATES`] live slots per divisor.
 fn precheck_divisors(expr: &Expr) -> Result<DivisorCheck, RollError> {
     let mut check = DivisorCheck {
         unchecked: 0,
