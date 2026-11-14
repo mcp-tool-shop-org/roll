@@ -32,21 +32,21 @@ Roll prend en charge la norme complète de notation Roll20/VTT, couvrant D&D, Wo
 | Notation | Signification |
 |----------|---------|
 | `2d6` | Lance 2 dés à six faces |
-| `d20+5` | Lance un d20, ajoute un modificateur |
+| `d20+5` | Lance d20, ajoute un modificateur |
 | `4d6kh3` | Lance 4d6, conserve les 3 plus élevés |
 | `4d6dl1` | Lance 4d6, supprime le plus petit |
-| `1d6!` | Explosion (relance au maximum, ajoute) |
+| `1d6!` | Explosif (relance au maximum, ajoute) |
 | `1d6!>4` | Explose à 4 ou plus |
-| `1d6!!` | Composition (somme les explosions dans le même dé) |
-| `1d6!p` | Pénétration (les explosions soustraient 1) |
+| `1d6!!` | Cumulatif (somme les explosions dans le même dé) |
+| `1d6!p` | Pénétrant (les explosions soustraient 1) |
 | `2d6r<2` | Relance les valeurs inférieures à 2 (illimité) |
 | `2d6ro=1` | Relance les 1 une fois |
 | `2d6min3` | Plancher : aucun dé inférieur à 3 |
 | `2d6max5` | Plafond : aucun dé supérieur à 5 |
 | `8d6cs>=5` | Compte les succès (dés >= 5) |
-| `8d6cs>=5cf<=1` | Succès moins les échecs |
+| `8d6cs>=5cf<=1` | Succès moins échecs |
 | `1d20cs>19cf<2` | Marquage des succès/échecs critiques |
-| `4d6sa` / `4d6sd` | Trier par ordre croissant / décroissant |
+| `4d6sa` / `4d6sd` | Trie par ordre croissant/décroissant |
 | `d%` | Pourcentage (1-100) |
 | `4dF` | Dés Fate/Fudge |
 | `(2d6+3)*2` | Arithmétique avec regroupement |
@@ -74,7 +74,7 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 
 ### Requêtes de probabilité
 
-Au-delà de `--at-least`, ces indicateurs répondent aux questions que se pose réellement un concepteur. Chacun affiche une ligne propre et respecte le même étiquetage exact/Monte-Carlo que `--analyze` :
+Au-delà de `--at-least`, ces indicateurs répondent aux questions que se pose réellement un concepteur. Chacun affiche une seule ligne propre et respecte le même étiquetage exact/Monte-Carlo que `--analyze` :
 
 | Indicateur | Réponses |
 |------|---------|
@@ -82,14 +82,14 @@ Au-delà de `--at-least`, ces indicateurs répondent aux questions que se pose r
 | `--at-most N` | P(résultat ≤ N) |
 | `--exactly N` | P(résultat = N) |
 | `--between L..H` | P(L ≤ résultat ≤ H) — accepte également `L,H` |
-| `--target-for P` | La plus grande valeur cible T telle que P(résultat ≥ T) ≥ P (« pour réussir 65 % du temps, la cible ≤ T ») |
-| `--at-most-for P` | La plus petite valeur T telle que P(résultat ≤ T) ≥ P (« 65 % des résultats sont égaux ou inférieurs à T ») |
+| `--target-for P` | La cible la plus grande T telle que P(résultat ≥ T) ≥ P (« pour réussir 65 % du temps, la cible ≤ T ») |
+| `--at-most-for P` | La T la plus petite telle que P(résultat ≤ T) ≥ P (« 65 % des résultats sont égaux ou inférieurs à T ») |
 
 `--compare A B` ajoute désormais un verdict **Versus** en plus des deux blocs de statistiques — P(A gagne), P(égalité), P(B gagne) et la marge moyenne E[A−B] — afin que vous puissiez résoudre directement la question de l’équilibre. Avec `--json`, il contient un objet `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
 
 ### Lancers déterministes (`--seed`)
 
-`--seed <int>` initialise le générateur de nombres aléatoires de sorte qu’un lancer (ou une séquence `--times N` complète) soit reproductible octet par octet — le déterminisme que l’engine, le bridge et le MCP avaient déjà, et qui est maintenant disponible en ligne de commande. La valeur initiale doit être un entier fini ; une valeur initiale incorrecte génère une erreur et quitte le programme. Pour passer une valeur initiale **négative**, utilisez le format `=` (`--seed=-3`), car une valeur avec un tiret au début est ambiguë pour l’analyseur d’arguments. `--json` affiche la valeur `seed` afin que la sortie enregistre exactement ce qui l’a produite.
+`--seed <int>` initialise le générateur de nombres aléatoires de sorte qu’un lancer (ou une séquence `--times N` entière) soit reproductible octet par octet — le déterminisme que le moteur, le pont et le MCP avaient déjà, et qui est désormais disponible en ligne de commande. La valeur initiale doit être un entier fini ; une valeur initiale incorrecte provoque une erreur et l’arrêt du programme. Pour transmettre une valeur initiale **négative**, utilisez le formulaire `=` (`--seed=-3`), car une valeur avec un tiret au début séparé par un espace est ambiguë pour l’analyseur d’arguments. `--json` affiche en écho la valeur `seed` afin que la sortie enregistre exactement ce qui l’a produite.
 
 ```bash
 roll 4d6kh3 --seed 42             # same result every time
@@ -101,25 +101,25 @@ roll 2d6 --seed 99 --json         # output includes "seed": 99
 
 La couleur est activée par défaut. Vous pouvez la désactiver de deux manières :
 
-- `--no-color` — supprime le style ANSI pour une seule invocation
-- `NO_COLOR=1` (variable d’environnement) — respecte la norme [NO_COLOR](https://no-color.org/)
+- `--no-color` — supprime le style ANSI pour une seule exécution
+- `NO_COLOR=1` (variable d’environnement) — respecté conformément à la norme [NO_COLOR](https://no-color.org/)
 
-Lorsque l’analyseur revient à Monte Carlo pour une expression importante ou complexe, `--analyze` et `--at-least` étiquettent le résultat comme étant estimé (avec le nombre d’échantillons) au lieu de présenter les nombres échantillonnés comme étant exacts. Les résultats exacts sont indiqués comme tels. La sortie `--json` contient un champ `method` (`"exact"` ou `"monte-carlo"`, avec `samples` lorsque l’échantillonnage est utilisé) afin que les programmes puissent également les distinguer.
+Lorsque l’analyseur revient à Monte Carlo pour une expression importante ou complexe, `--analyze` et `--at-least` étiquettent le résultat comme étant estimé (avec le nombre d’échantillons) au lieu de présenter les nombres échantillonnés comme étant exacts. Les résultats exacts sont indiqués comme tels — et chaque fois qu’une distribution exacte dépend des limites de boucle finies du moteur (`MAX_EXPLOSIONS = 100`, `MAX_REROLLS = 100`), la note indique la ou les limites modélisées (`exact probabilities (engine caps: ...)`). La sortie `--json` contient `method` (`"exact"` ou `"monte-carlo"`), `samples` lorsqu’elle est échantillonnée et `caps` (`{ maxExplosions?: 100, maxRerolls?: 100 }`) lorsque les limites du moteur s’appliquent.
 
 ### Codes de sortie
 
-Roll suit un contrat à deux codes délibéré — une promesse de stabilité sur laquelle les scripts peuvent compter :
+Roll suit un contrat délibéré à deux codes — une promesse de stabilité sur laquelle les scripts peuvent compter :
 
 | Code | Signification |
 |------|---------|
 | `0` | Succès |
 | `1` | Toute erreur — expression incorrecte, échec de la validation, fichier de butin manquant ou limite dépassée |
 
-Les erreurs affichent toujours une ligne propre (code/message/indice) sur stderr ; la ligne de commande ne divulgue jamais de trace de pile.
+Les erreurs affichent toujours une seule ligne propre (code/message/indice) sur stderr ; la ligne de commande ne divulgue jamais de trace de pile.
 
 ## Tables de jeu
 
-La version 2 introduit un système de table de jeu universel pour les rencontres, les coups critiques, le butin, les effets de statut, etc.
+V2 introduit un système de table de jeu universel pour les rencontres, les coups critiques, le butin, les effets de statut, et plus encore.
 
 ```typescript
 import { rollGameTable } from '@mcptoolshop/roll';
@@ -141,7 +141,7 @@ const collection: GameTableCollection = {
 const results = rollGameTable(collection, "critical_hits", { triggerNat: 20, triggerRoll: 25 });
 ```
 
-Fonctionnalités : 8 types de tables, sélection pondérée, conditions (comparaison, résultat, balise, contexte), filtrage par niveau, tables imbriquées, chaînage de tables, expressions de dés pour la quantité/le lancer/la durée, niveaux de rareté, validation avec détection de références circulaires.
+Fonctionnalités : 8 types de tables, sélection pondérée, conditions (comparer, nat, balise, contexte), filtrage par niveau, tables imbriquées, chaînage de tables, expressions de dés pour la quantité/le lancer/la durée, niveaux de rareté, validation avec détection de références circulaires.
 
 ## API de bibliothèque
 
@@ -167,22 +167,27 @@ const r = evaluate(ast, seededRng(42));       // reproducible
 
 ### Stabilité
 
-L’**API de haut niveau est stable** et suit semver — les modifications incompatibles ne sont apportées qu’avec une mise à jour majeure :
+L’**API de haut niveau est stable** et suit semver — les modifications incompatibles ne se produisent qu’au moment d’une mise à jour majeure :
 
 - `roll`, `analyze`
 - les API de butin (`rollLootTable`, `validateLootTables`) et les API de table de jeu (`rollGameTable`)
-- l’interface `BridgeHandler` JSON-RPC
+- la surface `BridgeHandler` JSON-RPC
 
-**Les internes de l’analyseur de bas niveau sont avancés et peuvent changer dans les versions mineures** — ne les utilisez que si vous devez parcourir l’AST vous-même, et fixez une version si vous en dépendez :
+**Les internes de l’analyseur de bas niveau sont avancés et peuvent changer dans les versions mineures** — utilisez-les uniquement si vous devez parcourir l’AST vous-même et fixez une version si vous en dépendez :
 
 - `tokenize`, `Token`, `TokenType`
 - `runPipeline`, `matchesCompare`
 
-`analyze` signale également `.method` (`"exact"` | `"monte-carlo"`) et, pour le chemin échantillonné, `.samples` — afin que les appelants puissent respecter le contrat de probabilités exactes de manière programmatique.
+`analyze` signale également `.method` (`"exact"` | `"monte-carlo"`), `.samples` pour le chemin échantillonné et `.caps` (`{ maxExplosions?: number; maxRerolls?: number }`) sur le chemin exact chaque fois qu’une limite de boucle du moteur est modélisée — afin que les appelants puissent respecter le contrat de probabilités exactes de manière programmatique.
 
-## Bridge JSON (Godot / Unreal / Rust)
+### Exactitude, limites du moteur et division par zéro
 
-Roll inclut un bridge JSON-RPC 2.0 pour l’intégration du moteur de jeu via un processus enfant :
+- **Ce que `"exact"` signifie avec des limites :** En mathématiques pures, les dés explosifs (`!`, `!!`, `!p`) et les relances illimitées (`r`) n’ont pas de support fini. Dans Roll, `method: "exact"` signifie « exact » pour le moteur tel qu’il est conçu (`runPipeline`), y compris ses limites de boucle (`MAX_EXPLOSIONS = 100` : nombre de relances par dé initial ; `MAX_REROLLS = 100` : nombre de relances par modificateur illimité `r`, après quoi la 100e relance est prise en compte). Chaque fois qu’une de ces limites est appliquée, `analyze()` l’affiche dans `.caps` (`{ maxExplosions: 100 }`, `{ maxRerolls: 100 }`) et l’interface en ligne de commande affiche `exact probabilities (engine caps: ...)`. Si le support limité ou la convolution dépassent `10,000,000` états, ou si chaque face correspond à une relance illimitée (`1d6r>=1`), l’analyse revient à `method: "monte-carlo"`.
+- **Division par zéro (`/`) :** `roll()` génère `ParseError("Division by zero")` chaque fois qu’un diviseur évalué est `0`. `analyze()` rejette tout diviseur exact pour lequel $P(\text{diviseur} = 0) > 0$ avec la même `ParseError("Division by zero")`, en évaluant et en vérifiant le diviseur *avant* le dividende, de sorte qu’un grand dividende (`500d1000/(5d20-5)`) ne puisse pas contourner la vérification via `ExactTooLargeError`. Lorsque le diviseur *lui-même* ne peut pas être calculé exactement (par exemple, `1d6/(5d20!kh4-4)`, où `5d20!kh4` combine l’explosion et la conservation/suppression), `analyze()` revient à Monte Carlo (`100,000` essais via `evaluate()`) : si un essai échantillonné atteint `0`, `ParseError("Division by zero")` est généré ; si un résultat zéro rare est manqué lors de l’échantillonnage, le résultat est renvoyé sous forme de `method: "monte-carlo"` (`samples: 100_000`) — jamais `"exact"`.
+
+## Pont JSON (Godot / Unreal / Rust)
+
+Roll inclut un pont JSON-RPC 2.0 pour l’intégration dans un moteur de jeu via un processus enfant :
 
 ```bash
 # Stdio mode (pipe JSON in, get JSON out)
@@ -210,25 +215,25 @@ Roll est fourni en tant que serveur MCP pour l’intégration de Claude pendant 
 }
 ```
 
-5 outils : `roll_dice`, `analyze_dice`, `compare_dice`, `roll_table`, `query_table`.
+5 outils : `roll_dice`, `analyze_dice`, `compare_dice`, `roll_table`, `query_table`.
 
 ## Moteur de probabilité
 
-- **Distributions exactes** via convolution polynomiale pour NdM de base
-- **Énumération complète** pour les mécanismes de conservation/suppression (4d6 = 1 296 états)
-- **Relance analytique** — redistribue la masse de probabilité sur les faces non correspondantes
-- **Min/max analytique** — tronque la distribution et accumule la masse au niveau de la limite
-- **Comptage analytique des succès** — mappe les faces à +1/0/-1, effectue une convolution N fois
-- **Récursion tronquée** pour les dés explosifs/composés/pénétrants
-- **Retour à Monte Carlo** (100 000 échantillons) lorsque le calcul exact dépasse 10 millions d’états
+- **Distributions exactes** via une convolution polynomiale pour les opérations de base NdM
+- **Énumération complète** pour les mécanismes de conservation/suppression (4d6 = 1 296 états)
+- **Relance analytique** : redistribution de masse en forme fermée sur les faces non correspondantes, plus la limite `MAX_REROLLS = 100`
+- **Min/max analytique** : tronque la distribution et accumule la masse au niveau de la limite
+- **Comptage analytique des succès** : mappe les faces à +1/0/-1, effectue une convolution N fois
+- **Expansion exacte de la limite du moteur** pour les dés explosifs/cumulatifs/pénétrants jusqu’à `MAX_EXPLOSIONS = 100`
+- **Retour à Monte Carlo** (100 000 échantillons) lorsque le calcul exact dépasse 10 millions d’états ou combine des explosions à nombre variable avec la conservation/suppression ou le comptage des succès
 
-Chaque modificateur a une analyse de probabilité exacte — et pas seulement une simulation.
+Chaque modificateur dispose d’une analyse de probabilité exacte, et pas seulement d’une simulation.
 
-## Sécurité et confiance
+## Sécurité et fiabilité
 
-Traite uniquement les expressions de dés, et rien d’autre. Aucune requête réseau, aucun écriture de fichier (sauf `--loot` qui lit un fichier JSON), aucune télémétrie, aucun secret. Toutes les opérations de lancer de dés utilisent `crypto.randomInt` pour la génération de nombres aléatoires cryptographiques. Les expressions sont limitées au moment de l’analyse (nombre de dés, nombre de faces, longueur) afin d’éviter l’épuisement des ressources, et tout texte lu à partir d’un fichier `--loot` est débarrassé des caractères de contrôle de terminal avant l’affichage, afin qu’un tableau malveillant ne puisse pas injecter de séquences d’échappement ANSI dans votre terminal.
+Traite les expressions de dés et rien d’autre. Aucune requête réseau, aucun écriture de fichier (sauf `--loot` qui lit un fichier JSON), aucune télémétrie, aucun secret. Toutes les lancers de dés utilisent `crypto.randomInt` pour une génération de nombres aléatoires cryptographiques. Les expressions sont limitées au moment de l’analyse (nombre de dés, faces du dé, longueur) pour éviter l’épuisement des ressources, et tout texte lu dans un fichier `--loot` est débarrassé des caractères de contrôle du terminal avant l’affichage, de sorte qu’une table malveillante ne puisse pas injecter de séquences d’échappement ANSI dans votre terminal.
 
-Consultez le fichier [SECURITY.md](./SECURITY.md) pour connaître la politique de signalement des vulnérabilités.
+Consultez [SECURITY.md](./SECURITY.md) pour connaître la politique de signalement des vulnérabilités.
 
 ## Licence
 

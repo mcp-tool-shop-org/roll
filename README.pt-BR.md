@@ -74,9 +74,9 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 
 ### Consultas de probabilidade
 
-Além de `--at-least`, essas flags respondem às perguntas que um designer realmente faz. Cada uma imprime uma linha limpa e respeita a mesma marcação exata/Monte-Carlo de `--analyze`:
+Além de `--at-least`, esses sinalizadores respondem às perguntas que um designer realmente faz. Cada um imprime uma linha limpa e respeita a mesma formatação exata/Monte-Carlo de `--analyze`:
 
-| Flag | Respostas |
+| Sinalizador | Respostas |
 |------|---------|
 | `--at-least N` | P(resultado ≥ N) |
 | `--at-most N` | P(resultado ≤ N) |
@@ -85,11 +85,11 @@ Além de `--at-least`, essas flags respondem às perguntas que um designer realm
 | `--target-for P` | O maior alvo T, de modo que P(resultado ≥ T) ≥ P ("para acertar 65% das vezes, alvo ≤ T") |
 | `--at-most-for P` | O menor T, de modo que P(resultado ≤ T) ≥ P ("65% dos resultados caem em ou abaixo de T") |
 
-`--compare A B` agora adiciona um veredicto **Versus** além dos dois blocos de estatísticas — P(A vence), P(empate), P(B vence) e a margem média E[A−B] — para que você possa resolver a questão do equilíbrio diretamente. Com `--json`, ele carrega um objeto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
+`--compare A B` agora adiciona um veredicto "**Versus**" além dos dois blocos de estatísticas — P(A vence), P(empate), P(B vence) e a margem média E[A−B] — para que você possa resolver a questão do equilíbrio diretamente. Com `--json`, ele carrega um objeto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
 
 ### Lançamentos determinísticos (`--seed`)
 
-`--seed <int>` inicializa o RNG para que um lançamento (ou uma sequência `--times N` inteira) seja reproduzível byte a byte — o determinismo que o motor, a ponte e o MCP já tinham, agora na CLI. A semente deve ser um inteiro finito; uma semente ruim gera um erro e sai com código 1. Para passar uma semente **negativa**, use o formato `=` (`--seed=-3`), já que um valor com hífen inicial separado por espaços é ambíguo para o analisador de argumentos. `--json` ecoa o `seed` para que a saída registre exatamente o que o produziu.
+`--seed <int>` inicializa o RNG para que um lançamento (ou uma sequência `--times N` inteira) seja reproduzível byte a byte — o determinismo que o motor, a ponte e o MCP já tinham, agora na CLI. A semente deve ser um inteiro finito; uma semente ruim gera um erro e sai com o código 1. Para passar uma semente **negativa**, use o formato `=` (`--seed=-3`), já que um valor com um hífen inicial separado por espaços é ambíguo para o analisador de argumentos. `--json` ecoa o `seed` para que a saída registre exatamente o que o produziu.
 
 ```bash
 roll 4d6kh3 --seed 42             # same result every time
@@ -102,9 +102,9 @@ roll 2d6 --seed 99 --json         # output includes "seed": 99
 A cor está ativada por padrão. Desative-a de duas maneiras:
 
 - `--no-color` — suprime o estilo ANSI para uma única invocação
-- `NO_COLOR=1` (variável de ambiente) — respeitada de acordo com o padrão [NO_COLOR](https://no-color.org/)
+- `NO_COLOR=1` (variável de ambiente) — respeitado de acordo com o padrão [NO_COLOR](https://no-color.org/)
 
-Quando o analisador recorre ao Monte Carlo para uma expressão grande ou complexa, `--analyze` e `--at-least` rotulam o resultado como estimado (com a contagem de amostras) em vez de apresentar os números amostrados como exatos. Os resultados exatos são anotados como tal. A saída `--json` carrega um campo `method` (`"exact"` ou `"monte-carlo"`, com `samples` quando amostrado) para que os consumidores de máquina também possam diferenciá-los.
+Quando o analisador volta ao Monte Carlo para uma expressão grande ou complexa, `--analyze` e `--at-least` rotulam o resultado como estimado (com a contagem de amostras) em vez de apresentar os números amostrados como exatos. Os resultados exatos são anotados como tal — e sempre que uma distribuição exata depende dos limites finitos do loop do motor (`MAX_EXPLOSIONS = 100`, `MAX_REROLLS = 100`), a anotação indica o(s) limite(s) modelado(s) (`exact probabilities (engine caps: ...)`). A saída `--json` carrega `method` (`"exact"` ou `"monte-carlo"`), `samples` quando amostrado e `caps` (`{ maxExplosions?: 100, maxRerolls?: 100 }`) quando os limites do motor se aplicam.
 
 ### Códigos de saída
 
@@ -113,13 +113,13 @@ Roll segue um contrato deliberado de dois códigos — uma promessa de estabilid
 | Código | Significado |
 |------|---------|
 | `0` | Sucesso |
-| `1` | Qualquer erro — expressão inválida, falha na validação, arquivo de saque ausente ou limite excedido |
+| `1` | Qualquer erro — expressão inválida, falha na validação, arquivo de saque ausente ou um limite excedido |
 
 Os erros sempre imprimem uma única linha limpa (código/mensagem/dica) para stderr; a CLI nunca vaza um rastreamento de pilha.
 
 ## Tabelas de jogo
 
-A V2 introduz um sistema universal de tabelas de jogo para encontros, golpes críticos, saques, efeitos de status e muito mais.
+V2 introduz um sistema universal de tabelas de jogo para encontros, golpes críticos, saques, efeitos de status e muito mais.
 
 ```typescript
 import { rollGameTable } from '@mcptoolshop/roll';
@@ -167,22 +167,27 @@ const r = evaluate(ast, seededRng(42));       // reproducible
 
 ### Estabilidade
 
-A **API de alto nível é estável** e segue o semver — alterações significativas apenas em uma atualização principal:
+A **API de alto nível é estável** e segue o semver — alterações que quebram a compatibilidade apenas em uma atualização principal:
 
 - `roll`, `analyze`
-- as APIs de saque (`rollLootTable`, `validateLootTables`) e as APIs de tabela de jogo (`rollGameTable`)
+- as APIs de saque (`rollLootTable`, `validateLootTables`) e as APIs de tabelas de jogo (`rollGameTable`)
 - a superfície `BridgeHandler` JSON-RPC
 
-**Os internos do analisador de baixo nível são avançados e podem mudar em versões secundárias** — use-os apenas se precisar percorrer o AST sozinho e fixar uma versão se depender deles:
+**Os internos do analisador de baixo nível são avançados e podem mudar em versões secundárias** — use-os apenas se precisar percorrer a AST você mesmo e fixar uma versão se depender deles:
 
 - `tokenize`, `Token`, `TokenType`
 - `runPipeline`, `matchesCompare`
 
-`analyze` também relata `.method` (`"exact"` | `"monte-carlo"`) e, para o caminho amostrado, `.samples` — para que os chamadores possam respeitar o contrato de probabilidades exatas programaticamente.
+`analyze` também relata `.method` (`"exact"` | `"monte-carlo"`), `.samples` para o caminho amostrado e `.caps` (`{ maxExplosions?: number; maxRerolls?: number }`) no caminho exato sempre que um limite de loop do motor é modelado — para que os chamadores possam respeitar o contrato de probabilidades exatas programaticamente.
+
+### Exatidão, limites do motor e divisão por zero
+
+- **O que `"exact"` significa com letras maiúsculas:** Na matemática pura, dados explosivos (`!`, `!!`, `!p`) e relançamentos ilimitados (`r`) não têm suporte finito. Em Roll, `method: "exact"` significa exato para o motor conforme construído (`runPipeline`), incluindo seus limites de loop (`MAX_EXPLOSIONS = 100` bônus de relançamentos por dado inicial; `MAX_REROLLS = 100` relançamentos por modificador ilimitado `r`, após o qual o 100º lançamento é considerado). Sempre que qualquer um dos limites for aplicado, `analyze()` o manifesta em `.caps` (`{ maxExplosions: 100 }`, `{ maxRerolls: 100 }`) e a CLI imprime `exact probabilities (engine caps: ...)`. Se o suporte limitado ou a operação de convolução exceder `10,000,000` estados, ou se cada face corresponder a um relançamento ilimitado (`1d6r>=1`), a análise volta para `method: "monte-carlo"`.
+- **Divisão por zero (`/`):** `roll()` lança `ParseError("Division by zero")` sempre que um divisor avaliado é `0`. `analyze()` rejeita qualquer divisor exato com $P(\text{divisor} = 0) > 0$ com o mesmo `ParseError("Division by zero")`, avaliando e verificando o divisor *antes* do dividendo, para que um dividendo grande (`500d1000/(5d20-5)`) não possa ignorar a verificação por meio de `ExactTooLargeError`. Quando o próprio divisor não pode ser calculado exatamente (por exemplo, `1d6/(5d20!kh4-4)`, onde `5d20!kh4` combina explosão e manter/descartar), `analyze()` volta para Monte Carlo (`100,000` tentativas via `evaluate()`): se alguma tentativa amostrada atingir `0`, `ParseError("Division by zero")` é lançado; se um resultado zero raro for perdido na amostragem, o resultado é retornado como `method: "monte-carlo"` (`samples: 100_000`) — nunca `"exact"`.
 
 ## Ponte JSON (Godot / Unreal / Rust)
 
-Roll inclui uma ponte JSON-RPC 2.0 para integração com o mecanismo de jogo por meio de um processo filho:
+Roll inclui uma ponte JSON-RPC 2.0 para integração com o motor de jogo por meio de um processo filho:
 
 ```bash
 # Stdio mode (pipe JSON in, get JSON out)
@@ -212,23 +217,23 @@ Roll é fornecido como um servidor MCP para integração com o Claude durante o 
 
 5 ferramentas: `roll_dice`, `analyze_dice`, `compare_dice`, `roll_table`, `query_table`.
 
-## Mecanismo de probabilidade
+## Motor de Probabilidade
 
-- **Distribuições exatas** via convolução polinomial para NdM básico
+- **Distribuições exatas** por meio de convolução polinomial para NdM básico
 - **Enumeração completa** para mecânicas de manter/descartar (4d6 = 1.296 estados)
-- **Relançamento analítico** — redistribui a massa de probabilidade sobre faces não correspondentes
+- **Relançamento analítico** — redistribuição de massa em forma fechada sobre faces não correspondentes, mais o residual do limite `MAX_REROLLS = 100`
 - **Mínimo/máximo analítico** — trunca a distribuição e acumula massa no limite
-- **Contagem de sucessos analítica** — mapeia faces para +1/0/-1, convolui N vezes
-- **Recursão truncada** para dados explosivos/compostos/penetrantes
-- **Recurso Monte Carlo** (100 mil amostras) quando o cálculo exato excede 10 milhões de estados
+- **Contagem de sucesso analítica** — mapeia faces para +1/0/-1, convolui N vezes
+- **Expansão exata do limite do motor** para dados explosivos/compostos/penetrantes até `MAX_EXPLOSIONS = 100`
+- **Fallback de Monte Carlo** (100 mil amostras) quando o cálculo exato excede 10 milhões de estados ou combina explosões de contagem variável com manter/descartar ou contagem de sucesso
 
 Cada modificador tem análise de probabilidade exata — não apenas simulação.
 
-## Segurança e confiança
+## Segurança e Confiança
 
-Processa expressões de dados e nada mais. Não faz pedidos à rede, não escreve em arquivos (exceto `--loot`, que lê um arquivo JSON), não coleta dados de telemetria, não armazena segredos. Todas as operações de lançamento de dados usam `crypto.randomInt` para gerar aleatoriedade criptográfica. As expressões são limitadas no momento da análise (contagem de dados, número de lados dos dados, comprimento) para evitar o esgotamento de recursos, e qualquer texto lido de um arquivo `--loot` é desprovido de caracteres de controle de terminal antes da exibição, para que uma tabela maliciosa não possa injetar sequências de escape ANSI no seu terminal.
+Processa expressões de dados e nada mais. Sem solicitações de rede, sem gravações de arquivos (exceto `--loot` que lê um JSON), sem telemetria, sem segredos. Todos os lançamentos de dados usam `crypto.randomInt` para aleatoriedade criptográfica. As expressões são limitadas no momento da análise (contagem de dados, lados do dado, comprimento) para evitar o esgotamento de recursos, e qualquer texto lido de um arquivo `--loot` é desprovido de caracteres de controle de terminal antes da exibição, para que uma tabela hostil não possa injetar sequências de escape ANSI em seu terminal.
 
-Consulte [SECURITY.md](./SECURITY.md) para obter informações sobre a política de notificação de vulnerabilidades.
+Consulte [SECURITY.md](./SECURITY.md) para obter a política de relatório de vulnerabilidades.
 
 ## Licença
 
@@ -236,4 +241,4 @@ MIT
 
 ---
 
-Desenvolvido por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+Criado por <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

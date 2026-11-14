@@ -27,7 +27,7 @@ npm install @mcptoolshop/roll
 
 ## 骰子表示法
 
-Roll 支持完整的 Roll20/VTT 表示法标准，涵盖《龙与地下城》、《黑暗世界》、《阴影运行》、《狂野世界》、《命运》等。
+Roll 支持完整的 Roll20/VTT 表示法标准，涵盖 D&D、World of Darkness、Shadowrun、Savage Worlds、Fate 等。
 
 | 表示法 | 含义 |
 |----------|---------|
@@ -48,10 +48,10 @@ Roll 支持完整的 Roll20/VTT 表示法标准，涵盖《龙与地下城》、
 | `1d20cs>19cf<2` | 关键成功/失败标记 |
 | `4d6sa` / `4d6sd` | 升序/降序排序 |
 | `d%` | 百分比（1-100） |
-| `4dF` | 命运/Fudge 骰子 |
+| `4dF` | 命运/Fudge 骰 |
 | `(2d6+3)*2` | 带分组的算术运算 |
 
-## 命令行界面用法
+## 命令行用法
 
 ```bash
 roll 2d6+3                        # Basic roll
@@ -74,7 +74,7 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 
 ### 概率查询
 
-除了 `--at-least` 之外，这些标志回答了设计师真正会问的问题。每个标志都会打印出一行清晰的结果，并遵循与 `--analyze` 相同的精确/蒙特卡洛标记：
+除了 `--at-least` 之外，这些标志回答了设计师真正会问的问题。每个标志都会打印一行清晰的输出，并遵循与 `--analyze` 相同的精确/蒙特卡洛标记：
 
 | 标志 | 答案 |
 |------|---------|
@@ -85,11 +85,11 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 | `--target-for P` | 最大的目标值 T，使得 P(结果 ≥ T) ≥ P（“以 65% 的概率命中，目标 ≤ T”） |
 | `--at-most-for P` | 最小的 T，使得 P(结果 ≤ T) ≥ P（“65% 的结果落在 T 或以下”） |
 
-`--compare A B` 现在还会添加一个“对抗”结果，除了两个统计数据块之外，还会显示 P(A 胜)、P(平局)、P(B 胜) 以及平均差异 E[A−B]，因此您可以直接确定平衡问题。使用 `--json`，它会携带一个 `comparison` 对象（`pAGreater`、`pEqual`、`pBGreater`、`meanMargin`）。
+`--compare A B` 现在在两个状态块之上添加了一个“对抗”结果——P(A 胜出)、P(平局)、P(B 胜出)以及平均差异 E[A−B]，因此您可以直接确定平衡问题。使用 `--json`，它会携带一个 `comparison` 对象（`pAGreater`、`pEqual`、`pBGreater`、`meanMargin`）。
 
 ### 确定性掷骰（`--seed`）
 
-`--seed <int>` 会对随机数生成器进行种子设置，因此一次掷骰（或整个 `--times N` 序列）都是字节级别的可重现的——这是引擎、桥接和 MCP 已经具备的确定性，现在也适用于命令行界面。种子必须是一个有限的整数；如果种子无效，则会报错并退出，返回代码 1。要传递一个**负数**种子，请使用 `=` 形式（`--seed=-3`），因为以空格分隔的负号值对于参数解析器来说是模棱两可的。`--json` 会回显 `seed`，以便输出记录准确地显示了生成它的内容。
+`--seed <int>` 会对随机数生成器进行初始化，因此一次掷骰（或整个 `--times N` 序列）都是可以完全重现的——这是引擎、桥接器和 MCP 已经具备的确定性，现在也适用于命令行。种子必须是有限的整数；如果种子无效，则会报错并退出，返回代码 1。要传递一个**负数**种子，请使用 `=` 形式（`--seed=-3`），因为以空格分隔的前缀负号值对于参数解析器来说是模棱两可的。`--json` 会回显 `seed`，以便输出记录准确地显示了生成它的内容。
 
 ```bash
 roll 4d6kh3 --seed 42             # same result every time
@@ -102,20 +102,20 @@ roll 2d6 --seed 99 --json         # output includes "seed": 99
 默认情况下启用颜色。可以通过以下两种方式禁用它：
 
 - `--no-color`——禁用单个调用的 ANSI 样式
-- `NO_COLOR=1`（环境变量）——遵循 [NO_COLOR](https://no-color.org/) 标准
+- `NO_COLOR=1`（环境变量）——按照 [NO_COLOR](https://no-color.org/) 标准执行
 
-当分析器对大型或复杂的表达式回退到蒙特卡洛方法时，`--analyze` 和 `--at-least` 会将结果标记为估计值（并显示样本数量），而不是将采样数字作为精确值呈现。精确的结果会明确标记为精确值。`--json` 输出会携带一个 `method` 字段（`"exact"` 或 `"monte-carlo"`，采样时为 `samples`），因此机器消费者也可以区分它们。
+当分析器对大型或复杂的表达式回退到蒙特卡洛方法时，`--analyze` 和 `--at-least` 会将结果标记为估计值（并显示样本数量），而不是将采样数字作为精确值呈现。精确的结果会明确标记为精确值——并且，每当精确的分布依赖于引擎的有限循环限制（`MAX_EXPLOSIONS = 100`、`MAX_REROLLS = 100`）时，注释中会说明所建模的限制（`exact probabilities (engine caps: ...)`）。`--json` 输出会携带 `method`（`"exact"` 或 `"monte-carlo"`）、`samples`（当进行采样时），以及 `caps`（`{ maxExplosions?: 100, maxRerolls?: 100 }`）（当应用引擎限制时）。
 
 ### 退出代码
 
-Roll 遵循一种明确的双代码约定——一种脚本可以依赖的稳定性承诺：
+Roll 遵循一种明确的双代码约定——这是一种稳定性承诺，脚本可以依赖它：
 
 | 代码 | 含义 |
 |------|---------|
 | `0` | 成功 |
 | `1` | 任何错误——无效的表达式、验证失败、缺少 loot 文件或超出限制 |
 
-错误始终会向 stderr 打印一行清晰的结果（代码/消息/提示）；命令行界面绝不会泄漏堆栈跟踪。
+错误始终会向 stderr 打印一行清晰的输出（代码/消息/提示）；命令行绝不会泄漏堆栈跟踪。
 
 ## 游戏表格
 
@@ -141,7 +141,7 @@ const collection: GameTableCollection = {
 const results = rollGameTable(collection, "critical_hits", { triggerNat: 20, triggerRoll: 25 });
 ```
 
-功能：8 种表格类型、加权选择、条件（比较、自然值、标签、上下文）、等级过滤、嵌套表格、表格链、用于数量/掷骰/持续时间的骰子表达式、稀有度等级、具有循环引用检测的验证。
+特性：8 种表格类型、加权选择、条件（比较、自然值、标签、上下文）、等级过滤、嵌套表格、表格链、用于数量/掷骰/持续时间的骰子表达式、稀有度等级、具有循环引用检测的验证。
 
 ## 库 API
 
@@ -167,18 +167,23 @@ const r = evaluate(ast, seededRng(42));       // reproducible
 
 ### 稳定性
 
-**高级 API 是稳定的**，并遵循语义版本控制——只有在主要版本更新时才会进行破坏性更改：
+**高级 API 是稳定的，并遵循语义版本控制——只有在主要版本更新时才会进行破坏性更改：**
 
 - `roll`、`analyze`
 - loot API（`rollLootTable`、`validateLootTables`）和游戏表格 API（`rollGameTable`）
-- `BridgeHandler` JSON-RPC 接口
+- `BridgeHandler` JSON-RPC 表面
 
-**低级解析器内部是高级的，并且可能会在次要版本中发生更改**——只有在您需要自行遍历 AST 时才使用它们，并且如果依赖它们，请固定版本：
+**低级解析器内部是高级的，并且可能会在次要版本中发生变化——只有在您需要自行遍历 AST 时才使用它们，并且如果依赖它们，请固定版本：**
 
-- `tokenize`、`Token`、`TokenType`
-- `runPipeline`、`matchesCompare`
+- `tokenize`, `Token`, `TokenType`
+- `runPipeline`, `matchesCompare`
 
-`analyze` 还会报告 `.method`（`"exact"` | `"monte-carlo"`），并且对于采样路径，还会报告 `.samples`——因此，调用者可以以编程方式遵守精确概率约定。
+`analyze` 还会报告 `.method`（`"exact"` | `"monte-carlo"`）、`.samples`（用于采样路径），以及 `.caps`（`{ maxExplosions?: number; maxRerolls?: number }`）（在精确路径上），每当对引擎循环限制进行建模时，调用者都可以以编程方式遵守精确概率约定。
+
+### 精确性、引擎限制和除以零
+
+- **大写形式的 `"exact"` 的含义：** 在纯粹的数学中，爆炸骰子（`!`、`!!`、`!p`）和无限次重掷（`r`）都没有有限的支持。在 Roll 中，`method: "exact"` 表示对于构建的引擎（`runPipeline`）而言，结果必须完全准确，包括其循环限制（每个初始骰子有 `MAX_EXPLOSIONS = 100` 次额外掷骰；每个无限 `r` 修改器有 `MAX_REROLLS = 100` 次重掷，之后第 100 次掷骰结果生效）。每当使用任何一个限制时，`analyze()` 都会将其显示在 `.caps`（`{ maxExplosions: 100 }`、`{ maxRerolls: 100 }`）中，并且 CLI 会打印 `exact probabilities (engine caps: ...)`。如果受限制的支持或卷积运算超过 `10,000,000` 个状态，或者如果每个面都与无限次重掷（`1d6r>=1`）匹配，则分析会退回到 `method: "monte-carlo"`。
+- **除以零（`/`）：** `roll()` 只要计算出的除数是 `0`，就会抛出 `ParseError("Division by zero")`。`analyze()` 会拒绝任何精确的除数，其 $P(\text{divisor} = 0) > 0$，并使用相同的 `ParseError("Division by zero")` 进行评估和检查，在被除数之前评估和检查除数，这样即使被除数很大（`500d1000/(5d20-5)`），也不能通过 `ExactTooLargeError` 跳过检查。当除数*本身*无法精确计算时（例如 `1d6/(5d20!kh4-4)`，其中 `5d20!kh4` 结合了爆炸和保留/丢弃），`analyze()` 会退回到蒙特卡罗方法（通过 `evaluate()` 进行 `100,000` 次试验）：如果任何抽取的试验结果为 `0`，则抛出 `ParseError("Division by zero")`；如果抽样过程中遗漏了罕见的零结果，则返回结果为 `method: "monte-carlo"`（`samples: 100_000`）——绝不会是 `"exact"`。
 
 ## JSON 桥接（Godot / Unreal / Rust）
 
@@ -197,7 +202,7 @@ curl -X POST http://localhost:3947/rpc -d '{"jsonrpc":"2.0","id":1,"method":"rol
 
 ## MCP 服务器
 
-Roll 作为 Claude 集成期间游戏设计中的 MCP 服务器提供：
+Roll 以 MCP 服务器的形式提供，用于在游戏设计期间进行 Claude 集成：
 
 ```json
 {
@@ -214,21 +219,21 @@ Roll 作为 Claude 集成期间游戏设计中的 MCP 服务器提供：
 
 ## 概率引擎
 
-- **通过多项式卷积进行精确分布**，用于基本的 NdM
-- **完全枚举**，用于保留/舍弃机制（4d6 = 1,296 种状态）
-- **分析重新掷骰**——在不匹配的面中重新分配概率质量
+- 通过多项式卷积实现基本的 NdM 的**精确分布**
+- 对于保留/丢弃机制，进行**完全枚举**（4d6 = 1,296 个状态）
+- **分析重掷**——在不匹配的面之间进行封闭形式的质量重新分配，再加上 `MAX_REROLLS = 100` 限制的残差
 - **分析最小值/最大值**——截断分布并在限制处堆积质量
 - **分析成功计数**——将面映射到 +1/0/-1，卷积 N 次
-- **截断递归**，用于爆炸/复合/穿透骰子
-- **蒙特卡洛回退**（100,000 个样本），当精确计算超过 10M 种状态时
+- 对于爆炸/复合/穿透骰子，进行**精确的引擎-限制扩展**，最多可达 `MAX_EXPLOSIONS = 100`
+- 当精确计算超过 10M 个状态，或者将可变数量的爆炸与保留/丢弃或成功计数结合时，使用**蒙特卡罗回退**（100k 个样本）。
 
 每个修改器都具有精确的概率分析——而不仅仅是模拟。
 
 ## 安全与信任
 
-仅处理骰子表达式，不做其他任何操作。不进行网络请求，不进行文件写入（除了读取一个 JSON 文件`--loot`），不收集遥测数据，不存储敏感信息。所有骰子投掷都使用 `crypto.randomInt` 来生成加密随机数。为了防止资源耗尽，表达式在解析时会受到限制（骰子数量、骰子面数、长度）。此外，从 `--loot` 文件中读取的任何文本在显示之前都会去除终端控制字符，以防止恶意表格将 ANSI 转义序列注入到您的终端中。
+处理骰子表达式，仅此而已。没有网络请求，没有文件写入（除了 `--loot` 读取一个 JSON 文件），没有遥测数据，没有秘密。所有骰子掷骰都使用 `crypto.randomInt` 进行密码学随机数生成。为了防止资源耗尽，骰子表达式在解析时会受到限制（骰子数量、骰子面数、长度），并且从 `--loot` 文件中读取的任何文本在显示之前都会删除终端控制字符，这样恶意表格就无法将 ANSI 转义序列注入到您的终端中。
 
-有关漏洞报告政策，请参阅 [SECURITY.md](./SECURITY.md)。
+有关漏洞报告策略，请参阅 [SECURITY.md](./SECURITY.md)。
 
 ## 许可证
 
@@ -236,4 +241,4 @@ MIT
 
 ---
 
-由 <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> 构建。
+由 <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> 构建
