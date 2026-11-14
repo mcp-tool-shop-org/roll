@@ -7,7 +7,7 @@ use core::num::NonZeroU32;
 use crate::ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
     ExplosionVariant, Expr, KeepDropOp, MAX_DICE_PER_GROUP, MAX_DIE_SIDES, MAX_EXPRESSION_BYTES,
-    MAX_TOTAL_DICE_PER_EXPR, ResultMode, SortOrder,
+    MAX_NESTING_DEPTH, MAX_TOTAL_DICE_PER_EXPR, ResultMode, SortOrder,
 };
 use crate::error::RollError;
 
@@ -25,6 +25,7 @@ pub fn parse(input: &str) -> Result<Expr, RollError> {
         bytes: input.as_bytes(),
         pos: 0,
         total_dice: 0,
+        depth: 0,
     };
 
     let expr = scanner.parse_expression()?;
@@ -99,6 +100,7 @@ struct Scanner<'a> {
     bytes: &'a [u8],
     pos: usize,
     total_dice: u64,
+    depth: usize,
 }
 
 impl<'a> Scanner<'a> {
@@ -110,6 +112,22 @@ impl<'a> Scanner<'a> {
         while let Some(b' ' | b'\t') = self.peek() {
             self.pos += 1;
         }
+    }
+
+    /// Returns `true` when the token after optional ASCII space/tab at `idx` is a signed or
+    /// unsigned `Expr::Number` literal (rather than `(` / unary `-` / `NdM` dice).
+    fn starts_number_literal_after_ws(&self, mut idx: usize) -> bool {
+        while matches!(self.bytes.get(idx), Some(b' ' | b'\t')) {
+            idx += 1;
+        }
+        if self.bytes.get(idx) == Some(&b'-') {
+            idx += 1;
+        }
+        let digit_start = idx;
+        while matches!(self.bytes.get(idx), Some(b'0'..=b'9')) {
+            idx += 1;
+        }
+        idx > digit_start && !matches!(self.bytes.get(idx), Some(b'd' | b'D'))
     }
 
     fn next_char_display(&self) -> char {
@@ -182,15 +200,54 @@ impl<'a> Scanner<'a> {
                         .map_err(|_| RollError::ArithmeticOverflow)?;
                     Ok(Expr::Number(value))
                 } else {
+                    let first_depth = self.depth + 1;
+                    if first_depth > MAX_NESTING_DEPTH {
+                        return Err(RollError::ExpressionTooDeep {
+                            depth: first_depth,
+                            max: MAX_NESTING_DEPTH,
+                            byte_offset: minus_start,
+                        });
+                    }
+                    // `Expr::to_canonical_string` parenthesizes a `Number` operand under `UnaryNeg`
+                    // (`--1` -> `-(-1)`, `- 5` -> `-(5)`), which re-parses as two levels (`-` + `(`).
+                    // Counting an unparenthesized number-literal operand as two levels keeps the
+                    // canonical form within `MAX_NESTING_DEPTH`.
+                    let next_depth = if self.starts_number_literal_after_ws(minus_start + 1) {
+                        first_depth + 1
+                    } else {
+                        first_depth
+                    };
+                    if next_depth > MAX_NESTING_DEPTH {
+                        return Err(RollError::ExpressionTooDeep {
+                            depth: next_depth,
+                            max: MAX_NESTING_DEPTH,
+                            byte_offset: minus_start,
+                        });
+                    }
+                    let prev_depth = self.depth;
                     self.pos += 1;
-                    let operand = self.parse_factor()?;
+                    self.depth = next_depth;
+                    let operand_res = self.parse_factor();
+                    self.depth = prev_depth;
+                    let operand = operand_res?;
                     Ok(Expr::UnaryNeg(Box::new(operand)))
                 }
             }
             b'(' => {
                 let open_pos = self.pos;
+                let next_depth = self.depth + 1;
+                if next_depth > MAX_NESTING_DEPTH {
+                    return Err(RollError::ExpressionTooDeep {
+                        depth: next_depth,
+                        max: MAX_NESTING_DEPTH,
+                        byte_offset: open_pos,
+                    });
+                }
                 self.pos += 1;
-                let inner = self.parse_expression()?;
+                self.depth = next_depth;
+                let inner_res = self.parse_expression();
+                self.depth -= 1;
+                let inner = inner_res?;
                 self.skip_ws();
                 match self.peek() {
                     Some(b')') => {

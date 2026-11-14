@@ -521,6 +521,48 @@ proptest! {
     }
 
     #[test]
+    fn prop_parsed_expr_canonical_round_trip_and_receipt_verification(
+        raw in arb_parser_bounded_expr_string(),
+        addr in arb_roll_address(),
+    ) {
+        prop_assert!(
+            raw.len() <= roll_core::MAX_EXPRESSION_BYTES,
+            "generator produced input over MAX_EXPRESSION_BYTES ({}): {}",
+            roll_core::MAX_EXPRESSION_BYTES,
+            raw.len()
+        );
+        if let Ok(expr) = parse(&raw) {
+            let canonical = expr.to_canonical_string();
+            let reparsed_res = parse(&canonical);
+            prop_assert!(
+                reparsed_res.is_ok(),
+                "canonical form {:?} of parsed input {:?} failed to re-parse: {:?}",
+                canonical,
+                raw,
+                reparsed_res.err()
+            );
+            let reparsed = reparsed_res.unwrap();
+            prop_assert_eq!(&reparsed, &expr);
+            prop_assert_eq!(reparsed.to_canonical_string(), canonical);
+
+            if let Ok((_outcome, receipt)) = evaluate_addressed(&expr, &addr) {
+                let verify_res = verify_receipt(&receipt);
+                prop_assert!(
+                    verify_res.is_ok(),
+                    "verify_receipt rejected receipt from evaluate_addressed on {:?} (canonical {:?}): {:?}",
+                    raw,
+                    receipt.spec,
+                    verify_res.err()
+                );
+                let json = to_canonical_receipt_json(&receipt);
+                let verified =
+                    verify_receipt_json(&json).expect("canonical receipt JSON must verify");
+                prop_assert_eq!(verified, receipt);
+            }
+        }
+    }
+
+    #[test]
     fn prop_no_std_math_matches_ieee_reference(raw_bits in any::<u64>()) {
         // Construct positive finite `f64` values across subnormals and normal exponents.
         let positive_bits = raw_bits & 0x7fff_ffff_ffff_ffff;
@@ -787,4 +829,133 @@ fn arb_wide_clamped_and_mixed_analyzable_expr() -> impl Strategy<Value = Expr> {
             }
         }),
     ]
+}
+
+type RawLeafParams = (u8, i64, u8, u32, u16);
+
+fn format_raw_leaf((kind, num, count_raw, sides_raw, mod_bits): RawLeafParams) -> String {
+    match kind % 10 {
+        0 => String::from("-0"),
+        1 => String::from("0"),
+        2 => String::from("-1"),
+        3 => String::from("5"),
+        4 => String::from("-9223372036854775808"),
+        5 => num.to_string(),
+        _ => {
+            let count = if count_raw.is_multiple_of(4) {
+                String::new()
+            } else {
+                ((count_raw % 12) + 1).to_string()
+            };
+            let d_ch = if mod_bits & 1 == 0 { "d" } else { "D" };
+            let (sides, is_fate) = match (mod_bits >> 1) & 3 {
+                0 => (((sides_raw % 100) + 1).to_string(), false),
+                1 => (String::from("%"), false),
+                2 => (String::from("f"), true),
+                _ => (String::from("F"), true),
+            };
+            let reroll = ["", "r", "r=1", "ro", "ro<2", "r=1ro=2"][((mod_bits >> 3) % 6) as usize];
+            let clamp =
+                ["", "min1", "max6", "min1max6", "max6min1"][((mod_bits >> 6) % 5) as usize];
+            let explode = if is_fate {
+                ""
+            } else {
+                ["", "!", "!!", "!p", "!>=5"][((mod_bits >> 9) % 5) as usize]
+            };
+            let kd = ["", "kh", "kl", "dh", "dl", "kh2"][((sides_raw >> 8) % 6) as usize];
+            let mode =
+                ["", "cs", "cf", "cscf", "cs>=4", "cs>=4cf<=1"][((sides_raw >> 12) % 6) as usize];
+            let sort = ["", "sa", "sd"][((mod_bits >> 12) % 3) as usize];
+            format!("{count}{d_ch}{sides}{reroll}{clamp}{explode}{kd}{mode}{sort}")
+        }
+    }
+}
+
+fn arb_raw_leaf_params() -> impl Strategy<Value = RawLeafParams> {
+    (
+        0u8..10u8,
+        any::<i64>(),
+        0u8..48u8,
+        any::<u32>(),
+        any::<u16>(),
+    )
+}
+
+fn wrap_with_unary_and_parens(mut expr: String, steps: &[u8]) -> String {
+    for &kind in steps {
+        expr = match kind % 7 {
+            0 => format!("-{expr}"),
+            1 => format!("- {expr}"),
+            2 => format!("-\t{expr}"),
+            3 => format!("({expr})"),
+            4 => format!("-({expr})"),
+            5 => format!("(1-{expr})"),
+            _ => format!("-(1+{expr})"),
+        };
+    }
+    expr
+}
+
+/// Generates raw Roll 3.0 expression strings bounded within the parser's byte (`<= 1,000`) and
+/// dice (`<= 10,000`) limits, exercising shallow through boundary (`60..=66`) unary/parenthesis
+/// nesting depths across contiguous minuses, spaced minuses, negative literals, shorthands, and
+/// binary operator chains.
+fn arb_parser_bounded_expr_string() -> impl Strategy<Value = String> {
+    let primary = (
+        arb_raw_leaf_params(),
+        0u8..12u8,
+        prop::collection::vec(any::<u8>(), 0..=65),
+    )
+        .prop_map(|(leaf_params, band, raw_steps)| {
+            let leaf = format_raw_leaf(leaf_params);
+            let mapped: Vec<u8> = match band {
+                // Shallow/medium mixed unary & parens (0..=16 steps)
+                0..=2 => raw_steps.into_iter().take(16).map(|b| b % 7).collect(),
+                // Boundary 60..=65 contiguous/spaced unary `-` (`-`, `- `, `-\t`)
+                3..=6 => {
+                    let len = 60 + (raw_steps.first().copied().unwrap_or(0) as usize % 6);
+                    (0..len)
+                        .map(|i| raw_steps.get(i).copied().unwrap_or(0) % 3)
+                        .collect()
+                }
+                // Boundary 60..=65 1-level unary `-` and `(` / `(1-`
+                7..=9 => {
+                    let len = 60 + (raw_steps.first().copied().unwrap_or(0) as usize % 6);
+                    let choices = [0u8, 1, 2, 3, 5];
+                    (0..len)
+                        .map(|i| choices[raw_steps.get(i).copied().unwrap_or(0) as usize % 5])
+                        .collect()
+                }
+                // Boundary 30..=33 2-level `-(`, `(1-`, `-(1+`
+                _ => {
+                    let len = 30 + (raw_steps.first().copied().unwrap_or(0) as usize % 4);
+                    (0..len)
+                        .map(|i| 4 + (raw_steps.get(i).copied().unwrap_or(0) % 3))
+                        .collect()
+                }
+            };
+            wrap_with_unary_and_parens(leaf, &mapped)
+        });
+
+    let tail = prop::collection::vec(
+        (
+            0u8..8u8,
+            arb_raw_leaf_params(),
+            prop::collection::vec(0u8..7u8, 0..=4),
+        ),
+        0..=5,
+    );
+
+    (primary, tail).prop_map(|(first, rest)| {
+        const OPS: [&str; 8] = ["+", " + ", "-", " - ", "*", " * ", "/", " / "];
+        let mut out = first;
+        for (op_idx, leaf_params, steps) in rest {
+            out.push_str(OPS[(op_idx % 8) as usize]);
+            out.push_str(&wrap_with_unary_and_parens(
+                format_raw_leaf(leaf_params),
+                &steps,
+            ));
+        }
+        out
+    })
 }

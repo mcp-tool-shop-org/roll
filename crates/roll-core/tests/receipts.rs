@@ -314,3 +314,23 @@ fn receipt_execution_error_unsupported_rules_codec_and_error_trait_coverage() {
     assert!(prob_err.source().is_none());
     assert!(prob_err.to_string().contains("(0, 1]"));
 }
+
+#[test]
+fn verify_receipt_refuses_raw_draws_exceeding_max_total_draws_before_chacha_work() {
+    use roll_core::MAX_TOTAL_DRAWS;
+
+    let mut receipt = sample_receipt("1d6");
+    let over_len = (MAX_TOTAL_DRAWS as usize) + 1;
+    // Fill with non-ChaCha words and leave `receipt_sha256` un-recomputed: `DrawBudgetExceeded`
+    // must fire immediately before `compute_receipt_sha256` or `ChaCha12Rng` stream generation.
+    receipt.raw_draws = vec![0x1234_5678_9abc_def0; over_len];
+    assert_eq!(
+        verify_receipt(&receipt),
+        Err(RollError::ReceiptInvalid(
+            ReceiptVerifyError::DrawBudgetExceeded {
+                total: over_len,
+                limit: MAX_TOTAL_DRAWS,
+            }
+        ))
+    );
+}

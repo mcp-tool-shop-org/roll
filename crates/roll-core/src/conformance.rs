@@ -936,6 +936,9 @@ fn build_02_grammar_and_ast() -> GrammarAndAstFile {
 fn classify_parse_error(err: &RollError) -> (&'static str, Option<usize>) {
     match err {
         RollError::ExpressionTooLong { .. } => ("expression_too_long", None),
+        RollError::ExpressionTooDeep { byte_offset, .. } => {
+            ("expression_too_deep", Some(*byte_offset))
+        }
         RollError::Lex { byte_offset, .. } => ("lex", Some(*byte_offset)),
         RollError::Parse { byte_offset, .. } => ("parse", Some(*byte_offset)),
         RollError::DiceBudgetExceeded { .. } => ("dice_budget_exceeded", None),
@@ -1415,6 +1418,7 @@ fn verify_error_code(err: &ReceiptVerifyError) -> &'static str {
         ReceiptVerifyError::UnexpectedEligibleWeightTotal => "unexpected_eligible_weight_total",
         ReceiptVerifyError::InvalidSpecExpression { .. } => "invalid_spec_expression",
         ReceiptVerifyError::NonCanonicalExpression { .. } => "non_canonical_expression",
+        ReceiptVerifyError::DrawBudgetExceeded { .. } => "draw_budget_exceeded",
         ReceiptVerifyError::PrngStreamMismatch { .. } => "prng_stream_mismatch",
         ReceiptVerifyError::DrawTapeUnderflow { .. } => "draw_tape_underflow",
         ReceiptVerifyError::UnconsumedDraws { .. } => "unconsumed_draws",

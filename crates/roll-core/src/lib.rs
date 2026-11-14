@@ -26,16 +26,17 @@ pub mod rng;
 
 pub use analyze::{
     AnalysisMethod, AnalysisReport, ComparisonReport, DEFAULT_MONTE_CARLO_SAMPLES, Distribution,
-    DistributionStats, MAX_ANALYZE_DICE, MAX_EXACT_LIVE_STATES, MAX_EXACT_STATES,
-    MONTE_CARLO_DEFAULT_SEED, ModelledCaps, PrefixOracleResult, TargetDirection, analyze, compare,
-    compute_stats, lemire_witness_word, monte_carlo_distribution, reduce_keep_drop_interval,
+    DistributionStats, EXACT_DRAW_RETRY_MARGIN, MAX_ANALYZE_DICE, MAX_DIVISOR_PREPASS_STATES,
+    MAX_EXACT_DIE_ROLLS, MAX_EXACT_LIVE_STATES, MAX_EXACT_STATES, MONTE_CARLO_DEFAULT_SEED,
+    ModelledCaps, PrefixOracleResult, TargetDirection, analyze, compare, compute_stats,
+    lemire_witness_word, monte_carlo_distribution, reduce_keep_drop_interval,
     run_prefix_tape_oracle,
 };
 pub use ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
     ExplosionVariant, Expr, KeepDropOp, MAX_DICE_PER_GROUP, MAX_DIE_SIDES, MAX_EXPLOSIONS,
-    MAX_EXPRESSION_BYTES, MAX_REROLLS, MAX_TOTAL_DICE_PER_EXPR, MAX_TOTAL_DRAWS, ResultMode,
-    SortOrder,
+    MAX_EXPRESSION_BYTES, MAX_NESTING_DEPTH, MAX_REROLLS, MAX_TOTAL_DICE_PER_EXPR, MAX_TOTAL_DRAWS,
+    ResultMode, SortOrder,
 };
 pub use canonical_json::{cmp_utf16_code_units, to_canonical_json};
 pub use error::{ReceiptVerifyError, RollError};

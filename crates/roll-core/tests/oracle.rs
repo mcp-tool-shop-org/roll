@@ -100,7 +100,7 @@ fn assert_adaptive_oracle(expr_str: &str, max_draws: usize, min_branch_prob: f64
 
 #[test]
 fn exhaustive_prefix_tape_oracle_matches_all_modifier_families_and_caps() {
-    // 93 exhaustive (`tail_mass == 0.0`) cases spanning every modifier family, combination, and loop cap:
+    // 95 exhaustive (`tail_mass == 0.0`) cases spanning every modifier family, combination, and loop cap:
     let cases: &[(&str, usize)] = &[
         // 1. Base & arithmetic (`+ - * /`, unary `-`, Fate `dF`, and Percentile `d%`)
         ("42", 4),

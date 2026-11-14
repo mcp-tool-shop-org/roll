@@ -49,7 +49,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "roll-cli",
-      "qualifyingSourceCommits": 1,
+      "qualifyingSourceCommits": 2,
       "rebaseline": null
     },
     {
@@ -67,7 +67,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "roll-core",
-      "qualifyingSourceCommits": 3,
+      "qualifyingSourceCommits": 4,
       "rebaseline": null
     },
     {
@@ -236,8 +236,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 16,
-        "lines": 508,
+        "commits": 17,
+        "lines": 518,
         "path": "atlas/README.md"
       },
       {
@@ -246,18 +246,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 16,
-        "lines": 2093,
+        "commits": 17,
+        "lines": 2140,
         "path": "atlas/page.json"
       },
       {
-        "commits": 16,
-        "lines": 3603,
+        "commits": 17,
+        "lines": 3657,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 16,
-        "lines": 22739,
+        "commits": 17,
+        "lines": 22743,
         "path": "atlas/structure.json"
       },
       {
@@ -391,8 +391,8 @@
         "path": "crates/roll-core/tests/rng_and_address.rs"
       },
       {
-        "commits": 2,
-        "lines": 1078,
+        "commits": 3,
+        "lines": 1088,
         "path": "docs/spec/roll-3.0.md"
       },
       {
@@ -741,9 +741,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T15:38:03.732Z",
+  "generatedAt": "2026-11-14T17:03:09.216Z",
   "generatedFrom": {
-    "commit": "35824c7fbb913b053be7c19f89e3ac17c9e2df0e"
+    "commit": "1b4e83a4cb2599da5f907d913ed481f328b5ff79"
   },
   "pairs": [
     {
@@ -777,43 +777,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 9,
-      "shared": 9,
+      "either": 11,
+      "shared": 11,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 9,
-      "shared": 9,
+      "either": 11,
+      "shared": 11,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 9,
-      "shared": 9,
+      "either": 11,
+      "shared": 11,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 9,
-      "shared": 9,
+      "either": 11,
+      "shared": 11,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 9,
-      "shared": 9,
+      "either": 11,
+      "shared": 11,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 9,
-      "shared": 9,
+      "either": 11,
+      "shared": 11,
       "strength": 1
     },
     {
@@ -867,7 +867,7 @@
     }
   ],
   "parameters": {
-    "appliedChangesetLimit": 33.25,
+    "appliedChangesetLimit": 35.25,
     "changeset": 50,
     "changesetFraction": 0.25,
     "cohesionDrop": 0.2,
@@ -876,16 +876,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T09:47:13-05:00",
-    "inScopeFiles": 133,
+    "headDate": "2026-11-14T10:38:07-05:00",
+    "inScopeFiles": 141,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 48,
+    "qualifyingCommits": 50,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T14:47:13.000Z",
+    "since": "2026-05-18T15:38:07.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
