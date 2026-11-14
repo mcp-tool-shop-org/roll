@@ -144,6 +144,13 @@ pub enum RollError {
     },
     ArithmeticOverflow,
     DivisionByZero,
+    AnalysisBudgetExceeded {
+        total_dice: u64,
+        max: u64,
+    },
+    InvalidProbability {
+        given: String,
+    },
     InvalidAddress {
         field: &'static str,
         reason: &'static str,
@@ -181,6 +188,14 @@ impl fmt::Display for RollError {
             ),
             Self::ArithmeticOverflow => write!(f, "checked 64-bit integer arithmetic overflow"),
             Self::DivisionByZero => write!(f, "division by zero"),
+            Self::AnalysisBudgetExceeded { total_dice, max } => write!(
+                f,
+                "expression too complex to analyze: {total_dice} dice exceeds analysis limit of {max}"
+            ),
+            Self::InvalidProbability { given } => write!(
+                f,
+                "invalid target probability '{given}' (expected finite probability in (0, 1])"
+            ),
             Self::InvalidAddress { field, reason } => {
                 write!(f, "invalid roll address field '{field}': {reason}")
             }

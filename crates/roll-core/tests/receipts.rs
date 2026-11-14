@@ -246,3 +246,71 @@ fn tampered_versions_fields_and_draws_fail_with_named_errors() {
         ))
     ));
 }
+
+#[test]
+fn receipt_execution_error_unsupported_rules_codec_and_error_trait_coverage() {
+    use core::error::Error as _;
+    use roll_core::codec::{
+        decode_bytes32_hex, decode_u64_hex, parse_canonical_i64, parse_canonical_u64,
+    };
+
+    // 1. Re-hashed forged receipt with canonical `"1d6/0"` (consumes the valid 1-word ChaCha12 draw
+    //    for `1d6`, then hits `DivisionByZero` during replay) -> `ReceiptVerifyError::ExecutionError`.
+    let mut exec_err_receipt = sample_receipt("1d6");
+    exec_err_receipt.spec = ReceiptSpec::Expression {
+        canonical_expression: String::from("1d6/0"),
+    };
+    exec_err_receipt.receipt_sha256 = compute_receipt_sha256(&exec_err_receipt).unwrap();
+    match verify_receipt(&exec_err_receipt) {
+        Err(RollError::ReceiptInvalid(ReceiptVerifyError::ExecutionError { message })) => {
+            assert!(
+                message.contains("division by zero"),
+                "unexpected message: {message}"
+            );
+        }
+        other => panic!("expected ExecutionError, got {other:?}"),
+    }
+
+    // 2. `evaluate_addressed` rejects non-v3 `rules_version` on `RollAddress`.
+    let mut bad_addr = RollAddress::new(SeedMaterial::Int64(1), 0, "cli", "", 0);
+    bad_addr.rules_version = String::from("roll.v2");
+    assert!(matches!(
+        evaluate_addressed(&parse("1d6").unwrap(), &bad_addr),
+        Err(RollError::InvalidAddress {
+            field: "rules_version",
+            ..
+        })
+    ));
+
+    // 3. Direct codec rejection unit checks (`"-0"`, leading zeros, `+`, short/uppercase hex).
+    assert_eq!(parse_canonical_i64("-9223372036854775808"), Ok(i64::MIN));
+    assert!(parse_canonical_i64("-0").is_err());
+    assert!(parse_canonical_i64("+5").is_err());
+    assert!(parse_canonical_i64("00").is_err());
+    assert!(parse_canonical_i64("").is_err());
+    assert!(parse_canonical_i64("9223372036854775808").is_err());
+
+    assert_eq!(parse_canonical_u64("18446744073709551615"), Ok(u64::MAX));
+    assert!(parse_canonical_u64("-1").is_err());
+    assert!(parse_canonical_u64("01").is_err());
+    assert!(parse_canonical_u64("").is_err());
+
+    assert!(decode_bytes32_hex("00").is_err());
+    assert!(decode_bytes32_hex(&"A".repeat(64)).is_err());
+    assert!(decode_u64_hex("00").is_err());
+    assert!(decode_u64_hex("0123456789ABCDEF").is_err());
+
+    // 4. `<RollError as core::error::Error>::source` and new analyzer error `Display` formatting.
+    let budget_err = RollError::AnalysisBudgetExceeded {
+        total_dice: 1_001,
+        max: 1_000,
+    };
+    assert!(budget_err.source().is_none());
+    assert!(budget_err.to_string().contains("1001 dice exceeds"));
+
+    let prob_err = RollError::InvalidProbability {
+        given: String::from("0"),
+    };
+    assert!(prob_err.source().is_none());
+    assert!(prob_err.to_string().contains("(0, 1]"));
+}

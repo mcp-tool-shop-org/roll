@@ -1,9 +1,10 @@
 #![forbid(unsafe_code)]
 
 use roll_core::{
-    CompareOp, ComparePoint, CritKind, DiceSides, Expr, KeepDropOp, MAX_EXPRESSION_BYTES,
-    MAX_TOTAL_DICE_PER_EXPR, ResultMode, RollAddress, RollError, RollRng, SeedMaterial, SortOrder,
-    checked_div_floor, evaluate_addressed, evaluate_with_rng, parse,
+    CompareOp, ComparePoint, CritKind, DiceSides, Expr, KeepDropOp, MAX_EXPLOSIONS,
+    MAX_EXPRESSION_BYTES, MAX_REROLLS, MAX_TOTAL_DICE_PER_EXPR, ResultMode, RollAddress, RollError,
+    RollRng, SeedMaterial, SortOrder, checked_div_floor, evaluate_addressed, evaluate_with_rng,
+    parse,
 };
 
 #[test]
@@ -179,7 +180,9 @@ fn compatibility_matrix_2x_unchanged_and_extended_forms() {
     // Row 1: 2d6, d20, d%, 4dF, + - * /, unary -, (...)
     let unchanged = [
         ("2d6", "2d6"),
+        ("2D6", "2d6"),
         ("d20", "1d20"),
+        ("D20", "1d20"),
         ("d%", "1d%"),
         ("4dF", "4dF"),
         ("4df", "4dF"),
@@ -204,8 +207,11 @@ fn compatibility_matrix_2x_unchanged_and_extended_forms() {
 
     let mod_forms = [
         ("4d6kh", "4d6kh1"),
+        ("4d6kl", "4d6kl1"),
         ("4d6kl2", "4d6kl2"),
         ("4d6dh", "4d6dh1"),
+        ("4d6dh1", "4d6dh1"),
+        ("4d6dl", "4d6dl1"),
         ("4d6dl1", "4d6dl1"),
         ("4d6kh0", "4d6kh0"),
         ("2d6r", "2d6r=1"),
@@ -387,4 +393,148 @@ fn compatibility_matrix_parse_time_rejections() {
         parse("2d6 d"),
         Err(RollError::Parse { byte_offset: 4, .. })
     ));
+}
+
+#[test]
+fn i64_min_literal_and_negative_number_canonical_bijection() {
+    // 1. Literal `i64::MIN` (`-9223372036854775808`) parses directly in expression position,
+    //    while `-9223372036854775809` (`i64::MIN - 1`) is rejected with `ArithmeticOverflow`.
+    let min_ast = parse("-9223372036854775808").expect("i64::MIN literal must parse");
+    assert_eq!(min_ast, Expr::Number(i64::MIN));
+    assert_eq!(min_ast.to_canonical_string(), "-9223372036854775808");
+    assert_eq!(parse(&min_ast.to_canonical_string()), Ok(min_ast.clone()));
+
+    let mut rng = RollRng::from_raw_seed([0u8; 32]);
+    assert_eq!(
+        evaluate_with_rng(&min_ast, &mut rng).unwrap().total,
+        i64::MIN
+    );
+
+    assert_eq!(
+        parse("-9223372036854775809"),
+        Err(RollError::ArithmeticOverflow)
+    );
+
+    // 2. Programmatically constructed `Expr::Number(n)` and `Expr::UnaryNeg(Box::new(Expr::Number(n)))`
+    //    both round-trip bijectively through `to_canonical_string()` -> `parse()` for every `i64`.
+    for n in [i64::MIN, -42, -1, 0, 1, 42, i64::MAX] {
+        let num_expr = Expr::Number(n);
+        let num_canon = num_expr.to_canonical_string();
+        assert_eq!(parse(&num_canon), Ok(num_expr));
+
+        let neg_expr = Expr::UnaryNeg(Box::new(Expr::Number(n)));
+        let neg_canon = neg_expr.to_canonical_string();
+        assert_eq!(neg_canon, format!("-({n})"));
+        assert_eq!(parse(&neg_canon), Ok(neg_expr));
+    }
+
+    // `-0` normalizes to `Expr::Number(0)` (`"0"`), while `-2d6` stays `UnaryNeg(Dice(2d6))`.
+    assert_eq!(parse("-0"), Ok(Expr::Number(0)));
+    let neg_dice = parse("-2d6").unwrap();
+    assert!(matches!(neg_dice, Expr::UnaryNeg(_)));
+    assert_eq!(neg_dice.to_canonical_string(), "-2d6");
+    assert_eq!(parse("-2d6"), Ok(neg_dice));
+}
+
+#[test]
+fn engine_loop_caps_penetrate_compound_die_traces_and_runtime_overflows() {
+    let mut rng = RollRng::from_raw_seed([7u8; 32]);
+
+    // 1. `MAX_REROLLS = 100` (`1d6r>=1`): executes exactly 100 rerolls and keeps the 100th roll.
+    let reroll_cap = parse("1d6r>=1").unwrap();
+    let r_out = evaluate_with_rng(&reroll_cap, &mut rng).unwrap();
+    assert_eq!(r_out.groups[0].dice.len(), 1);
+    let r_die = &r_out.groups[0].dice[0];
+    assert_eq!(r_die.rerolls.len(), MAX_REROLLS as usize);
+    assert_eq!(r_die.final_value, *r_die.rerolls.last().unwrap());
+    assert_eq!(r_out.total, r_die.final_value);
+
+    // 2. `MAX_EXPLOSIONS = 100` on Standard (`1d6!>=1`): 1 initial die + 100 `exploded_child` dice = 101 dice.
+    let std_cap = parse("1d6!>=1").unwrap();
+    let std_out = evaluate_with_rng(&std_cap, &mut rng).unwrap();
+    let std_dice = &std_out.groups[0].dice;
+    assert_eq!(std_dice.len(), (MAX_EXPLOSIONS as usize) + 1);
+    assert!(!std_dice[0].exploded_child);
+    assert_eq!(std_dice[0].explosions.len(), MAX_EXPLOSIONS as usize);
+    for (idx, child) in std_dice[1..].iter().enumerate() {
+        assert!(child.exploded_child);
+        assert_eq!(child.initial_face, std_dice[0].explosions[idx]);
+        assert_eq!(child.final_value, std_dice[0].explosions[idx]);
+    }
+    let expected_std_sum: i64 = std_dice.iter().map(|d| d.final_value).sum();
+    assert_eq!(std_out.total, expected_std_sum);
+
+    // 3. `MAX_EXPLOSIONS = 100` on Compound (`1d6!!>=1`): single `DieTrace` summing all 100 bonus rolls into `final_value`.
+    let comp_cap = parse("1d6!!>=1").unwrap();
+    let comp_out = evaluate_with_rng(&comp_cap, &mut rng).unwrap();
+    assert_eq!(comp_out.groups[0].dice.len(), 1);
+    let comp_die = &comp_out.groups[0].dice[0];
+    assert!(!comp_die.exploded_child);
+    assert_eq!(comp_die.explosions.len(), MAX_EXPLOSIONS as usize);
+    let expected_comp_val = comp_die.initial_face + comp_die.explosions.iter().sum::<i64>();
+    assert_eq!(comp_die.final_value, expected_comp_val);
+    assert_eq!(comp_out.total, expected_comp_val);
+
+    // 4. `Penetrate` (`!p`) `DieTrace` math:
+    //    - On `1d6!p>=1`: 1 initial die + 100 child dice where every child has `final_value == (raw - 1).max(1)`
+    //      (verifying both `raw == 1 -> 1` floor and `raw >= 2 -> raw - 1`).
+    let pen_cap = parse("1d6!p>=1").unwrap();
+    let pen_out = evaluate_with_rng(&pen_cap, &mut rng).unwrap();
+    let pen_dice = &pen_out.groups[0].dice;
+    assert_eq!(pen_dice.len(), (MAX_EXPLOSIONS as usize) + 1);
+    let mut saw_raw_one_floor = false;
+    let mut saw_raw_gt_one_sub = false;
+    for (idx, child) in pen_dice[1..].iter().enumerate() {
+        let raw = pen_dice[0].explosions[idx];
+        assert!(child.exploded_child);
+        assert_eq!(child.initial_face, raw);
+        assert_eq!(child.final_value, (raw - 1).max(1));
+        if raw == 1 {
+            assert_eq!(child.final_value, 1);
+            saw_raw_one_floor = true;
+        } else {
+            assert_eq!(child.final_value, raw - 1);
+            saw_raw_gt_one_sub = true;
+        }
+    }
+    assert!(saw_raw_one_floor && saw_raw_gt_one_sub);
+
+    //    - On `1d6!p>=5`: verify that bonus raw face `5` (`effective = 4 < 5`) STILL triggers a further explosion
+    //      because `threshold.matches(raw_face)` tests the unadjusted raw `5`!
+    let pen_raw_thresh = parse("1d6!p>=5").unwrap();
+    let mut found_raw_5_chain = false;
+    for seed in 0..2_000i64 {
+        let addr = RollAddress::new(SeedMaterial::Int64(seed), 0, "pen_test", "", 0);
+        let (out, _) = evaluate_addressed(&pen_raw_thresh, &addr).unwrap();
+        let exps = &out.groups[0].dice[0].explosions;
+        if exps.len() >= 2 && exps[0] == 5 {
+            // `exps[0] == 5` had child `final_value == 4` (< 5), yet still exploded to `exps[1]`!
+            assert_eq!(out.groups[0].dice[1].initial_face, 5);
+            assert_eq!(out.groups[0].dice[1].final_value, 4);
+            found_raw_5_chain = true;
+            break;
+        }
+    }
+    assert!(found_raw_5_chain);
+
+    // 5. Runtime `ArithmeticOverflow` in `UnaryNeg`, `Compound` accumulation, and `Sum` group total.
+    assert_eq!(
+        evaluate_with_rng(&parse("-(-9223372036854775808)").unwrap(), &mut rng),
+        Err(RollError::ArithmeticOverflow)
+    );
+    assert_eq!(
+        evaluate_with_rng(&parse("1d6min9223372036854775807!!>=1").unwrap(), &mut rng),
+        Err(RollError::ArithmeticOverflow)
+    );
+    assert_eq!(
+        evaluate_with_rng(&parse("2d6min9223372036854775807").unwrap(), &mut rng),
+        Err(RollError::ArithmeticOverflow)
+    );
+    // Contrast: in Pool mode (`cs>=5`), clamping two dice to `i64::MAX` counts `+1 + +1 = 2` without overflowing!
+    assert_eq!(
+        evaluate_with_rng(&parse("2d6min9223372036854775807cs>=5").unwrap(), &mut rng)
+            .unwrap()
+            .total,
+        2
+    );
 }

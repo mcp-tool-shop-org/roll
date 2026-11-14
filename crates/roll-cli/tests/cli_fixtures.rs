@@ -13,6 +13,8 @@ const COMMITTED_02: &[u8] =
     include_bytes!("../../../fixtures/conformance/v3/02_grammar_and_ast.json");
 const COMMITTED_03: &[u8] =
     include_bytes!("../../../fixtures/conformance/v3/03_rolls_and_receipts.json");
+const COMMITTED_04: &[u8] =
+    include_bytes!("../../../fixtures/conformance/v3/04_exact_analysis.json");
 const COMMITTED_MANIFEST: &[u8] =
     include_bytes!("../../../fixtures/conformance/v3/MANIFEST.sha256");
 
@@ -79,10 +81,11 @@ fn fixtures_subcommand_is_deterministic_across_runs_and_matches_committed_v3_dir
     assert_eq!(code1_repeat, ExitCode::Success);
     assert_eq!(out1, out1_repeat);
 
-    let expected_files: [(&str, &[u8]); 4] = [
+    let expected_files: [(&str, &[u8]); 5] = [
         ("01_kdf_and_rng.json", COMMITTED_01),
         ("02_grammar_and_ast.json", COMMITTED_02),
         ("03_rolls_and_receipts.json", COMMITTED_03),
+        ("04_exact_analysis.json", COMMITTED_04),
         ("MANIFEST.sha256", COMMITTED_MANIFEST),
     ];
 
@@ -129,6 +132,32 @@ fn cli_help_version_and_invalid_arguments_behave_cleanly() {
         ExitCode::Error
     );
     assert!(!err.is_empty());
+
+    // Passing an existing regular file path as `--out` fails cleanly with ExitCode::Error.
+    let blocker_dir = unique_temp_dir("io_err");
+    fs::create_dir_all(&blocker_dir).expect("create temp parent");
+    let blocker_file = blocker_dir.join("not_a_dir");
+    fs::write(&blocker_file, b"file").expect("write regular file");
+    out.clear();
+    err.clear();
+    assert_eq!(
+        run_cli(
+            [
+                "roll",
+                "fixtures",
+                "--out",
+                blocker_file.to_str().expect("utf8 path"),
+            ],
+            &mut out,
+            &mut err,
+        ),
+        ExitCode::Error
+    );
+    assert!(String::from_utf8_lossy(&err).contains("error writing fixtures"));
+    let _ = fs::remove_dir_all(&blocker_dir);
+    if cfg!(target_arch = "wasm32") {
+        let _ = fs::remove_dir_all(".wasm-test-tmp");
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]

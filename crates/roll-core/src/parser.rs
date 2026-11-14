@@ -167,9 +167,25 @@ impl<'a> Scanner<'a> {
 
         match b {
             b'-' => {
-                self.pos += 1;
-                let operand = self.parse_factor()?;
-                Ok(Expr::UnaryNeg(Box::new(operand)))
+                let minus_start = self.pos;
+                let mut digit_end = self.pos + 1;
+                while digit_end < self.bytes.len() && self.bytes[digit_end].is_ascii_digit() {
+                    digit_end += 1;
+                }
+                if digit_end > self.pos + 1
+                    && !matches!(self.bytes.get(digit_end), Some(b'd' | b'D'))
+                {
+                    self.pos = digit_end;
+                    let signed = &self.input[minus_start..digit_end];
+                    let value = signed
+                        .parse::<i64>()
+                        .map_err(|_| RollError::ArithmeticOverflow)?;
+                    Ok(Expr::Number(value))
+                } else {
+                    self.pos += 1;
+                    let operand = self.parse_factor()?;
+                    Ok(Expr::UnaryNeg(Box::new(operand)))
+                }
             }
             b'(' => {
                 let open_pos = self.pos;

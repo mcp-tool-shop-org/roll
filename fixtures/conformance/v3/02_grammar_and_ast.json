@@ -15,10 +15,40 @@
       "canonical_expression": "-2",
       "total_base_dice": 0,
       "ast": {
+        "type": "number",
+        "value": "-2"
+      }
+    },
+    {
+      "input": "-9223372036854775808",
+      "canonical_expression": "-9223372036854775808",
+      "total_base_dice": 0,
+      "ast": {
+        "type": "number",
+        "value": "-9223372036854775808"
+      }
+    },
+    {
+      "input": "-(2)",
+      "canonical_expression": "-(2)",
+      "total_base_dice": 0,
+      "ast": {
         "type": "unary_neg",
         "value": {
           "type": "number",
           "value": "2"
+        }
+      }
+    },
+    {
+      "input": "-(-9223372036854775808)",
+      "canonical_expression": "-(-9223372036854775808)",
+      "total_base_dice": 0,
+      "ast": {
+        "type": "unary_neg",
+        "value": {
+          "type": "number",
+          "value": "-9223372036854775808"
         }
       }
     },
@@ -49,7 +79,59 @@
       }
     },
     {
+      "input": "2D6",
+      "canonical_expression": "2d6",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
       "input": "d20",
+      "canonical_expression": "1d20",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 20
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "D20",
       "canonical_expression": "1d20",
       "total_base_dice": 1,
       "ast": {
@@ -500,6 +582,37 @@
       }
     },
     {
+      "input": "4d6kl",
+      "canonical_expression": "4d6kl1",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_lowest",
+              "count": 1
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
       "input": "4d6kl2",
       "canonical_expression": "4d6kl2",
       "total_base_dice": 4,
@@ -519,6 +632,37 @@
             {
               "op": "keep_lowest",
               "count": 2
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6dh",
+      "canonical_expression": "4d6dh1",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "drop_highest",
+              "count": 1
             }
           ],
           "mode": {
@@ -1833,6 +1977,12 @@
       "input": "9223372036854775808",
       "expected_error_kind": "arithmetic_overflow",
       "expected_byte_offset": null
+    },
+    {
+      "description": "literal below i64::MIN",
+      "input": "-9223372036854775809",
+      "expected_error_kind": "arithmetic_overflow",
+      "expected_byte_offset": null
     }
   ],
   "division_and_arithmetic_cases": [
@@ -1935,6 +2085,18 @@
     {
       "description": "i64::MIN divided by -1 overflow",
       "expression": "(-9223372036854775807-1)/-1",
+      "expected_outcome": "arithmetic_overflow",
+      "expected_total": null
+    },
+    {
+      "description": "literal i64::MIN evaluates to i64::MIN",
+      "expression": "-9223372036854775808",
+      "expected_outcome": "ok",
+      "expected_total": "-9223372036854775808"
+    },
+    {
+      "description": "unary negation of literal i64::MIN overflows",
+      "expression": "-(-9223372036854775808)",
       "expected_outcome": "arithmetic_overflow",
       "expected_total": null
     }

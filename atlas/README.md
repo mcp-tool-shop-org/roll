@@ -1,30 +1,19 @@
 # roll: how it works
 
-Mapped at 2026-11-14 from commit caeb56c by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit f5002bc by Atlas 1.26.0.
 
 ## What this is
 
-8 parts, mostly TypeScript (58 files), Rust (18), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
+8 parts, mostly TypeScript (58 files), Rust (22), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
 
-## What changed since 2026-11-12 (8373bb4)
+## What changed since 2026-11-14 (caeb56c)
 
-- roll-cli now imports roll-core.
-- CI's push trigger now also names `Cargo.lock`, `Cargo.toml`, `crates/**` and `fixtures/**`.
-- CI now also runs crates/roll-cli/src/main.rs, crates/roll-cli/tests/ and crates/roll-core/tests/.
-- CI now also checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
-- And 1 more change to a door.
-- crates/roll-cli/ is now read by Cargo.toml.
-- crates/roll-cli/src/main.rs is now read by crates/roll-cli/Cargo.toml.
-- crates/roll-core/ is now read by Cargo.toml and crates/roll-cli/Cargo.toml.
-- And 5 more new writers and readers of places.
-- fixtures is a new part, drawn from `fixtures/**`.
-- roll-cli is a new part, drawn from `crates/roll-cli/**`.
-- roll-core is a new part, drawn from `crates/roll-core/**`.
-- 27 files added and 24 changed content, across 7 parts.
+- fixtures/conformance/v3/04_exact_analysis.json is now read by crates/roll-cli/tests/cli_fixtures.rs.
+- 5 files added and 14 changed content, across 4 parts.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 15 paths; or by hand. Runs crates/roll-cli/src/main.rs, src/bin.ts, crates/roll-cli/tests/ and 32 more; builds src/; checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
+1. **CI.** On a pull request; on a push touching 15 paths; or by hand. Runs crates/roll-cli/src/main.rs, src/bin.ts, crates/roll-cli/tests/ and 34 more; builds src/; checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
 2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs tests/; builds src/.
 3. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 4. **roll** (a command built from crates/roll-cli, which nothing ships, from crates/roll-cli/Cargo.toml). Runs crates/roll-cli/src/main.rs.

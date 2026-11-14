@@ -334,8 +334,8 @@ impl Expr {
             Self::Dice(spec) => spec.write_canonical(out),
             Self::UnaryNeg(operand) => {
                 out.push('-');
-                let need_parens = operand.precedence() < 3
-                    || matches!(operand.as_ref(), Self::Number(value) if *value < 0);
+                let need_parens =
+                    operand.precedence() < 3 || matches!(operand.as_ref(), Self::Number(_));
                 if need_parens {
                     out.push('(');
                     operand.write_canonical(out);
