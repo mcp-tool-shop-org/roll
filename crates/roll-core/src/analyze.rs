@@ -28,35 +28,81 @@ use crate::rng::DrawSource;
 /// Maximum sum of base dice counts across an AST accepted by [`analyze`] and [`compare`] (`§5.3`).
 pub const MAX_ANALYZE_DICE: u32 = 1_000;
 
-/// AST-wide exact transition budget across all nodes in a single [`analyze`] pass (`§5.2`, `§5.3`),
-/// and per-pair margin convolution cap `|A| * |B| <= MAX_EXACT_STATES` in [`compare`].
+/// AST-wide exact transition budget across all nodes in a single [`analyze`] main pass (`§5.2`, `§5.3`),
+/// per-divisor transition cap in the `§5.4` divisor pre-pass, and per-pair support-product / margin cap
+/// `|A| * |B| <= MAX_EXACT_STATES` in general binary convolutions and [`compare`].
 ///
-/// ### Exact-budget rule (`MAX_EXACT_STATES = 10_000_000`, `MAX_EXACT_LIVE_STATES = 2_000_000`)
+/// ### Exact-budget rule (`MAX_EXACT_STATES = 10_000_000`, `MAX_EXACT_LIVE_STATES = 3_000_000`)
 /// A single `ExactBudget` is threaded through `try_exact` across the entire AST and checked
 /// **before** every allocation and inner loop:
 /// 1. **Cumulative transitions (`<= MAX_EXACT_STATES = 10_000_000`):** monotonically sums
-///    executed transitions across every node in the AST (`1` unit per dense/flat step;
+///    executed transitions across every node in the AST (`1` unit per `Accum::Dense` / DP step;
+///    `1` unit per `FLAT_CONTIGUOUS_PAIRS_PER_STATE = 16` flat contiguous FMA pairs;
 ///    `SPARSE_TRANSITION_WEIGHT = 10` units per `BTreeMap` lookup/insert). Unexecuted steps
 ///    that fail the pre-check do not advance the counter, preserving unspent budget for
-///    sibling error-isolation checks.
-/// 2. **Live retained state slots (`<= MAX_EXACT_LIVE_STATES = 2_000_000 <= MAX_EXACT_STATES`):**
+///    sibling error-isolation checks (`§5.4` item 3).
+/// 2. **Live retained state slots (`<= MAX_EXACT_LIVE_STATES = 3_000_000 <= MAX_EXACT_STATES`):**
 ///    tracks simultaneously live state slots across all active stack frames, operand
 ///    distributions, `convolve_n` power tables, `order_statistic_dp` buckets, and active
 ///    accumulators (`1` slot per `16`-byte `Vec`/dense entry; `SPARSE_STATE_SLOTS = 4` slots
 ///    per `BTreeMap` entry; `explosion_chain_sum_pmf` additionally caps `finished.len()` at
 ///    `MAX_EXPLOSION_FINISHED_STATES = 250_000`). Aborted subtrees restore the caller's
 ///    live-state baseline when their temporaries drop.
-/// 3. **Divisor-first interaction (`§5.4`):** on `BinaryOp::DivFloor` (and on `+`/`-`/`*`
-///    when `right` contains a division and `left` does not), `try_exact` evaluates `right`
-///    before `left`, giving divisors first claim on the budget. Any exact divisor within the
-///    remaining budget with `is_reachable(0)` returns `Err(RollError::DivisionByZero)` even if
-///    its dividend or sibling exceeds the budget. If prior AST work or the divisor itself
-///    exhausts the budget, `try_exact` aborts with `TooLarge` and falls back to Monte Carlo.
+/// 3. **Reserved divisor pre-pass (`§5.4` items 1–2, [`MAX_DIVISOR_PREPASS_STATES`]):** before
+///    the main `try_exact` pass begins, `precheck_divisors` analyzes every `BinaryOp::DivFloor`
+///    divisor subtree under a separate reserved budget so sibling order or main-budget exhaustion
+///    can never hide a reachable zero in an exact divisor.
 pub const MAX_EXACT_STATES: usize = 10_000_000;
 
+/// Reserved cumulative transition budget for the `§5.4` `DivFloor` divisor pre-pass (`20_000_000`),
+/// strictly separate from the main pass's [`MAX_EXACT_STATES`] budget.
+///
+/// ### Divisor pre-pass rule, oversized-divisor rule, and total pre-pass bound (`§5.4` items 1–5)
+/// 1. **Reserved budget & per-divisor cap:** `precheck_divisors` maintains its own cumulative
+///    transition counter capped at `MAX_DIVISOR_PREPASS_STATES = 20_000_000` across all
+///    `BinaryOp::DivFloor` divisor subtrees in the AST. Each individual divisor is analyzed with
+///    `max_transitions = min(MAX_EXACT_STATES, MAX_DIVISOR_PREPASS_STATES - prepass_spent)` and
+///    live-slot cap [`MAX_EXACT_LIVE_STATES`] (`3_000_000` slots, `< 48 MiB`), releasing its
+///    distribution back to `0` live slots before the next divisor or the main pass runs.
+/// 2. **Cheapest-first ordering (`§5.4` item 1):** Divisors are ordered ascending by
+///    `(divisor_static_cost_bound(divisor), inorder_div_index)`, where `divisor_static_cost_bound`
+///    is a static upper bound on exact transition cost computed from parsed dice counts, sides,
+///    and stage modifiers, and `inorder_div_index` breaks ties by source byte offset (in Roll 3.0's
+///    infix grammar, every `/` token and its immediate `right` divisor subtree appear in strict
+///    left-to-right in-order AST sequence, so `inorder_div_index` is strictly order-isomorphic to
+///    source byte offset on every parsed expression).
+/// 3. **Zero-divisor error precedence (`§5.4` items 1, 2, 5):** Every divisor that is exact under
+///    the reserved budget (`Ok` with `expr_max_die_rolls(divisor) <= MAX_EXACT_DIE_ROLLS`) and has
+///    `is_reachable(0)` returns `Err(RollError::DivisionByZero)` immediately. Any non-`DivisionByZero`
+///    exact error raised inside a divisor (such as `RollError::ArithmeticOverflow`) is held until
+///    every remaining divisor within the reserved budget has been checked for a reachable `0`.
+/// 4. **Rule for a divisor too large for the reserved budget (`§5.4` item 4):** If a divisor
+///    exceeds its transition or live-slot cap (`ExactAbort::TooLarge`), uses an unsupported exact
+///    combination (`ExactAbort::Unsupported`, e.g. `4d6!kh3`), exceeds [`MAX_EXACT_DIE_ROLLS`], or
+///    is reached after `prepass_spent == MAX_DIVISOR_PREPASS_STATES`, the pre-pass skips it cleanly
+///    (with `0` retained slots) and defers it to the main pass / [`monte_carlo_distribution`]
+///    fallback, which reports `AnalysisMethod::MonteCarlo { samples }` (never `Exact`) unless a
+///    sampled trial hits `0` and propagates `Err(RollError::DivisionByZero)`.
+pub const MAX_DIVISOR_PREPASS_STATES: usize = 20_000_000;
+
 /// Maximum simultaneously retained state slots across all active stack frames and buffers
-/// during an exact [`analyze`] pass (`2_000_000 <= MAX_EXACT_STATES`, `< 50 MiB` peak heap).
-pub const MAX_EXACT_LIVE_STATES: usize = 2_000_000;
+/// during an exact [`analyze`] pass (`3_000_000 <= MAX_EXACT_STATES`, `< 48 MiB` peak heap).
+pub const MAX_EXACT_LIVE_STATES: usize = 3_000_000;
+
+/// Raw `u64` draw headroom reserved below [`MAX_TOTAL_DRAWS`] (`2,100,000`) for 64-bit Lemire
+/// multiplication-rejection retries before [`analyze`] may certify a distribution as
+/// [`AnalysisMethod::Exact`] (`80,000` raw draws, matching `crates/roll-core/src/ast.rs:38-52`).
+///
+/// At `expr_max_die_rolls(expr) == MAX_TOTAL_DRAWS`, even a single Lemire rejection retry (`2^64 mod s != 0`)
+/// pushes `eval.rs` over `MAX_TOTAL_DRAWS` into `Err(RollError::DrawBudgetExceeded)` — an outcome not
+/// modelled by independent per-die convolution. Requiring `expr_max_die_rolls(expr) <= MAX_EXACT_DIE_ROLLS`
+/// (`2_020_000`) guarantees at least `80_000` retry draws of headroom (for `s <= 1,000,000`, per-roll
+/// retry probability is `(2^64 mod s) / 2^64 < 5.5e-14`, so `P(> 80,000 retries)` is `< 10^-1_000_000`).
+pub const EXACT_DRAW_RETRY_MARGIN: u64 = 80_000;
+
+/// Maximum worst-case `roll_single_die` invocations (`2,020_000 = MAX_TOTAL_DRAWS - EXACT_DRAW_RETRY_MARGIN`)
+/// permitted for [`analyze`] to label a distribution [`AnalysisMethod::Exact`].
+pub const MAX_EXACT_DIE_ROLLS: u64 = (MAX_TOTAL_DRAWS as u64) - EXACT_DRAW_RETRY_MARGIN;
 
 /// Live-state slot weight of one `BTreeMap<i64, f64>` entry (`~40–48` bytes vs `16`-byte `Vec` slot).
 const SPARSE_STATE_SLOTS: usize = 4;
@@ -64,11 +110,22 @@ const SPARSE_STATE_SLOTS: usize = 4;
 /// Transition weight of one `BTreeMap<i64, f64>` probe (`O(log N)` tree walk vs `O(1)` slice index).
 const SPARSE_TRANSITION_WEIGHT: u128 = 10;
 
+/// Flat contiguous slice FMA pairs (`dest[j] += pa * pb`) per transition unit in `convolve_contiguous`
+/// and `subtract_contiguous` (`~20–35×` faster per pair than `Accum::Dense` / `BTreeMap` transitions).
+const FLAT_CONTIGUOUS_PAIRS_PER_STATE: u128 = 16;
+
 /// Maximum distinct finished totals retained by `explosion_chain_sum_pmf` before aborting to Monte Carlo.
 const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 
-/// Deterministic cumulative work ceiling (RNG draws + keep/drop sort work) for [`analyze`]'s
-/// internal Monte Carlo fallback before stopping at a sample boundary (`1 <= samples <= 100_000`).
+/// Deterministic cumulative work ceiling (`28,000,000`) for [`analyze`]'s internal Monte Carlo
+/// fallback before stopping at a sample boundary (`1 <= samples <= 100_000`, `§5.3`).
+///
+/// After `completed` samples, cumulative work is:
+/// `work = source.draws + completed * estimate_mc_work_per_sample(expr)`.
+/// Because Stage 1 already records `>= count` initial RNG draws per sample in `source.draws`,
+/// adding `count * (|r| + |ro| + |cs| + |cf|)` in `estimate_mc_work_per_sample` charges at least
+/// `count * (|r| + |ro| + |cs| + |cf| + 1)` units per sample for every dice group (plus actual
+/// reroll/explosion RNG draws and Stage 5 keep/drop sort + chained-collection work).
 const MAX_MC_WORK: u64 = 28_000_000;
 
 /// Default trial count for [`AnalysisMethod::MonteCarlo`] (`§5.3`).
@@ -78,8 +135,9 @@ pub const DEFAULT_MONTE_CARLO_SAMPLES: u32 = 100_000;
 pub const MONTE_CARLO_DEFAULT_SEED: &[u8; 32] = b"roll.v3.montecarlo.default.seed!";
 
 /// Threshold on `(max_key - min_key + 1)` below which flat dense array accumulation is used
-/// instead of `BTreeMap` (both produce bit-for-bit identical sorted `(i64, f64)` entries).
-const MAX_DENSE_SPAN: u128 = 524_288;
+/// instead of `BTreeMap` (`1_048_576 = 2^20` entries = `16 MiB`; both produce bit-for-bit
+/// identical sorted `(i64, f64)` entries, covering `1d1000 * 1d1000` at span `1_000_000`).
+const MAX_DENSE_SPAN: u128 = 1_048_576;
 
 #[inline]
 fn neumaier_add(sum: &mut f64, comp: &mut f64, val: f64) {
@@ -483,9 +541,13 @@ pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
         });
     }
 
+    // §5.4 items 1–2 & 5: check every `DivFloor` divisor subtree (cheapest first, ties by source
+    // byte offset) under its own reserved budget before spending the main exact budget.
+    precheck_divisors(expr)?;
+
     let mut budget = ExactBudget::new();
     match try_exact(expr, &mut budget) {
-        Ok((distribution, caps)) if expr_max_die_rolls(expr) <= u64::from(MAX_TOTAL_DRAWS) => {
+        Ok((distribution, caps)) if expr_max_die_rolls(expr) <= MAX_EXACT_DIE_ROLLS => {
             let stats = compute_stats(&distribution);
             Ok(AnalysisReport {
                 distribution,
@@ -669,6 +731,7 @@ enum ExactAbort {
 /// AST-wide cumulative transition and live-state budget threaded through `try_exact`.
 struct ExactBudget {
     transitions: usize,
+    max_transitions: usize,
     live_states: usize,
 }
 
@@ -676,6 +739,15 @@ impl ExactBudget {
     const fn new() -> Self {
         Self {
             transitions: 0,
+            max_transitions: MAX_EXACT_STATES,
+            live_states: 0,
+        }
+    }
+
+    const fn with_cap(max_transitions: usize) -> Self {
+        Self {
+            transitions: 0,
+            max_transitions,
             live_states: 0,
         }
     }
@@ -683,15 +755,16 @@ impl ExactBudget {
     const fn with_initial_live(live_states: usize) -> Self {
         Self {
             transitions: 0,
+            max_transitions: MAX_EXACT_STATES,
             live_states,
         }
     }
 
     /// Charges `work` elementary transitions before executing a loop or initialization.
-    /// Leaves `self.transitions` unchanged if `self.transitions + work > MAX_EXACT_STATES`.
+    /// Leaves `self.transitions` unchanged if `self.transitions + work > self.max_transitions`.
     #[inline]
     fn charge_transitions(&mut self, work: u128) -> Result<(), ExactAbort> {
-        let rem = (MAX_EXACT_STATES - self.transitions) as u128;
+        let rem = self.max_transitions.saturating_sub(self.transitions) as u128;
         if work > rem {
             return Err(ExactAbort::TooLarge);
         }
@@ -719,6 +792,192 @@ impl ExactBudget {
         );
         self.live_states = self.live_states.saturating_sub(slots);
     }
+}
+
+/// Static `(upper_cost_bound, upper_support_bound)` computed from parsed dice counts, sides,
+/// and stage modifiers (`§5.4` item 1) so the divisor pre-pass orders divisors cheapest first
+/// without executing `try_exact`.
+fn divisor_static_cost_bound(expr: &Expr) -> (u128, u128) {
+    match expr {
+        Expr::Number(_) => (1, 1),
+        Expr::UnaryNeg(inner) => {
+            let (c, sup) = divisor_static_cost_bound(inner);
+            (c.saturating_add(sup), sup)
+        }
+        Expr::Dice(spec) => {
+            let n_usize = spec.count.get() as usize;
+            let n = n_usize as u128;
+            let s = side_count(spec.sides) as u128;
+            let reroll_passes = 1_u128
+                .saturating_add(spec.reroll_unlimited.len() as u128)
+                .saturating_add(spec.reroll_once.len() as u128)
+                .saturating_add(u128::from(spec.clamp.is_some()));
+            let pre_cost = reroll_passes.saturating_mul(s);
+
+            let max_steps = u128::from(MAX_EXPLOSIONS) + 1;
+            let (die_sup, exp_cost) = match spec.explode {
+                None => (s, 0),
+                Some(rule) => match (&spec.mode, rule.variant, spec.keep_drop.is_empty()) {
+                    (
+                        ResultMode::Pool { .. },
+                        ExplosionVariant::Standard | ExplosionVariant::Penetrate,
+                        true,
+                    ) => {
+                        let pool_chain_sup = 2 * u128::from(MAX_EXPLOSIONS) + 3;
+                        let cost = max_steps.saturating_mul(pool_chain_sup).saturating_mul(s);
+                        (pool_chain_sup, cost)
+                    }
+                    _ => {
+                        let chain_sup = max_steps.saturating_mul(s);
+                        let cost = max_steps
+                            .saturating_mul(chain_sup)
+                            .saturating_mul(s)
+                            .saturating_mul(SPARSE_TRANSITION_WEIGHT);
+                        (chain_sup, cost)
+                    }
+                },
+            };
+
+            if !spec.keep_drop.is_empty() {
+                let (l, r) = reduce_keep_drop_interval(n_usize, &spec.keep_drop);
+                if l == r {
+                    return (pre_cost.saturating_add(exp_cost).saturating_add(1), 1);
+                }
+                if l > 0 || r < n_usize {
+                    let dp_sup = match &spec.mode {
+                        ResultMode::Pool { .. } => 2 * n + 1,
+                        ResultMode::Sum { .. } => n.saturating_mul(die_sup),
+                    };
+                    let dp_cost = die_sup
+                        .saturating_mul(n + 1)
+                        .saturating_mul(n + 1)
+                        .saturating_mul(dp_sup)
+                        .saturating_mul(SPARSE_TRANSITION_WEIGHT);
+                    return (
+                        pre_cost.saturating_add(exp_cost).saturating_add(dp_cost),
+                        dp_sup,
+                    );
+                }
+            }
+
+            let contrib_sup = match &spec.mode {
+                ResultMode::Pool { .. } if spec.explode.is_none() => 3,
+                ResultMode::Pool { .. } => 2 * u128::from(MAX_EXPLOSIONS) + 3,
+                ResultMode::Sum { .. } => die_sup,
+            };
+            let group_sup = n.saturating_mul(contrib_sup);
+            let conv_cost = if n <= 1 {
+                contrib_sup
+            } else {
+                n.saturating_mul(n)
+                    .saturating_mul(contrib_sup)
+                    .saturating_mul(contrib_sup)
+            };
+            (
+                pre_cost.saturating_add(exp_cost).saturating_add(conv_cost),
+                group_sup.max(1),
+            )
+        }
+        Expr::Binary { op, left, right } => {
+            let (lc, lsup) = divisor_static_cost_bound(left);
+            let (rc, rsup) = divisor_static_cost_bound(right);
+            let (step_cost, out_sup) = if lsup == 1 && rsup == 1 {
+                (1, 1)
+            } else if rsup == 1 {
+                (lsup.saturating_mul(SPARSE_TRANSITION_WEIGHT), lsup)
+            } else if lsup == 1 && *op != BinaryOp::DivFloor {
+                (rsup, rsup)
+            } else {
+                let pairs = lsup.saturating_mul(rsup);
+                let out_s = match op {
+                    BinaryOp::Add | BinaryOp::Sub => lsup.saturating_add(rsup).saturating_sub(1),
+                    BinaryOp::Mul | BinaryOp::DivFloor => pairs,
+                };
+                (pairs.saturating_mul(SPARSE_TRANSITION_WEIGHT), out_s.max(1))
+            };
+            (
+                lc.saturating_add(rc).saturating_add(step_cost),
+                out_sup.max(1),
+            )
+        }
+    }
+}
+
+/// Collects every `BinaryOp::DivFloor` divisor subtree in left-to-right in-order AST sequence.
+///
+/// In Roll 3.0's infix binary / prefix unary grammar, every `/` token appears strictly after all
+/// tokens in its `left` child and strictly before all tokens in its `right` divisor subtree, and
+/// each divisor begins immediately after its `/` token. Consequently, for any two `DivFloor` nodes
+/// in a parsed AST, `inorder_idx` is strictly order-isomorphic to source byte offset.
+fn collect_divisors_inorder<'a>(expr: &'a Expr, out: &mut Vec<(u128, usize, &'a Expr)>) {
+    match expr {
+        Expr::Number(_) | Expr::Dice(_) => {}
+        Expr::UnaryNeg(inner) => collect_divisors_inorder(inner, out),
+        Expr::Binary { op, left, right } => {
+            collect_divisors_inorder(left, out);
+            if *op == BinaryOp::DivFloor {
+                let idx = out.len();
+                let (cost_bound, _) = divisor_static_cost_bound(right);
+                out.push((cost_bound, idx, right));
+            }
+            collect_divisors_inorder(right, out);
+        }
+    }
+}
+
+/// Runs the `§5.4` divisor pre-pass under [`MAX_DIVISOR_PREPASS_STATES`] before the main pass.
+fn precheck_divisors(expr: &Expr) -> Result<(), RollError> {
+    let mut divisors = Vec::new();
+    collect_divisors_inorder(expr, &mut divisors);
+    if divisors.is_empty() {
+        return Ok(());
+    }
+
+    divisors.sort_by_key(|&(cost_bound, inorder_idx, _)| (cost_bound, inorder_idx));
+
+    let mut prepass_spent: usize = 0;
+    let mut deferred_error: Option<RollError> = None;
+
+    for (_, _, divisor) in divisors {
+        if expr_max_die_rolls(divisor) > MAX_EXACT_DIE_ROLLS {
+            continue;
+        }
+        let rem = MAX_DIVISOR_PREPASS_STATES.saturating_sub(prepass_spent);
+        if rem == 0 {
+            break;
+        }
+        let mut div_budget = ExactBudget::with_cap(rem.min(MAX_EXACT_STATES));
+        let res = try_exact(divisor, &mut div_budget);
+        prepass_spent = prepass_spent.saturating_add(div_budget.transitions);
+
+        match res {
+            Ok((dist, _)) => {
+                let zero_reachable = dist.is_reachable(0);
+                let dist_len = dist.len();
+                drop(dist);
+                div_budget.release_live(dist_len);
+                if zero_reachable {
+                    return Err(RollError::DivisionByZero);
+                }
+            }
+            Err(ExactAbort::Error(RollError::DivisionByZero)) => {
+                return Err(RollError::DivisionByZero);
+            }
+            Err(ExactAbort::Error(other_err)) => {
+                // §5.4 items 1 & 5: check every remaining exact divisor for a reachable `0`
+                // before returning any non-`DivisionByZero` error from the pre-pass.
+                if deferred_error.is_none() {
+                    deferred_error = Some(other_err);
+                }
+            }
+            Err(ExactAbort::TooLarge | ExactAbort::Unsupported) => {}
+        }
+    }
+
+    if let Some(err) = deferred_error {
+        return Err(err);
+    }
+    Ok(())
 }
 
 enum Accum {
@@ -833,22 +1092,48 @@ impl Accum {
     }
 }
 
-fn expr_contains_div(expr: &Expr) -> bool {
-    match expr {
-        Expr::Number(_) | Expr::Dice(_) => false,
-        Expr::UnaryNeg(inner) => expr_contains_div(inner),
-        Expr::Binary { op, left, right } => {
-            *op == BinaryOp::DivFloor || expr_contains_div(left) || expr_contains_div(right)
+fn expr_contains_div(mut expr: &Expr) -> bool {
+    loop {
+        match expr {
+            Expr::Number(_) | Expr::Dice(_) => return false,
+            Expr::UnaryNeg(inner) => expr = inner,
+            Expr::Binary { op, left, right } => {
+                if *op == BinaryOp::DivFloor || expr_contains_div(right) {
+                    return true;
+                }
+                expr = left;
+            }
         }
     }
 }
 
-fn try_exact(
-    expr: &Expr,
+type ExactNodeResult = Result<(Distribution, ModelledCaps), ExactAbort>;
+
+enum ExactCont<'a> {
+    FinishNeg {
+        live_base: usize,
+    },
+    BinaryAfterFirst {
+        op: BinaryOp,
+        right_first: bool,
+        second: &'a Expr,
+        live_base: usize,
+    },
+    BinaryAfterSecond {
+        op: BinaryOp,
+        right_first: bool,
+        first_res: ExactNodeResult,
+        live_base: usize,
+    },
+}
+
+#[inline]
+fn finish_node_frame(
+    res: ExactNodeResult,
+    live_base: usize,
     budget: &mut ExactBudget,
-) -> Result<(Distribution, ModelledCaps), ExactAbort> {
-    let live_base = budget.live_states;
-    match try_exact_inner(expr, budget) {
+) -> ExactNodeResult {
+    match res {
         Ok((dist, caps)) => {
             debug_assert_eq!(
                 budget.live_states,
@@ -864,120 +1149,163 @@ fn try_exact(
     }
 }
 
-fn try_exact_inner(
-    expr: &Expr,
+fn combine_binary_exact(
+    op: BinaryOp,
+    right_first: bool,
+    first_res: ExactNodeResult,
+    second_res: ExactNodeResult,
     budget: &mut ExactBudget,
-) -> Result<(Distribution, ModelledCaps), ExactAbort> {
-    match expr {
-        Expr::Number(v) => {
-            budget.charge_transitions(1)?;
-            budget.reserve_live(1)?;
-            Ok((Distribution::point(*v), ModelledCaps::default()))
+) -> ExactNodeResult {
+    if let Err(ExactAbort::Error(err)) = second_res {
+        drop(first_res);
+        return Err(ExactAbort::Error(err));
+    }
+    let (left_res, right_res) = if right_first {
+        (second_res, first_res)
+    } else {
+        (first_res, second_res)
+    };
+    let (left_dist, left_caps) = match left_res {
+        Ok(ok) => ok,
+        Err(abort) => {
+            drop(right_res);
+            return Err(abort);
         }
-        Expr::Dice(spec) => try_exact_dice(spec, budget),
-        Expr::UnaryNeg(operand) => {
-            let (inner, caps) = try_exact(operand, budget)?;
-            let negated = negate_distribution(&inner, budget)?;
-            let inner_len = inner.len();
-            drop(inner);
-            budget.release_live(inner_len);
-            Ok((negated, caps))
-        }
-        Expr::Binary { op, left, right } => {
-            // §5.4 Divide-by-zero & AST-wide budget interaction:
-            // - Evaluate `right` BEFORE `left` whenever `*op == BinaryOp::DivFloor` (giving the
-            //   divisor first claim on the budget and failing immediately on `is_reachable(0)`),
-            //   or on `+`/`-`/`*` when `right` contains a division and `left` does not (so an
-            //   oversized left sibling like `500d1000+(1d6/(5d20-5))` cannot starve the divisor).
-            // - On division-free left-associative spines (`52 × (3163*d3162+d3162)`), evaluate
-            //   `left` before `right` so right-hand leaves are not stacked during recursion.
-            // - Isolate `TooLarge` / `Unsupported` across siblings so deterministic errors in the
-            //   other child still propagate when budget remains.
-            let right_first =
-                *op == BinaryOp::DivFloor || (expr_contains_div(right) && !expr_contains_div(left));
-
-            let (left_res, right_res) = if right_first {
-                let r_res = match try_exact(right, budget) {
-                    Ok((r_dist, r_caps)) => {
-                        if *op == BinaryOp::DivFloor && r_dist.is_reachable(0) {
-                            let r_len = r_dist.len();
-                            drop(r_dist);
-                            budget.release_live(r_len);
-                            return Err(ExactAbort::Error(RollError::DivisionByZero));
-                        }
-                        Ok((r_dist, r_caps))
-                    }
-                    Err(ExactAbort::Error(err)) => return Err(ExactAbort::Error(err)),
-                    Err(non_fatal) => Err(non_fatal),
-                };
-
-                let l_res = match try_exact(left, budget) {
-                    Ok(ok) => Ok(ok),
-                    Err(ExactAbort::Error(err)) => {
-                        if let Ok((r_dist, _)) = r_res {
-                            let r_len = r_dist.len();
-                            drop(r_dist);
-                            budget.release_live(r_len);
-                        }
-                        return Err(ExactAbort::Error(err));
-                    }
-                    Err(non_fatal) => Err(non_fatal),
-                };
-                (l_res, r_res)
-            } else {
-                let l_res = match try_exact(left, budget) {
-                    Ok(ok) => Ok(ok),
-                    Err(ExactAbort::Error(err)) => return Err(ExactAbort::Error(err)),
-                    Err(non_fatal) => Err(non_fatal),
-                };
-
-                let r_res = match try_exact(right, budget) {
-                    Ok(ok) => Ok(ok),
-                    Err(ExactAbort::Error(err)) => {
-                        if let Ok((l_dist, _)) = l_res {
-                            let l_len = l_dist.len();
-                            drop(l_dist);
-                            budget.release_live(l_len);
-                        }
-                        return Err(ExactAbort::Error(err));
-                    }
-                    Err(non_fatal) => Err(non_fatal),
-                };
-                (l_res, r_res)
-            };
-
-            let (left_dist, left_caps) = match left_res {
-                Ok(ok) => ok,
-                Err(abort) => {
-                    if let Ok((r_dist, _)) = right_res {
-                        let r_len = r_dist.len();
-                        drop(r_dist);
-                        budget.release_live(r_len);
-                    }
-                    return Err(abort);
-                }
-            };
-            let (right_dist, right_caps) = match right_res {
-                Ok(ok) => ok,
-                Err(abort) => {
-                    let l_len = left_dist.len();
-                    drop(left_dist);
-                    budget.release_live(l_len);
-                    return Err(abort);
-                }
-            };
-
-            let out_res = eval_binary_distributions(*op, &left_dist, &right_dist, budget);
-            let l_len = left_dist.len();
-            let r_len = right_dist.len();
+    };
+    let (right_dist, right_caps) = match right_res {
+        Ok(ok) => ok,
+        Err(abort) => {
             drop(left_dist);
-            drop(right_dist);
-            budget.release_live(l_len + r_len);
+            return Err(abort);
+        }
+    };
 
-            let out = out_res?;
-            let mut caps = left_caps;
-            caps.merge_from(right_caps);
-            Ok((out, caps))
+    let out_res = eval_binary_distributions(op, &left_dist, &right_dist, budget);
+    let l_len = left_dist.len();
+    let r_len = right_dist.len();
+    drop(left_dist);
+    drop(right_dist);
+    budget.release_live(l_len + r_len);
+
+    let out = out_res?;
+    let mut caps = left_caps;
+    caps.merge_from(right_caps);
+    Ok((out, caps))
+}
+
+/// Evaluates `expr` iteratively using an explicit heap continuation stack so neither nested
+/// factors (`MAX_NESTING_DEPTH = 64`) nor 499-operator left-associative chains can grow the
+/// native call stack in unoptimized debug builds.
+fn try_exact(expr: &Expr, budget: &mut ExactBudget) -> ExactNodeResult {
+    let mut stack: Vec<ExactCont<'_>> = Vec::new();
+    let mut cur_expr: Option<&Expr> = Some(expr);
+    let mut last_res: Option<ExactNodeResult> = None;
+
+    loop {
+        if let Some(node) = cur_expr.take() {
+            let live_base = budget.live_states;
+            match node {
+                Expr::Number(v) => {
+                    let res = budget
+                        .charge_transitions(1)
+                        .and_then(|()| budget.reserve_live(1))
+                        .map(|()| (Distribution::point(*v), ModelledCaps::default()));
+                    last_res = Some(finish_node_frame(res, live_base, budget));
+                }
+                Expr::Dice(spec) => {
+                    let res = try_exact_dice(spec, budget);
+                    last_res = Some(finish_node_frame(res, live_base, budget));
+                }
+                Expr::UnaryNeg(operand) => {
+                    stack.push(ExactCont::FinishNeg { live_base });
+                    cur_expr = Some(operand);
+                }
+                Expr::Binary { op, left, right } => {
+                    // §5.4 Divide-by-zero & AST-wide budget interaction:
+                    // - Evaluate `right` BEFORE `left` whenever `*op == BinaryOp::DivFloor`
+                    //   (giving the divisor first claim on the budget and failing immediately on
+                    //   `is_reachable(0)`), or on `+`/`-`/`*` when `right` contains a division and
+                    //   `left` does not.
+                    // - On division-free left-associative spines (`52 × (3163*d3162+d3162)`),
+                    //   evaluate `left` before `right` so right-hand leaves are not stacked.
+                    // - Isolate `TooLarge` / `Unsupported` across siblings so deterministic errors
+                    //   in the other child still propagate when budget remains.
+                    let right_first = *op == BinaryOp::DivFloor
+                        || (expr_contains_div(right) && !expr_contains_div(left));
+                    let (first, second) = if right_first {
+                        (right.as_ref(), left.as_ref())
+                    } else {
+                        (left.as_ref(), right.as_ref())
+                    };
+                    stack.push(ExactCont::BinaryAfterFirst {
+                        op: *op,
+                        right_first,
+                        second,
+                        live_base,
+                    });
+                    cur_expr = Some(first);
+                }
+            }
+        } else {
+            let child_res = last_res.take().expect("ascending requires child result");
+            match stack.pop() {
+                None => return child_res,
+                Some(ExactCont::FinishNeg { live_base }) => {
+                    let res = match child_res {
+                        Ok((inner, caps)) => {
+                            let neg_res = negate_distribution(&inner, budget);
+                            let inner_len = inner.len();
+                            drop(inner);
+                            budget.release_live(inner_len);
+                            neg_res.map(|negated| (negated, caps))
+                        }
+                        Err(abort) => Err(abort),
+                    };
+                    last_res = Some(finish_node_frame(res, live_base, budget));
+                }
+                Some(ExactCont::BinaryAfterFirst {
+                    op,
+                    right_first,
+                    second,
+                    live_base,
+                }) => match child_res {
+                    Err(ExactAbort::Error(err)) => {
+                        last_res = Some(finish_node_frame(
+                            Err(ExactAbort::Error(err)),
+                            live_base,
+                            budget,
+                        ));
+                    }
+                    Ok((r_dist, _))
+                        if right_first && op == BinaryOp::DivFloor && r_dist.is_reachable(0) =>
+                    {
+                        drop(r_dist);
+                        last_res = Some(finish_node_frame(
+                            Err(ExactAbort::Error(RollError::DivisionByZero)),
+                            live_base,
+                            budget,
+                        ));
+                    }
+                    first_res => {
+                        stack.push(ExactCont::BinaryAfterSecond {
+                            op,
+                            right_first,
+                            first_res,
+                            live_base,
+                        });
+                        cur_expr = Some(second);
+                    }
+                },
+                Some(ExactCont::BinaryAfterSecond {
+                    op,
+                    right_first,
+                    first_res,
+                    live_base,
+                }) => {
+                    let res = combine_binary_exact(op, right_first, first_res, child_res, budget);
+                    last_res = Some(finish_node_frame(res, live_base, budget));
+                }
+            }
         }
     }
 }
@@ -2003,6 +2331,106 @@ fn divide_distribution_weighted(
     acc.into_distribution(budget)
 }
 
+#[inline]
+fn is_contiguous(dist: &Distribution) -> bool {
+    let len = dist.len();
+    if len == 0 {
+        return false;
+    }
+    let first = i128::from(dist.entries[0].0);
+    let last = i128::from(dist.entries[len - 1].0);
+    last - first == (len - 1) as i128
+}
+
+/// Flat contiguous convolution for gap-free distributions (`100%` slot density across `min_sum..=max_sum`,
+/// charging `ceil(pairs / FLAT_CONTIGUOUS_PAIRS_PER_STATE) + out_len` and accumulating in the exact
+/// same `(i = 0..a.len(), j = 0..b.len())` order as `Accum::Dense` for bit-identical IEEE-754 sums).
+fn convolve_contiguous(
+    a: &Distribution,
+    b: &Distribution,
+    min_sum: i64,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let a_len = a.len();
+    let b_len = b.len();
+    let out_len = a_len + b_len - 1;
+    let pairs = (a_len as u128) * (b_len as u128);
+    let work = pairs
+        .div_ceil(FLAT_CONTIGUOUS_PAIRS_PER_STATE)
+        .saturating_add(out_len as u128);
+    budget.charge_transitions(work)?;
+
+    let b_slots = b_len.div_ceil(2);
+    let out_slots = out_len.div_ceil(2);
+    let peak_slots = out_slots
+        .checked_add(b_slots.max(out_len))
+        .ok_or(ExactAbort::TooLarge)?;
+    budget.reserve_live(peak_slots)?;
+
+    let b_probs: Vec<f64> = b.entries.iter().map(|&(_, p)| p).collect();
+    let mut out_probs: Vec<f64> = vec![0.0_f64; out_len];
+
+    for (i, &(_, pa)) in a.entries.iter().enumerate() {
+        let dest = &mut out_probs[i..i + b_len];
+        for (slot, &pb) in dest.iter_mut().zip(b_probs.iter()) {
+            *slot += pa * pb;
+        }
+    }
+    drop(b_probs);
+
+    let mut entries = Vec::with_capacity(out_len);
+    for (idx, p) in out_probs.into_iter().enumerate() {
+        let key = (i128::from(min_sum) + (idx as i128)) as i64;
+        entries.push((key, canon_f64(p)));
+    }
+    budget.release_live(peak_slots - out_len);
+    normalize_if_singleton(&mut entries);
+    Ok(Distribution { entries })
+}
+
+fn subtract_contiguous(
+    a: &Distribution,
+    b: &Distribution,
+    min_diff: i64,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let a_len = a.len();
+    let b_len = b.len();
+    let out_len = a_len + b_len - 1;
+    let pairs = (a_len as u128) * (b_len as u128);
+    let work = pairs
+        .div_ceil(FLAT_CONTIGUOUS_PAIRS_PER_STATE)
+        .saturating_add(out_len as u128);
+    budget.charge_transitions(work)?;
+
+    let b_slots = b_len.div_ceil(2);
+    let out_slots = out_len.div_ceil(2);
+    let peak_slots = out_slots
+        .checked_add(b_slots.max(out_len))
+        .ok_or(ExactAbort::TooLarge)?;
+    budget.reserve_live(peak_slots)?;
+
+    let b_rev_probs: Vec<f64> = b.entries.iter().rev().map(|&(_, p)| p).collect();
+    let mut out_probs: Vec<f64> = vec![0.0_f64; out_len];
+
+    for (i, &(_, pa)) in a.entries.iter().enumerate() {
+        let dest = &mut out_probs[i..i + b_len];
+        for (slot, &pb) in dest.iter_mut().zip(b_rev_probs.iter()) {
+            *slot += pa * pb;
+        }
+    }
+    drop(b_rev_probs);
+
+    let mut entries = Vec::with_capacity(out_len);
+    for (idx, p) in out_probs.into_iter().enumerate() {
+        let key = (i128::from(min_diff) + (idx as i128)) as i64;
+        entries.push((key, canon_f64(p)));
+    }
+    budget.release_live(peak_slots - out_len);
+    normalize_if_singleton(&mut entries);
+    Ok(Distribution { entries })
+}
+
 fn convolve(
     a: &Distribution,
     b: &Distribution,
@@ -2011,7 +2439,13 @@ fn convolve(
     let a_len = a.len() as u128;
     let b_len = b.len() as u128;
     let pairs = a_len * b_len;
-    if a_len + b_len - 1 > (MAX_EXACT_STATES as u128) || pairs > (MAX_EXACT_STATES as u128) {
+    let both_contiguous = is_contiguous(a) && is_contiguous(b);
+    let max_pairs = if both_contiguous {
+        (MAX_EXACT_STATES as u128) * FLAT_CONTIGUOUS_PAIRS_PER_STATE
+    } else {
+        MAX_EXACT_STATES as u128
+    };
+    if a_len + b_len - 1 > (MAX_EXACT_STATES as u128) || pairs > max_pairs {
         return Err(ExactAbort::TooLarge);
     }
 
@@ -2023,6 +2457,10 @@ fn convolve(
         .0
         .checked_add(b.entries[b.len() - 1].0)
         .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
+
+    if both_contiguous {
+        return convolve_contiguous(a, b, min_sum, budget);
+    }
 
     let mut acc = Accum::with_bounds(min_sum, max_sum, budget)?;
     let cost = if acc.is_sparse() {
@@ -2060,6 +2498,10 @@ fn subtract_distributions(
         .0
         .checked_sub(b.entries[0].0)
         .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
+
+    if is_contiguous(a) && is_contiguous(b) {
+        return subtract_contiguous(a, b, min_diff, budget);
+    }
 
     let mut acc = Accum::with_bounds(min_diff, max_diff, budget)?;
     let cost = if acc.is_sparse() {
@@ -2246,6 +2688,13 @@ fn convolve_n_inner(
     budget.reserve_live(single.len())?;
     let mut powers: Vec<(usize, Distribution)> = vec![(1, single.clone())];
 
+    let single_contiguous = is_contiguous(single);
+    let max_step_pairs = if single_contiguous {
+        (MAX_EXACT_STATES as u128) * FLAT_CONTIGUOUS_PAIRS_PER_STATE
+    } else {
+        MAX_EXACT_STATES as u128
+    };
+
     loop {
         let &(step_n, ref last_dist) = powers.last().expect("non-empty");
         let Some(next_n) = step_n.checked_mul(2) else {
@@ -2255,9 +2704,7 @@ fn convolve_n_inner(
             break;
         };
         let len_u128 = last_dist.len() as u128;
-        if len_u128 * len_u128 > (MAX_EXACT_STATES as u128)
-            || 2 * len_u128 - 1 > (MAX_EXACT_STATES as u128)
-        {
+        if len_u128 * len_u128 > max_step_pairs || 2 * len_u128 - 1 > (MAX_EXACT_STATES as u128) {
             break;
         }
         let squared = convolve(last_dist, last_dist, budget)?;
@@ -2285,7 +2732,7 @@ fn convolve_n_inner(
             if chunk_n <= remaining {
                 let prod = (acc.len() as u128) * (chunk_dist.len() as u128);
                 let sum_support = (acc.len() as u128) + (chunk_dist.len() as u128) - 1;
-                if prod <= (MAX_EXACT_STATES as u128) && sum_support <= (MAX_EXACT_STATES as u128) {
+                if prod <= max_step_pairs && sum_support <= (MAX_EXACT_STATES as u128) {
                     chosen_idx = Some(idx);
                     break;
                 }
@@ -2512,19 +2959,35 @@ fn expr_max_die_rolls(expr: &Expr) -> u64 {
     }
 }
 
-fn estimate_sort_work_per_sample(expr: &Expr) -> u64 {
+/// Estimates per-sample deterministic CPU work outside `DrawSource::next_u64_word` (`§5.3`).
+///
+/// Combined with `source.draws` (which already counts `>= count` initial Stage 1 draws per sample
+/// plus any triggered reroll/explosion draws), each `DiceSpec` group contributes at least:
+/// `count * (|r| + |ro| + |cs| + |cf| + 1) + keep_drop_work` per sample.
+fn estimate_mc_work_per_sample(expr: &Expr) -> u64 {
     match expr {
         Expr::Number(_) => 0,
-        Expr::UnaryNeg(inner) => estimate_sort_work_per_sample(inner),
+        Expr::UnaryNeg(inner) => estimate_mc_work_per_sample(inner),
         Expr::Binary { left, right, .. } => {
-            estimate_sort_work_per_sample(left).saturating_add(estimate_sort_work_per_sample(right))
+            estimate_mc_work_per_sample(left).saturating_add(estimate_mc_work_per_sample(right))
         }
         Expr::Dice(spec) => {
-            if spec.keep_drop.is_empty() {
-                return 0;
-            }
             let base = u64::from(spec.count.get());
-            let mut cur_len = match spec.explode {
+            let (cs_len, cf_len) = match &spec.mode {
+                ResultMode::Pool { cs, cf } => (cs.len() as u64, cf.len() as u64),
+                ResultMode::Sum { .. } => (0, 0),
+            };
+            let scan_passes = (spec.reroll_unlimited.len() as u64)
+                .saturating_add(spec.reroll_once.len() as u64)
+                .saturating_add(cs_len)
+                .saturating_add(cf_len);
+            let mut work = base.saturating_mul(scan_passes);
+
+            if spec.keep_drop.is_empty() {
+                return work;
+            }
+
+            let est_len = match spec.explode {
                 Some(rule) if rule.variant != ExplosionVariant::Compound => {
                     let s = side_count(spec.sides) as u64;
                     let m = count_matching_faces(spec.sides, rule.threshold);
@@ -2541,10 +3004,12 @@ fn estimate_sort_work_per_sample(expr: &Expr) -> u64 {
                 }
                 _ => base,
             };
-            let mut work = 0u64;
-            for &op in &spec.keep_drop {
+            let mut cur_len = est_len;
+            for (op_idx, &op) in spec.keep_drop.iter().enumerate() {
                 let log_term = u64::from(cur_len.max(2).ilog2());
-                work = work.saturating_add((cur_len.saturating_mul(log_term)) / 20);
+                let sort_work = (cur_len.saturating_mul(log_term)) / 20;
+                let collect_work = if op_idx > 0 { est_len / 4 } else { 0 };
+                work = work.saturating_add(sort_work).saturating_add(collect_work);
                 cur_len = match op {
                     KeepDropOp::KeepHighest(k) | KeepDropOp::KeepLowest(k) => {
                         cur_len.min(u64::from(k)).max(1)
@@ -2569,7 +3034,7 @@ fn monte_carlo_fallback(
     };
     let mut scratch = EvalScratch::new();
     let mut counts = BTreeMap::<i64, u32>::new();
-    let sort_work_per_sample = estimate_sort_work_per_sample(expr);
+    let static_work_per_sample = estimate_mc_work_per_sample(expr);
     let mut completed: u32 = 0;
 
     for _ in 0..target_samples {
@@ -2579,7 +3044,7 @@ fn monte_carlo_fallback(
 
         let work = source
             .draws
-            .saturating_add(u64::from(completed).saturating_mul(sort_work_per_sample));
+            .saturating_add(u64::from(completed).saturating_mul(static_work_per_sample));
         if work >= MAX_MC_WORK {
             break;
         }

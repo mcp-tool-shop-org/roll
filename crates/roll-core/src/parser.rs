@@ -7,7 +7,7 @@ use core::num::NonZeroU32;
 use crate::ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
     ExplosionVariant, Expr, KeepDropOp, MAX_DICE_PER_GROUP, MAX_DIE_SIDES, MAX_EXPRESSION_BYTES,
-    MAX_TOTAL_DICE_PER_EXPR, ResultMode, SortOrder,
+    MAX_NESTING_DEPTH, MAX_TOTAL_DICE_PER_EXPR, ResultMode, SortOrder,
 };
 use crate::error::RollError;
 
@@ -25,6 +25,7 @@ pub fn parse(input: &str) -> Result<Expr, RollError> {
         bytes: input.as_bytes(),
         pos: 0,
         total_dice: 0,
+        depth: 0,
     };
 
     let expr = scanner.parse_expression()?;
@@ -99,6 +100,7 @@ struct Scanner<'a> {
     bytes: &'a [u8],
     pos: usize,
     total_dice: u64,
+    depth: usize,
 }
 
 impl<'a> Scanner<'a> {
@@ -182,15 +184,37 @@ impl<'a> Scanner<'a> {
                         .map_err(|_| RollError::ArithmeticOverflow)?;
                     Ok(Expr::Number(value))
                 } else {
+                    let next_depth = self.depth + 1;
+                    if next_depth > MAX_NESTING_DEPTH {
+                        return Err(RollError::ExpressionTooDeep {
+                            depth: next_depth,
+                            max: MAX_NESTING_DEPTH,
+                            byte_offset: minus_start,
+                        });
+                    }
                     self.pos += 1;
-                    let operand = self.parse_factor()?;
+                    self.depth = next_depth;
+                    let operand_res = self.parse_factor();
+                    self.depth -= 1;
+                    let operand = operand_res?;
                     Ok(Expr::UnaryNeg(Box::new(operand)))
                 }
             }
             b'(' => {
                 let open_pos = self.pos;
+                let next_depth = self.depth + 1;
+                if next_depth > MAX_NESTING_DEPTH {
+                    return Err(RollError::ExpressionTooDeep {
+                        depth: next_depth,
+                        max: MAX_NESTING_DEPTH,
+                        byte_offset: open_pos,
+                    });
+                }
                 self.pos += 1;
-                let inner = self.parse_expression()?;
+                self.depth = next_depth;
+                let inner_res = self.parse_expression();
+                self.depth -= 1;
+                let inner = inner_res?;
                 self.skip_ws();
                 match self.peek() {
                     Some(b')') => {

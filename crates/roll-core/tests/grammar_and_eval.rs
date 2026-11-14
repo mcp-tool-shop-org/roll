@@ -538,3 +538,83 @@ fn engine_loop_caps_penetrate_compound_die_traces_and_runtime_overflows() {
         2
     );
 }
+
+#[test]
+fn parser_enforces_max_nesting_depth_with_structured_error_and_safe_debug_evaluation() {
+    use roll_core::{MAX_NESTING_DEPTH, analyze};
+
+    assert_eq!(MAX_NESTING_DEPTH, 64);
+
+    // Exactly `MAX_NESTING_DEPTH = 64` nested parentheses and unary negations parse, evaluate, and analyze safely.
+    let parens_ok = format!(
+        "{}1d6{}",
+        "(".repeat(MAX_NESTING_DEPTH),
+        ")".repeat(MAX_NESTING_DEPTH)
+    );
+    let parsed_parens_ok = parse(&parens_ok).unwrap();
+    let mut rng = RollRng::from_raw_seed([7u8; 32]);
+    let out_parens = evaluate_with_rng(&parsed_parens_ok, &mut rng).unwrap();
+    assert!((1..=6).contains(&out_parens.total));
+    assert_eq!(analyze(&parsed_parens_ok).unwrap().stats.min, 1);
+
+    let neg_ok = format!("{}1d6", "-".repeat(MAX_NESTING_DEPTH));
+    let parsed_neg_ok = parse(&neg_ok).unwrap();
+    let out_neg = evaluate_with_rng(&parsed_neg_ok, &mut rng).unwrap();
+    assert!((1..=6).contains(&out_neg.total));
+    assert_eq!(analyze(&parsed_neg_ok).unwrap().stats.min, 1);
+
+    // One over (`depth = 65`) fails deterministically with `RollError::ExpressionTooDeep` and exact byte offset.
+    let parens_over = format!(
+        "{}1d6{}",
+        "(".repeat(MAX_NESTING_DEPTH + 1),
+        ")".repeat(MAX_NESTING_DEPTH + 1)
+    );
+    assert_eq!(
+        parse(&parens_over),
+        Err(RollError::ExpressionTooDeep {
+            depth: MAX_NESTING_DEPTH + 1,
+            max: MAX_NESTING_DEPTH,
+            byte_offset: MAX_NESTING_DEPTH,
+        })
+    );
+
+    let neg_over = format!("{}1d6", "-".repeat(MAX_NESTING_DEPTH + 1));
+    assert_eq!(
+        parse(&neg_over),
+        Err(RollError::ExpressionTooDeep {
+            depth: MAX_NESTING_DEPTH + 1,
+            max: MAX_NESTING_DEPTH,
+            byte_offset: MAX_NESTING_DEPTH,
+        })
+    );
+
+    let mixed_over = format!("{}({}1d6{}", "(-".repeat(32), "", ")".repeat(33));
+    assert_eq!(
+        parse(&mixed_over),
+        Err(RollError::ExpressionTooDeep {
+            depth: MAX_NESTING_DEPTH + 1,
+            max: MAX_NESTING_DEPTH,
+            byte_offset: MAX_NESTING_DEPTH,
+        })
+    );
+
+    // Flat left-associative binary chain near `MAX_EXPRESSION_BYTES` (`499` `+` operators, `999` B)
+    // stays iterative in `parse` and safe in debug `evaluate_with_rng` and `analyze`.
+    let flat_chain = format!("{}1", "1+".repeat(499));
+    assert_eq!(flat_chain.len(), 999);
+    let parsed_flat = parse(&flat_chain).unwrap();
+    assert_eq!(
+        evaluate_with_rng(&parsed_flat, &mut rng).unwrap().total,
+        500
+    );
+    assert_eq!(analyze(&parsed_flat).unwrap().stats.min, 500);
+
+    let flat_div_chain = format!("{}1", "1/".repeat(499));
+    assert_eq!(flat_div_chain.len(), 999);
+    let parsed_flat_div = parse(&flat_div_chain).unwrap();
+    assert_eq!(
+        evaluate_with_rng(&parsed_flat_div, &mut rng).unwrap().total,
+        1
+    );
+    assert_eq!(analyze(&parsed_flat_div).unwrap().stats.min, 1);
+}

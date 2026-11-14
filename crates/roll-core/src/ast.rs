@@ -6,6 +6,11 @@ use core::num::NonZeroU32;
 
 /// Maximum byte length accepted by [`crate::parse`].
 pub const MAX_EXPRESSION_BYTES: usize = 1_000;
+/// Maximum recursive factor nesting depth (`(` parentheses and prefix unary `-`) accepted by [`crate::parse`] (`§4.2`).
+///
+/// Sized at `64` so unoptimized debug builds on constrained stacks (`1–2 MiB` Windows/CI/Wasm threads)
+/// never approach stack overflow during parsing, evaluation, analysis, formatting, or recursive `Drop`.
+pub const MAX_NESTING_DEPTH: usize = 64;
 /// Maximum dice count in a single `NdM` dice group.
 pub const MAX_DICE_PER_GROUP: u32 = 10_000;
 /// Maximum sum of base dice counts across an entire expression AST.
