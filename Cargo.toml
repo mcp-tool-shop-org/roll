@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/roll-core",
+    "crates/roll-cli",
+]
+
+[workspace.package]
+version = "3.0.0-dev"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/mcp-tool-shop-org/roll"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.dependencies]
+serde = { version = "=1.0.229", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "=1.0.154", default-features = false, features = ["alloc"] }
+rand_core = { version = "=0.10.1", default-features = false }
+rand_chacha = { version = "=0.10.0", default-features = false }
+sha2 = { version = "=0.11.1", default-features = false }
+clap = { version = "=4.6.7", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color"] }
+proptest = { version = "=1.12.0", default-features = false, features = ["std"] }

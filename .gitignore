@@ -6,3 +6,5 @@ coverage/
 site/.astro/
 site/dist/
 site/node_modules/
+/target
+

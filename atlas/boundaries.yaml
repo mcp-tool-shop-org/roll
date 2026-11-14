@@ -4,6 +4,18 @@ boundaries:
     globs:
       - .github/**
     role: config
+  - name: fixtures
+    globs:
+      - fixtures/**
+    role: data
+  - name: roll-cli
+    globs:
+      - crates/roll-cli/**
+    role: code
+  - name: roll-core
+    globs:
+      - crates/roll-core/**
+    role: code
   - name: root
     globs:
       - "*"

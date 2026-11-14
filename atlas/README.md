@@ -1,28 +1,41 @@
 # roll: how it works
 
-Mapped at 2026-11-12 from commit 8373bb4 by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit caeb56c by Atlas 1.26.0.
 
 ## What this is
 
-5 parts, mostly TypeScript (58 files), CSS (2), Astro (1) and JavaScript (1). Work enters through 7 doors; CI and Release each reach 2 parts, and CI is followed because a pull request goes through it. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll.
+8 parts, mostly TypeScript (58 files), Rust (18), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
 
-## What changed since 2026-11-11 (88eebf7)
+## What changed since 2026-11-12 (8373bb4)
 
-Nothing structural changed since 2026-11-11; 2 files changed content.
+- roll-cli now imports roll-core.
+- CI's push trigger now also names `Cargo.lock`, `Cargo.toml`, `crates/**` and `fixtures/**`.
+- CI now also runs crates/roll-cli/src/main.rs, crates/roll-cli/tests/ and crates/roll-core/tests/.
+- CI now also checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
+- And 1 more change to a door.
+- crates/roll-cli/ is now read by Cargo.toml.
+- crates/roll-cli/src/main.rs is now read by crates/roll-cli/Cargo.toml.
+- crates/roll-core/ is now read by Cargo.toml and crates/roll-cli/Cargo.toml.
+- And 5 more new writers and readers of places.
+- fixtures is a new part, drawn from `fixtures/**`.
+- roll-cli is a new part, drawn from `crates/roll-cli/**`.
+- roll-core is a new part, drawn from `crates/roll-core/**`.
+- 27 files added and 24 changed content, across 7 parts.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 11 paths; or by hand. Runs src/bin.ts and tests/; builds src/.
+1. **CI.** On a pull request; on a push touching 15 paths; or by hand. Runs crates/roll-cli/src/main.rs, src/bin.ts, crates/roll-cli/tests/ and 32 more; builds src/; checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
 2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs tests/; builds src/.
 3. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
-4. **@mcptoolshop/roll** (the package people import). Loads src/index.ts, src/bridge/handler.ts and src/tables/engine.ts.
-5. **roll** (a command people run). Runs src/bin.ts.
-6. **roll-bridge** (a command people run). Runs src/bridge/server.ts.
-7. **roll-mcp** (a command people run). Runs src/mcp/server.ts.
+4. **roll** (a command built from crates/roll-cli, which nothing ships, from crates/roll-cli/Cargo.toml). Runs crates/roll-cli/src/main.rs.
+5. **@mcptoolshop/roll** (the package people import). Loads src/index.ts, src/bridge/handler.ts and src/tables/engine.ts.
+6. **roll** (a command people run, from package.json). Runs src/bin.ts.
+7. **roll-bridge** (a command people run). Runs src/bridge/server.ts.
+8. **roll-mcp** (a command people run). Runs src/mcp/server.ts.
 
 ## What happens through CI
 
-1. The workflow runs src/bin.ts in src and tests/ in tests; it builds src/ in src.
+1. The workflow runs crates/roll-cli/src/main.rs and crates/roll-cli/tests/ in roll-cli, crates/roll-core/tests/ in roll-core, src/bin.ts in src, and tests/ in tests; it builds src/ in src; it checks crates/roll-cli/src/lib.rs in roll-cli and crates/roll-core/src/lib.rs in roll-core.
 2. It uploads coverage to Codecov.
 
 ## Who reads the results
@@ -35,9 +48,11 @@ CI writes nothing this map can see.
 
 **Deploy site to GitHub Pages** runs site/astro.config.mjs and site/src/, and deploys the site.
 
+**roll** (a command built from crates/roll-cli, which nothing ships, from crates/roll-cli/Cargo.toml) runs crates/roll-cli/src/main.rs and reaches roll-core.
+
 **@mcptoolshop/roll** (the package people import) loads src/index.ts, src/bridge/handler.ts and src/tables/engine.ts.
 
-**roll** (a command people run) runs src/bin.ts.
+**roll** (a command people run, from package.json) runs src/bin.ts.
 
 **roll-bridge** (a command people run) runs src/bridge/server.ts.
 
@@ -45,12 +60,20 @@ CI writes nothing this map can see.
 
 ## What breaks what
 
+- **roll-core** is imported by 1 part (roll-cli) and sits on the path of 2 doors.
 - **src** is imported only from tests, by 1 part (tests), and sits on the path of 6 doors.
+- **roll-cli** is imported by no other part and sits on the path of 2 doors.
 - **tests** is imported by no other part and sits on the path of 2 doors.
 
 ## What tends to change together
 
-No two source files changed together often enough to name.
+- **src/bridge/handler.ts** and **src/mcp/server.ts** changed together in 6 of 6 commits, inside the src part.
+- **src/bin.ts** and **src/bridge/handler.ts** changed together in 6 of 7 commits, inside the src part.
+- **src/bin.ts** and **src/mcp/server.ts** changed together in 6 of 7 commits, inside the src part.
+- **src/bin.ts** and **src/display/format.ts** changed together in 5 of 7 commits, inside the src part.
+- **src/bridge/handler.ts** and **src/display/format.ts** changed together in 4 of 7 commits, inside the src part.
+
+Confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do.
 
@@ -72,7 +95,7 @@ Nothing in this repository writes to a tracked place this map can see.
 
 ## Hand-authored
 
-People write .github/, the repository root and site/. Nothing in this repository writes to them.
+People write .github/, fixtures/, the repository root and site/. Nothing in this repository writes to them.
 
 ## Where to start
 
@@ -84,7 +107,7 @@ Beside the path, src/bin.ts also calls src/loot/table.ts.
 
 ## What this map cannot see
 
-- 2 reads go to a path their caller passes, not to this repository.
+- 3 writes and 2 reads go to a path their caller passes, not to this repository.
 - Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window.
 
 Regenerate with `npx --yes @dogfood-lab/atlas map`.

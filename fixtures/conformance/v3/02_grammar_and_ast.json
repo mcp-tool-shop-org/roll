@@ -1,0 +1,1942 @@
+{
+  "schema_version": "roll.conformance.grammar_ast.v1",
+  "accept_cases": [
+    {
+      "input": "42",
+      "canonical_expression": "42",
+      "total_base_dice": 0,
+      "ast": {
+        "type": "number",
+        "value": "42"
+      }
+    },
+    {
+      "input": "-2",
+      "canonical_expression": "-2",
+      "total_base_dice": 0,
+      "ast": {
+        "type": "unary_neg",
+        "value": {
+          "type": "number",
+          "value": "2"
+        }
+      }
+    },
+    {
+      "input": "2d6",
+      "canonical_expression": "2d6",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "d20",
+      "canonical_expression": "1d20",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 20
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "d%",
+      "canonical_expression": "1d%",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "percentile"
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4dF",
+      "canonical_expression": "4dF",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "fate"
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4df",
+      "canonical_expression": "4dF",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "fate"
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6+3",
+      "canonical_expression": "2d6+3",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "add",
+          "left": {
+            "type": "dice",
+            "value": {
+              "count": 2,
+              "sides": {
+                "kind": "standard",
+                "value": 6
+              },
+              "reroll_unlimited": [],
+              "reroll_once": [],
+              "clamp": null,
+              "explode": null,
+              "keep_drop": [],
+              "mode": {
+                "kind": "sum",
+                "crit_success_max": false,
+                "crit_failure_min": false
+              },
+              "sort": null
+            }
+          },
+          "right": {
+            "type": "number",
+            "value": "3"
+          }
+        }
+      }
+    },
+    {
+      "input": "2d6+1d4+3",
+      "canonical_expression": "2d6+1d4+3",
+      "total_base_dice": 3,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "add",
+          "left": {
+            "type": "binary",
+            "value": {
+              "op": "add",
+              "left": {
+                "type": "dice",
+                "value": {
+                  "count": 2,
+                  "sides": {
+                    "kind": "standard",
+                    "value": 6
+                  },
+                  "reroll_unlimited": [],
+                  "reroll_once": [],
+                  "clamp": null,
+                  "explode": null,
+                  "keep_drop": [],
+                  "mode": {
+                    "kind": "sum",
+                    "crit_success_max": false,
+                    "crit_failure_min": false
+                  },
+                  "sort": null
+                }
+              },
+              "right": {
+                "type": "dice",
+                "value": {
+                  "count": 1,
+                  "sides": {
+                    "kind": "standard",
+                    "value": 4
+                  },
+                  "reroll_unlimited": [],
+                  "reroll_once": [],
+                  "clamp": null,
+                  "explode": null,
+                  "keep_drop": [],
+                  "mode": {
+                    "kind": "sum",
+                    "crit_success_max": false,
+                    "crit_failure_min": false
+                  },
+                  "sort": null
+                }
+              }
+            }
+          },
+          "right": {
+            "type": "number",
+            "value": "3"
+          }
+        }
+      }
+    },
+    {
+      "input": "1d4+2d6*10",
+      "canonical_expression": "1d4+2d6*10",
+      "total_base_dice": 3,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "add",
+          "left": {
+            "type": "dice",
+            "value": {
+              "count": 1,
+              "sides": {
+                "kind": "standard",
+                "value": 4
+              },
+              "reroll_unlimited": [],
+              "reroll_once": [],
+              "clamp": null,
+              "explode": null,
+              "keep_drop": [],
+              "mode": {
+                "kind": "sum",
+                "crit_success_max": false,
+                "crit_failure_min": false
+              },
+              "sort": null
+            }
+          },
+          "right": {
+            "type": "binary",
+            "value": {
+              "op": "mul",
+              "left": {
+                "type": "dice",
+                "value": {
+                  "count": 2,
+                  "sides": {
+                    "kind": "standard",
+                    "value": 6
+                  },
+                  "reroll_unlimited": [],
+                  "reroll_once": [],
+                  "clamp": null,
+                  "explode": null,
+                  "keep_drop": [],
+                  "mode": {
+                    "kind": "sum",
+                    "crit_success_max": false,
+                    "crit_failure_min": false
+                  },
+                  "sort": null
+                }
+              },
+              "right": {
+                "type": "number",
+                "value": "10"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "input": "(2d6+3)*2",
+      "canonical_expression": "(2d6+3)*2",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "mul",
+          "left": {
+            "type": "binary",
+            "value": {
+              "op": "add",
+              "left": {
+                "type": "dice",
+                "value": {
+                  "count": 2,
+                  "sides": {
+                    "kind": "standard",
+                    "value": 6
+                  },
+                  "reroll_unlimited": [],
+                  "reroll_once": [],
+                  "clamp": null,
+                  "explode": null,
+                  "keep_drop": [],
+                  "mode": {
+                    "kind": "sum",
+                    "crit_success_max": false,
+                    "crit_failure_min": false
+                  },
+                  "sort": null
+                }
+              },
+              "right": {
+                "type": "number",
+                "value": "3"
+              }
+            }
+          },
+          "right": {
+            "type": "number",
+            "value": "2"
+          }
+        }
+      }
+    },
+    {
+      "input": "1+(2+3)",
+      "canonical_expression": "1+(2+3)",
+      "total_base_dice": 0,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "add",
+          "left": {
+            "type": "number",
+            "value": "1"
+          },
+          "right": {
+            "type": "binary",
+            "value": {
+              "op": "add",
+              "left": {
+                "type": "number",
+                "value": "2"
+              },
+              "right": {
+                "type": "number",
+                "value": "3"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "input": "10-(2+3)",
+      "canonical_expression": "10-(2+3)",
+      "total_base_dice": 0,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "sub",
+          "left": {
+            "type": "number",
+            "value": "10"
+          },
+          "right": {
+            "type": "binary",
+            "value": {
+              "op": "add",
+              "left": {
+                "type": "number",
+                "value": "2"
+              },
+              "right": {
+                "type": "number",
+                "value": "3"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "input": "-(2*3)",
+      "canonical_expression": "-(2*3)",
+      "total_base_dice": 0,
+      "ast": {
+        "type": "unary_neg",
+        "value": {
+          "type": "binary",
+          "value": {
+            "op": "mul",
+            "left": {
+              "type": "number",
+              "value": "2"
+            },
+            "right": {
+              "type": "number",
+              "value": "3"
+            }
+          }
+        }
+      }
+    },
+    {
+      "input": "4d6kh3",
+      "canonical_expression": "4d6kh3",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_highest",
+              "count": 3
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6kh",
+      "canonical_expression": "4d6kh1",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_highest",
+              "count": 1
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6kl2",
+      "canonical_expression": "4d6kl2",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_lowest",
+              "count": 2
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6dh1",
+      "canonical_expression": "4d6dh1",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "drop_highest",
+              "count": 1
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6dl",
+      "canonical_expression": "4d6dl1",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "drop_lowest",
+              "count": 1
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6kh0",
+      "canonical_expression": "4d6kh0",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_highest",
+              "count": 0
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d6!",
+      "canonical_expression": "1d6!>=6",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "standard",
+            "threshold": {
+              "op": "gte",
+              "value": 6
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d6!>4",
+      "canonical_expression": "1d6!>4",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "standard",
+            "threshold": {
+              "op": "gt",
+              "value": 4
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d6!>=5",
+      "canonical_expression": "1d6!>=5",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "standard",
+            "threshold": {
+              "op": "gte",
+              "value": 5
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d6!!",
+      "canonical_expression": "1d6!!>=6",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "compound",
+            "threshold": {
+              "op": "gte",
+              "value": 6
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d6!!>4",
+      "canonical_expression": "1d6!!>4",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "compound",
+            "threshold": {
+              "op": "gt",
+              "value": 4
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d6!p",
+      "canonical_expression": "1d6!p>=6",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "penetrate",
+            "threshold": {
+              "op": "gte",
+              "value": 6
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d6!p>=4",
+      "canonical_expression": "1d6!p>=4",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "penetrate",
+            "threshold": {
+              "op": "gte",
+              "value": 4
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d%!",
+      "canonical_expression": "1d%!>=100",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "percentile"
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": {
+            "variant": "standard",
+            "threshold": {
+              "op": "gte",
+              "value": 100
+            }
+          },
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6r",
+      "canonical_expression": "2d6r=1",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [
+            {
+              "op": "eq",
+              "value": 1
+            }
+          ],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6r<2",
+      "canonical_expression": "2d6r<2",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [
+            {
+              "op": "lt",
+              "value": 2
+            }
+          ],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6ro",
+      "canonical_expression": "2d6ro=1",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [
+            {
+              "op": "eq",
+              "value": 1
+            }
+          ],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6ro=1",
+      "canonical_expression": "2d6ro=1",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [
+            {
+              "op": "eq",
+              "value": 1
+            }
+          ],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6min3",
+      "canonical_expression": "2d6min3",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": {
+            "min": 3,
+            "max": null
+          },
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6max5",
+      "canonical_expression": "2d6max5",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": {
+            "min": null,
+            "max": 5
+          },
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "2d6max5min2",
+      "canonical_expression": "2d6min2max5",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": {
+            "min": 2,
+            "max": 5
+          },
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6kh3r=1",
+      "canonical_expression": "4d6r=1kh3",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [
+            {
+              "op": "eq",
+              "value": 1
+            }
+          ],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_highest",
+              "count": 3
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "8d6r<2min2kh5sa",
+      "canonical_expression": "8d6r<2min2kh5sa",
+      "total_base_dice": 8,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 8,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [
+            {
+              "op": "lt",
+              "value": 2
+            }
+          ],
+          "reroll_once": [],
+          "clamp": {
+            "min": 2,
+            "max": null
+          },
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_highest",
+              "count": 5
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": "asc"
+        }
+      }
+    },
+    {
+      "input": "8d6cs>=5",
+      "canonical_expression": "8d6cs>=5",
+      "total_base_dice": 8,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 8,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "pool",
+            "cs": [
+              {
+                "op": "gte",
+                "value": 5
+              }
+            ],
+            "cf": []
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "8d6cs>=5cf<=1",
+      "canonical_expression": "8d6cs>=5cf<=1",
+      "total_base_dice": 8,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 8,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "pool",
+            "cs": [
+              {
+                "op": "gte",
+                "value": 5
+              }
+            ],
+            "cf": [
+              {
+                "op": "lte",
+                "value": 1
+              }
+            ]
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "10d6cf<=1",
+      "canonical_expression": "10d6cf<=1",
+      "total_base_dice": 10,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 10,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "pool",
+            "cs": [],
+            "cf": [
+              {
+                "op": "lte",
+                "value": 1
+              }
+            ]
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "8d6cs>=5+2",
+      "canonical_expression": "8d6cs>=5+2",
+      "total_base_dice": 8,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "add",
+          "left": {
+            "type": "dice",
+            "value": {
+              "count": 8,
+              "sides": {
+                "kind": "standard",
+                "value": 6
+              },
+              "reroll_unlimited": [],
+              "reroll_once": [],
+              "clamp": null,
+              "explode": null,
+              "keep_drop": [],
+              "mode": {
+                "kind": "pool",
+                "cs": [
+                  {
+                    "op": "gte",
+                    "value": 5
+                  }
+                ],
+                "cf": []
+              },
+              "sort": null
+            }
+          },
+          "right": {
+            "type": "number",
+            "value": "2"
+          }
+        }
+      }
+    },
+    {
+      "input": "1d20cs",
+      "canonical_expression": "1d20cs",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 20
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": true,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d20cf",
+      "canonical_expression": "1d20cf",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 20
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": true
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "1d20cscf",
+      "canonical_expression": "1d20cscf",
+      "total_base_dice": 1,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 1,
+          "sides": {
+            "kind": "standard",
+            "value": 20
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": true,
+            "crit_failure_min": true
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4dFcscf",
+      "canonical_expression": "4dFcscf",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "fate"
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": true,
+            "crit_failure_min": true
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4d6khsa",
+      "canonical_expression": "4d6kh1sa",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [
+            {
+              "op": "keep_highest",
+              "count": 1
+            }
+          ],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": "asc"
+        }
+      }
+    },
+    {
+      "input": "2d6rsa",
+      "canonical_expression": "2d6r=1sa",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 2,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [
+            {
+              "op": "eq",
+              "value": 1
+            }
+          ],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": "asc"
+        }
+      }
+    },
+    {
+      "input": "4d6sd",
+      "canonical_expression": "4d6sd",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "standard",
+            "value": 6
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "input": "4dFr=-1",
+      "canonical_expression": "4dFr=-1",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "fate"
+          },
+          "reroll_unlimited": [
+            {
+              "op": "eq",
+              "value": -1
+            }
+          ],
+          "reroll_once": [],
+          "clamp": null,
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "4dFmin-1max0",
+      "canonical_expression": "4dFmin-1max0",
+      "total_base_dice": 4,
+      "ast": {
+        "type": "dice",
+        "value": {
+          "count": 4,
+          "sides": {
+            "kind": "fate"
+          },
+          "reroll_unlimited": [],
+          "reroll_once": [],
+          "clamp": {
+            "min": -1,
+            "max": 0
+          },
+          "explode": null,
+          "keep_drop": [],
+          "mode": {
+            "kind": "sum",
+            "crit_success_max": false,
+            "crit_failure_min": false
+          },
+          "sort": null
+        }
+      }
+    },
+    {
+      "input": "5000d6 + 5000d6",
+      "canonical_expression": "5000d6+5000d6",
+      "total_base_dice": 10000,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "add",
+          "left": {
+            "type": "dice",
+            "value": {
+              "count": 5000,
+              "sides": {
+                "kind": "standard",
+                "value": 6
+              },
+              "reroll_unlimited": [],
+              "reroll_once": [],
+              "clamp": null,
+              "explode": null,
+              "keep_drop": [],
+              "mode": {
+                "kind": "sum",
+                "crit_success_max": false,
+                "crit_failure_min": false
+              },
+              "sort": null
+            }
+          },
+          "right": {
+            "type": "dice",
+            "value": {
+              "count": 5000,
+              "sides": {
+                "kind": "standard",
+                "value": 6
+              },
+              "reroll_unlimited": [],
+              "reroll_once": [],
+              "clamp": null,
+              "explode": null,
+              "keep_drop": [],
+              "mode": {
+                "kind": "sum",
+                "crit_success_max": false,
+                "crit_failure_min": false
+              },
+              "sort": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "input": "1d6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 +1d6",
+      "canonical_expression": "1d6+1d6",
+      "total_base_dice": 2,
+      "ast": {
+        "type": "binary",
+        "value": {
+          "op": "add",
+          "left": {
+            "type": "dice",
+            "value": {
+              "count": 1,
+              "sides": {
+                "kind": "standard",
+                "value": 6
+              },
+              "reroll_unlimited": [],
+              "reroll_once": [],
+              "clamp": null,
+              "explode": null,
+              "keep_drop": [],
+              "mode": {
+                "kind": "sum",
+                "crit_success_max": false,
+                "crit_failure_min": false
+              },
+              "sort": null
+            }
+          },
+          "right": {
+            "type": "dice",
+            "value": {
+              "count": 1,
+              "sides": {
+                "kind": "standard",
+                "value": 6
+              },
+              "reroll_unlimited": [],
+              "reroll_once": [],
+              "clamp": null,
+              "explode": null,
+              "keep_drop": [],
+              "mode": {
+                "kind": "sum",
+                "crit_success_max": false,
+                "crit_failure_min": false
+              },
+              "sort": null
+            }
+          }
+        }
+      }
+    }
+  ],
+  "reject_cases": [
+    {
+      "description": "empty string",
+      "input": "",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 0
+    },
+    {
+      "description": "whitespace only",
+      "input": "   \t ",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 5
+    },
+    {
+      "description": "zero dice count 0d6",
+      "input": "0d6",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 0
+    },
+    {
+      "description": "zero dice count 00d20",
+      "input": "00d20",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 0
+    },
+    {
+      "description": "zero die sides 1d0",
+      "input": "1d0",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 2
+    },
+    {
+      "description": "die sides above 1_000_000",
+      "input": "1d1000001",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 2
+    },
+    {
+      "description": "inverted clamp bounds min > max",
+      "input": "1d6min5max2",
+      "expected_error_kind": "invalid_clamp_bounds",
+      "expected_byte_offset": 7
+    },
+    {
+      "description": "inverted clamp bounds max < min",
+      "input": "1d6max2min5",
+      "expected_error_kind": "invalid_clamp_bounds",
+      "expected_byte_offset": 7
+    },
+    {
+      "description": "duplicate min slot",
+      "input": "1d6min2min4",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 7
+    },
+    {
+      "description": "duplicate max slot",
+      "input": "1d6max5max3",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 7
+    },
+    {
+      "description": "duplicate explosion slot",
+      "input": "1d6!>5!>4",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 6
+    },
+    {
+      "description": "triple bang duplicate explosion",
+      "input": "1d6!!!",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 5
+    },
+    {
+      "description": "duplicate sort slot sa+sd",
+      "input": "4d6sasd",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 5
+    },
+    {
+      "description": "duplicate bare cs slot",
+      "input": "1d20cscs",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 6
+    },
+    {
+      "description": "duplicate bare cf slot",
+      "input": "1d20cfcf",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 6
+    },
+    {
+      "description": "exploding Fate dice !",
+      "input": "4dF!",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 3
+    },
+    {
+      "description": "compounding Fate dice !!",
+      "input": "4dF!!",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 3
+    },
+    {
+      "description": "penetrating Fate dice !p",
+      "input": "4dF!p",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 3
+    },
+    {
+      "description": "mixed bare cs and pool cs>=15",
+      "input": "1d20cscs>=15",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 6
+    },
+    {
+      "description": "mixed pool cs>=5 and bare cf",
+      "input": "8d6cs>=5cf",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 8
+    },
+    {
+      "description": "single group > 10,000 dice",
+      "input": "10001d6",
+      "expected_error_kind": "dice_budget_exceeded",
+      "expected_byte_offset": null
+    },
+    {
+      "description": "multi-group > 10,000 total dice (6000+5000)",
+      "input": "6000d6+5000d6",
+      "expected_error_kind": "dice_budget_exceeded",
+      "expected_byte_offset": null
+    },
+    {
+      "description": "multi-group > 10,000 total dice (2000+9000)",
+      "input": "2000d6+9000d6",
+      "expected_error_kind": "dice_budget_exceeded",
+      "expected_byte_offset": null
+    },
+    {
+      "description": "expression over 1,000 bytes (1,001 bytes)",
+      "input": "1d6                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  +1d6",
+      "expected_error_kind": "expression_too_long",
+      "expected_byte_offset": null
+    },
+    {
+      "description": "invalid character @",
+      "input": "2d6@3",
+      "expected_error_kind": "lex",
+      "expected_byte_offset": 3
+    },
+    {
+      "description": "unknown identifier in ExprMode",
+      "input": "foo",
+      "expected_error_kind": "lex",
+      "expected_byte_offset": 0
+    },
+    {
+      "description": "trailing d after dice group",
+      "input": "2d6 d",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 4
+    },
+    {
+      "description": "unclosed parenthesis",
+      "input": "(2d6+3",
+      "expected_error_kind": "parse",
+      "expected_byte_offset": 6
+    },
+    {
+      "description": "literal exceeding i64::MAX",
+      "input": "9223372036854775808",
+      "expected_error_kind": "arithmetic_overflow",
+      "expected_byte_offset": null
+    }
+  ],
+  "division_and_arithmetic_cases": [
+    {
+      "description": "positive exact division",
+      "expression": "6/2",
+      "expected_outcome": "ok",
+      "expected_total": "3"
+    },
+    {
+      "description": "positive floor division",
+      "expression": "7/2",
+      "expected_outcome": "ok",
+      "expected_total": "3"
+    },
+    {
+      "description": "negative dividend floor toward -inf (-7/2 == -4)",
+      "expression": "-7/2",
+      "expected_outcome": "ok",
+      "expected_total": "-4"
+    },
+    {
+      "description": "negative divisor floor toward -inf (7/-2 == -4)",
+      "expression": "7/-2",
+      "expected_outcome": "ok",
+      "expected_total": "-4"
+    },
+    {
+      "description": "two negatives positive floor (-7/-2 == 3)",
+      "expression": "-7/-2",
+      "expected_outcome": "ok",
+      "expected_total": "3"
+    },
+    {
+      "description": "negative exact division (-6/2 == -3)",
+      "expression": "-6/2",
+      "expected_outcome": "ok",
+      "expected_total": "-3"
+    },
+    {
+      "description": "D&D ability modifier odd low score ((9-10)/2 == -1)",
+      "expression": "(9-10)/2",
+      "expected_outcome": "ok",
+      "expected_total": "-1"
+    },
+    {
+      "description": "D&D ability modifier score 1 ((1-10)/2 == -5)",
+      "expression": "(1-10)/2",
+      "expected_outcome": "ok",
+      "expected_total": "-5"
+    },
+    {
+      "description": "zero divided by negative integer",
+      "expression": "0/-5",
+      "expected_outcome": "ok",
+      "expected_total": "0"
+    },
+    {
+      "description": "large i64 beyond IEEE-754 safe integer positive floor",
+      "expression": "9007199254740993/2",
+      "expected_outcome": "ok",
+      "expected_total": "4503599627370496"
+    },
+    {
+      "description": "large i64 beyond IEEE-754 safe integer negative floor",
+      "expression": "-9007199254740993/2",
+      "expected_outcome": "ok",
+      "expected_total": "-4503599627370497"
+    },
+    {
+      "description": "division by literal zero",
+      "expression": "5/0",
+      "expected_outcome": "division_by_zero",
+      "expected_total": null
+    },
+    {
+      "description": "division by zero subexpression",
+      "expression": "10/(3-3)",
+      "expected_outcome": "division_by_zero",
+      "expected_total": null
+    },
+    {
+      "description": "addition overflow above i64::MAX",
+      "expression": "9223372036854775807+1",
+      "expected_outcome": "arithmetic_overflow",
+      "expected_total": null
+    },
+    {
+      "description": "subtraction underflow below i64::MIN",
+      "expression": "-9223372036854775807-2",
+      "expected_outcome": "arithmetic_overflow",
+      "expected_total": null
+    },
+    {
+      "description": "multiplication overflow",
+      "expression": "4000000000000*4000000000000",
+      "expected_outcome": "arithmetic_overflow",
+      "expected_total": null
+    },
+    {
+      "description": "i64::MIN divided by -1 overflow",
+      "expression": "(-9223372036854775807-1)/-1",
+      "expected_outcome": "arithmetic_overflow",
+      "expected_total": null
+    }
+  ]
+}
