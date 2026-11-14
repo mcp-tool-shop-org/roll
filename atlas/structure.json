@@ -52,11 +52,11 @@
           "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
         },
         {
-          "hash": "877633c517ac81225611bfc5ac2ce35cc3d9c0e6ba57e1c7360bbf7516d1024c",
+          "hash": "642e936bb7cccc27c9889d0e014f116bf29e2cb7228b867ecfef5fd216142378",
           "path": "fixtures/conformance/v3/04_exact_analysis.json"
         },
         {
-          "hash": "e8ae39428b7fd1e73e19f368fca2cdb979c43deac0c714da1eef7a4386d4ef25",
+          "hash": "09e7646f1f93f313e88e0e0093e23876fea6786b6e0c533d91563dc9335b02a9",
           "path": "fixtures/conformance/v3/MANIFEST.sha256"
         }
       ],
@@ -236,8 +236,11 @@
         {
           "exports": [
             "analyze",
+            "analyze_with_min_samples",
             "compare",
+            "compare_with_min_samples",
             "compute_stats",
+            "exact_phase",
             "lemire_witness_word",
             "monte_carlo_distribution",
             "reduce_keep_drop_interval",
@@ -247,256 +250,272 @@
             {
               "in": "prob_exactly",
               "kind": "match-err",
-              "line": 325
+              "line": 397
             },
             {
               "in": "target_for_probability",
               "kind": "err",
-              "line": 372
+              "line": 444
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "err",
-              "line": 539
+              "line": 635
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "match-err",
-              "line": 561
+              "line": 656
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "err",
-              "line": 561
+              "line": 656
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "match-err",
-              "line": 562
+              "line": 657
             },
             {
-              "in": "compare",
-              "kind": "match-err",
-              "line": 654
-            },
-            {
-              "in": "compare",
+              "in": "sampling_phase",
               "kind": "err",
-              "line": 654
+              "line": 674
             },
             {
-              "in": "compare",
+              "in": "compare_with_min_samples",
               "kind": "match-err",
-              "line": 655
+              "line": 832
+            },
+            {
+              "in": "compare_with_min_samples",
+              "kind": "err",
+              "line": 832
+            },
+            {
+              "in": "compare_with_min_samples",
+              "kind": "match-err",
+              "line": 833
             },
             {
               "in": "charge_transitions",
               "kind": "err",
-              "line": 770
+              "line": 948
             },
             {
               "in": "reserve_live",
               "kind": "err",
-              "line": 780
+              "line": 958
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 961
+              "line": 1041
             },
             {
               "in": "precheck_divisors",
               "kind": "match-err",
-              "line": 964
+              "line": 1079
+            },
+            {
+              "in": "precheck_divisors",
+              "kind": "match-err",
+              "line": 1080
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 965
-            },
-            {
-              "in": "precheck_divisors",
-              "kind": "match-err",
-              "line": 967
-            },
-            {
-              "in": "precheck_divisors",
-              "kind": "match-err",
-              "line": 974
-            },
-            {
-              "in": "precheck_divisors",
-              "kind": "err",
-              "line": 979
+              "line": 1088
             },
             {
               "in": "add_capped",
               "kind": "err",
-              "line": 1047
+              "line": 1159
             },
             {
               "in": "finish_node_frame",
               "kind": "match-err",
-              "line": 1146
+              "line": 1260
             },
             {
               "in": "finish_node_frame",
               "kind": "err",
-              "line": 1148
+              "line": 1262
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1160
+              "line": 1284
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1162
-            },
-            {
-              "in": "combine_binary_exact",
-              "kind": "match-err",
-              "line": 1171
-            },
-            {
-              "in": "combine_binary_exact",
-              "kind": "err",
-              "line": 1173
+              "line": 1289
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1178
+              "line": 1302
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1180
+              "line": 1304
+            },
+            {
+              "in": "combine_binary_exact",
+              "kind": "match-err",
+              "line": 1309
+            },
+            {
+              "in": "combine_binary_exact",
+              "kind": "err",
+              "line": 1311
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1263
+              "line": 1395
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1263
+              "line": 1395
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1273
+              "line": 1409
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1275
+              "line": 1413
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1285
+              "line": 1426
+            },
+            {
+              "in": "try_exact",
+              "kind": "match-err",
+              "line": 1434
+            },
+            {
+              "in": "try_exact",
+              "kind": "err",
+              "line": 1434
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1391
+              "line": 1540
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1400
+              "line": 1549
             },
             {
               "in": "explosion_chain_sum_pmf_inner",
               "kind": "err",
-              "line": 1677
+              "line": 1826
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1861
+              "line": 2010
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1878
+              "line": 2027
             },
             {
               "in": "divide_distribution_weighted",
               "kind": "err",
-              "line": 2315
+              "line": 2464
             },
             {
               "in": "convolve",
               "kind": "err",
-              "line": 2450
+              "line": 2599
             },
             {
               "in": "subtract_distributions",
               "kind": "err",
-              "line": 2491
+              "line": 2640
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2567
+              "line": 2716
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2571
+              "line": 2720
             },
             {
               "in": "convolve_n_inner",
               "kind": "err",
-              "line": 2744
+              "line": 2893
             },
             {
               "in": "multiply_distributions",
               "kind": "err",
-              "line": 2768
+              "line": 2917
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2814
+              "line": 2963
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2847
+              "line": 2996
+            },
+            {
+              "in": "monte_carlo_fallback",
+              "kind": "err",
+              "line": 3358
+            },
+            {
+              "in": "monte_carlo_fallback",
+              "kind": "err",
+              "line": 3367
             },
             {
               "in": "next_u64_word",
               "kind": "err",
-              "line": 3121
+              "line": 3439
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3173
+              "line": 3491
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3176
+              "line": 3494
             },
             {
               "in": "walk",
               "kind": "err",
-              "line": 3176
+              "line": 3494
             }
           ],
-          "hash": "61277c261f2eb765522ceb3d33cd3bd2f5de280974e33c29c6b38c8477e6fd55",
+          "hash": "9cb66590aef66928a4252951b7cd68ac2e19042fd65ce7852e75e48c62464933",
           "importOrder": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs",
             "crates/roll-core/src/eval.rs",
             "crates/roll-core/src/math.rs",
             "crates/roll-core/src/rng.rs",
+            "crates/roll-core/src/support.rs",
             "crates/roll-core/src/parser.rs"
           ],
           "importsFiles": [
@@ -505,13 +524,14 @@
             "crates/roll-core/src/eval.rs",
             "crates/roll-core/src/math.rs",
             "crates/roll-core/src/parser.rs",
-            "crates/roll-core/src/rng.rs"
+            "crates/roll-core/src/rng.rs",
+            "crates/roll-core/src/support.rs"
           ],
           "path": "crates/roll-core/src/analyze.rs",
           "testsInside": true
         },
         {
-          "hash": "a4fb234c6c0c4b8d7d38c3cbfcd44fe003b74e84440e13ee0f85d7dd76907810",
+          "hash": "e0f4f10a9576683f900711d83ae4da123c15700243368b0085f9f5afd4c79bcd",
           "path": "crates/roll-core/src/ast.rs"
         },
         {
@@ -608,7 +628,7 @@
               "line": 1138
             }
           ],
-          "hash": "f3d9378431c4fdfd566e0e43c00acda1b203491b05ea1231ee40c564141219a1",
+          "hash": "d3cfa83fcced2c4de8dc11f63a0c54f714e2621e341fec7ec38854c6e7cb62bc",
           "importsFiles": [
             "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
@@ -623,7 +643,7 @@
           "path": "crates/roll-core/src/conformance.rs"
         },
         {
-          "hash": "64921262cccf212812dd2b6847ea65192005761c4e510b05b506f490a50f83ca",
+          "hash": "d945aebbaee725864bec875a2906bb6cf54ad0f37a04bc0e05c32e60d1c7e0ad",
           "path": "crates/roll-core/src/error.rs"
         },
         {
@@ -656,7 +676,7 @@
           "path": "crates/roll-core/src/eval.rs"
         },
         {
-          "hash": "8af1ae38b7a3f7f50b28d94754a8d0f1793bcf38405933a00063996b520c355c",
+          "hash": "95ec9deb02f2a48155ac6b7e6a7fc05598da9635f78ddbda3714b6c0cd8e3377",
           "importsFiles": [
             "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
@@ -668,7 +688,8 @@
             "crates/roll-core/src/math.rs",
             "crates/roll-core/src/parser.rs",
             "crates/roll-core/src/receipt.rs",
-            "crates/roll-core/src/rng.rs"
+            "crates/roll-core/src/rng.rs",
+            "crates/roll-core/src/support.rs"
           ],
           "path": "crates/roll-core/src/lib.rs"
         },
@@ -1026,7 +1047,26 @@
           "path": "crates/roll-core/src/rng.rs"
         },
         {
-          "hash": "44696614d371464a24825ae55c9b51ff5f907cae7016bcccc3329ac2d0459249",
+          "exports": [
+            "can_succeed",
+            "walk"
+          ],
+          "hash": "8014ad2d86befa1ff8b71ae252b77e440fc9f76efa8fb55b36a8a057830ed4f4",
+          "importOrder": [
+            "crates/roll-core/src/ast.rs",
+            "crates/roll-core/src/analyze.rs",
+            "crates/roll-core/src/parser.rs"
+          ],
+          "importsFiles": [
+            "crates/roll-core/src/analyze.rs",
+            "crates/roll-core/src/ast.rs",
+            "crates/roll-core/src/parser.rs"
+          ],
+          "path": "crates/roll-core/src/support.rs",
+          "testsInside": true
+        },
+        {
+          "hash": "f4a15faa488fceabca2f144ecc1b8315a5ad1586350cbb1d816c4e5d8f792d76",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -1054,7 +1094,7 @@
           "testsInside": true
         },
         {
-          "hash": "a6e7b308b913affbe6de0b04144251a9ac5c0059a447319c10ac06f142f72221",
+          "hash": "483eac9de50715e7b05beb3e382c40e600f90bd2641e7f1ee20716a6ceec3ca1",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -1082,7 +1122,7 @@
           "testsInside": true
         },
         {
-          "hash": "ebf2d145f9bb03640df306aa883e21aaec3be9fb978f47ed91b4aff8ed52cfad",
+          "hash": "b2fbf758e94e0e475aff8f8f11f108cee2a31fda21879fcd9d32da32d535fcec",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs",
@@ -1111,7 +1151,7 @@
           "testsInside": true
         },
         {
-          "hash": "35acc691b107ea158e2b38865ca030e755e88d23dbb8ae69864674f6d408a0d6",
+          "hash": "9d1cf5cce01dd2d73b64c747fbe8b07c34be777121639012c444fa2788ecb8a4",
           "importsFiles": [
             "crates/roll-core/src/conformance.rs"
           ],
@@ -1140,7 +1180,7 @@
       "testRunners": [
         "cargo test"
       ],
-      "testedBy": 10,
+      "testedBy": 11,
       "unresolvedSites": 0
     },
     {
@@ -1160,7 +1200,7 @@
           "path": ".gitignore"
         },
         {
-          "hash": "046b90e30c1a348d76a277a25e70c45313e0fce8a349342dfd73e2a5e11061cc",
+          "hash": "0961f48c168a587bf59ee1d59a496776cddfd17d1202209b99efb06813be2588",
           "path": "CHANGELOG.md"
         },
         {
@@ -7327,7 +7367,7 @@
         {
           "boundary": "roll-core",
           "depth": 0,
-          "files": 20
+          "files": 21
         },
         {
           "boundary": "src",
@@ -7377,6 +7417,13 @@
           "via": "cargo check"
         },
         {
+          "job": "rust",
+          "matched": true,
+          "path": "crates/roll-core/src/support.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "rust",
           "matched": true,
@@ -7407,7 +7454,7 @@
           "via": "tsc tsconfig.test.json"
         }
       ],
-      "runsCount": 9,
+      "runsCount": 10,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -7433,7 +7480,7 @@
           ]
         },
         {
-          "files": 10,
+          "files": 11,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (native)"
@@ -7445,7 +7492,7 @@
           "step": "Test (native release analyzer bounds)"
         },
         {
-          "files": 10,
+          "files": 11,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (wasm32-wasip1)"
@@ -7885,7 +7932,7 @@
             "file": "crates/roll-core/src/conformance.rs",
             "from": "crates/roll-cli/src/lib.rs"
           },
-          "files": 11
+          "files": 12
         }
       ],
       "readers": [],
@@ -8106,8 +8153,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "1b4e83a4cb2599da5f907d913ed481f328b5ff79",
-    "tracked": 128
+    "commit": "4ea1305c84021fb83fe08613cb5f653715a9ea81",
+    "tracked": 129
   },
   "landings": [
     {
@@ -8357,10 +8404,10 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 39,
+  "testFiles": 40,
   "unassigned": [
     {
-      "hash": "a76d7c0ae2f05d4b5c34e291561b97a578ff34080e5804e98fbad07960ea8474",
+      "hash": "543dfad704b74204d193ec76b8b92f4eeb639a0750073b49bcdb425b61829054",
       "path": "docs/spec/roll-3.0.md"
     }
   ]
