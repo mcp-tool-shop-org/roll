@@ -19,8 +19,8 @@ export interface PipelineResult {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const MAX_EXPLOSIONS = 100;
-const MAX_REROLLS = 100;
+export const MAX_EXPLOSIONS = 100;
+export const MAX_REROLLS = 100;
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 

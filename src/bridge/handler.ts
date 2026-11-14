@@ -205,13 +205,13 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression parameter");
           }
           const ast = parse(p.expression);
-          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
           const stats = computeStats(dist);
           // Convert Map to array of tuples for JSON serialization
           const distribution = [...dist.entries()].sort((a, b) => a[0] - b[0]);
           // Surface HOW the probability was produced so clients know whether it
-          // is exact or a Monte-Carlo estimate (and how many samples). (Additive.)
-          return ok(id, { stats, distribution, ...methodFields(method, samples) });
+          // is exact or a Monte-Carlo estimate (and how many samples / caps). (Additive.)
+          return ok(id, { stats, distribution, ...methodFields(method, samples, caps) });
         }
 
         case "at_least": {
@@ -220,9 +220,9 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression or target parameter");
           }
           const ast = parse(p.expression);
-          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
           const probability = probabilityAtLeast(dist, p.target);
-          return ok(id, { probability, target: p.target, ...methodFields(method, samples) });
+          return ok(id, { probability, target: p.target, ...methodFields(method, samples, caps) });
         }
 
         // FT-ANA-003: point-query family. `at_most`/`exactly` mirror `at_least`'s
@@ -235,9 +235,9 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression or target parameter");
           }
           const ast = parse(p.expression);
-          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
           const probability = probabilityAtMost(dist, p.target);
-          return ok(id, { probability, target: p.target, ...methodFields(method, samples) });
+          return ok(id, { probability, target: p.target, ...methodFields(method, samples, caps) });
         }
 
         case "exactly": {
@@ -246,9 +246,9 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression or target parameter");
           }
           const ast = parse(p.expression);
-          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
           const probability = probabilityExactly(dist, p.target);
-          return ok(id, { probability, target: p.target, ...methodFields(method, samples) });
+          return ok(id, { probability, target: p.target, ...methodFields(method, samples, caps) });
         }
 
         case "between": {
@@ -257,9 +257,9 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression, lo, or hi parameter");
           }
           const ast = parse(p.expression);
-          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
           const probability = probabilityInRange(dist, p.lo, p.hi);
-          return ok(id, { probability, lo: p.lo, hi: p.hi, ...methodFields(method, samples) });
+          return ok(id, { probability, lo: p.lo, hi: p.hi, ...methodFields(method, samples, caps) });
         }
 
         case "at_most_for": {
@@ -268,9 +268,9 @@ export class BridgeHandler {
             return err(id, RPC_INVALID_PARAMS, "Missing expression or p parameter");
           }
           const ast = parse(p.expression);
-          const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+          const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
           const target = targetForProbability(dist, p.p, "atMost");
-          return ok(id, { p: p.p, target, direction: "atMost", ...methodFields(method, samples) });
+          return ok(id, { p: p.p, target, direction: "atMost", ...methodFields(method, samples, caps) });
         }
 
         case "compare": {
@@ -283,9 +283,9 @@ export class BridgeHandler {
           const dists: Distribution[] = [];
           const results = p.expressions.map((expr) => {
             const ast = parse(expr);
-            const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+            const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
             dists.push(dist);
-            return { expression: expr, stats: computeStats(dist), ...methodFields(method, samples) };
+            return { expression: expr, stats: computeStats(dist), ...methodFields(method, samples, caps) };
           });
           // FT-ANA-002: ADD the head-to-head win probabilities additively. The
           // `versus` block is attached to EACH of the two entries (not as a stray
@@ -391,13 +391,23 @@ export class BridgeHandler {
   }
 }
 
-/** Spread-able method/samples fields for analyze-style results (P-CORE-001 wire
- *  surfacing). `samples` is present ONLY for the monte-carlo path. */
+/** Spread-able method/samples/caps fields for analyze-style results (P-CORE-001
+ *  wire surfacing). `samples` is present ONLY for the monte-carlo path; `caps`
+ *  is present ONLY on the exact path when engine loop caps were modelled. */
 function methodFields(
   method: DistributionWithMethod["method"],
   samples: DistributionWithMethod["samples"],
-): { method: DistributionWithMethod["method"]; samples?: number } {
-  return samples !== undefined ? { method, samples } : { method };
+  caps?: DistributionWithMethod["caps"],
+): {
+  method: DistributionWithMethod["method"];
+  samples?: number;
+  caps?: DistributionWithMethod["caps"];
+} {
+  return {
+    method,
+    ...(samples !== undefined ? { samples } : {}),
+    ...(caps !== undefined ? { caps } : {}),
+  };
 }
 
 /** Mean of a distribution (Σ v·p). Used for the `compare` margin mean. */

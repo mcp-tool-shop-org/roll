@@ -10,7 +10,7 @@ import { TOOLS } from "./tools.js";
 import { parse, ParseError } from "../parser/parser.js";
 import { LexerError } from "../parser/lexer.js";
 import { evaluate } from "../engine/roller.js";
-import { computeDistributionWithMethod } from "../analyze/distribution.js";
+import { computeDistributionWithMethod, type ModelledCaps } from "../analyze/distribution.js";
 import {
   computeStats,
   probabilityAtLeast,
@@ -193,13 +193,19 @@ export function setLogger(logger: Logger): void {
   activeLogger = logger;
 }
 
-/** Spread-able method/samples fields for analyze-style results (P-CORE-001 wire
- *  surfacing). `samples` is present ONLY for the monte-carlo path. */
+/** Spread-able method/samples/caps fields for analyze-style results (P-CORE-001
+ *  wire surfacing). `samples` is present ONLY for the monte-carlo path; `caps`
+ *  is present ONLY on the exact path when engine loop caps were modelled. */
 function methodFields(
   method: "exact" | "monte-carlo",
   samples: number | undefined,
-): { method: "exact" | "monte-carlo"; samples?: number } {
-  return samples !== undefined ? { method, samples } : { method };
+  caps?: ModelledCaps,
+): { method: "exact" | "monte-carlo"; samples?: number; caps?: ModelledCaps } {
+  return {
+    method,
+    ...(samples !== undefined ? { samples } : {}),
+    ...(caps !== undefined ? { caps } : {}),
+  };
 }
 
 // ─── Tool handlers ───────────────────────────────────────────────────────────
@@ -225,13 +231,14 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
     case "analyze_dice": {
       const expression = requireString(args, "expression");
       const ast = parse(expression);
-      const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+      const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
       const stats = computeStats(dist);
       const distribution = [...dist.entries()].sort((a, b) => a[0] - b[0]);
 
       // Surface HOW the probability was produced (exact vs monte-carlo, with the
-      // sample count) so Claude clients know whether it is exact or sampled.
-      const result: Record<string, unknown> = { stats, distribution, ...methodFields(method, samples) };
+      // sample count / modelled engine caps) so Claude clients know whether it
+      // is exact or sampled.
+      const result: Record<string, unknown> = { stats, distribution, ...methodFields(method, samples, caps) };
       const atLeast = optionalNumber(args, "at_least");
       if (atLeast !== undefined) {
         result.atLeastProbability = probabilityAtLeast(dist, atLeast);
@@ -274,10 +281,10 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
 
       const analyze = (expr: string) => {
         const ast = parse(expr);
-        const { distribution: dist, method, samples } = computeDistributionWithMethod(ast);
+        const { distribution: dist, method, samples, caps } = computeDistributionWithMethod(ast);
         return {
           dist,
-          entry: { expression: expr, stats: computeStats(dist), ...methodFields(method, samples) },
+          entry: { expression: expr, stats: computeStats(dist), ...methodFields(method, samples, caps) },
         };
       };
 

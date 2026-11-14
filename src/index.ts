@@ -18,7 +18,12 @@ export { cryptoRng, seededRng } from "./engine/random.js";
 export type { RngFn } from "./engine/random.js";
 
 // Pipeline
-export { runPipeline, matchesCompare } from "./engine/pipeline.js";
+export {
+  runPipeline,
+  matchesCompare,
+  MAX_EXPLOSIONS,
+  MAX_REROLLS,
+} from "./engine/pipeline.js";
 export type { PipelineDie, PipelineResult } from "./engine/pipeline.js";
 
 // Analysis
@@ -33,6 +38,7 @@ export type {
   Distribution,
   DistributionMethod,
   DistributionWithMethod,
+  ModelledCaps,
   ModifierFamily,
   DistributionComparison,
 } from "./analyze/distribution.js";
@@ -103,13 +109,17 @@ export function roll(expression: string, rng?: RngFn): RollResult {
 
 /** Analyze a dice expression — returns distribution, stats, a P(>=target)
  *  function, AND the `method` used to produce the distribution: "exact" for a
- *  closed-form result, or "monte-carlo" (with a `samples` count) when the
- *  expression was too complex/large for exact computation and was estimated by
- *  sampling. Surfacing `method` lets callers honor the "exact probabilities"
- *  contract — they can tell exact numbers from sampled estimates. (P-CORE-001) */
+ *  closed-form result (with `caps` populated whenever the engine's
+ *  `MAX_EXPLOSIONS = 100` or `MAX_REROLLS = 100` loop caps were modelled), or
+ *  "monte-carlo" (with a `samples` count) when the expression was too
+ *  complex/large for exact computation and was estimated by sampling. Surfacing
+ *  `method` (and `caps` when engine caps apply) lets callers honor the "exact
+ *  probabilities" contract — they can tell exact numbers from sampled
+ *  estimates, and see which engine caps define the finite distribution.
+ *  (P-CORE-001) */
 export function analyze(expression: string) {
   const ast = _parse(expression);
-  const { distribution: dist, method, samples } = _computeDistWithMethod(ast);
+  const { distribution: dist, method, samples, caps } = _computeDistWithMethod(ast);
   const stats = _computeStats(dist);
   return {
     distribution: dist,
@@ -130,5 +140,8 @@ export function analyze(expression: string) {
     // `samples` is present only for the monte-carlo path; omitted (undefined)
     // for exact so callers can do `"samples" in result`-style checks cleanly.
     ...(samples !== undefined ? { samples } : {}),
+    // `caps` is present only on the exact path when an engine loop cap
+    // (`MAX_EXPLOSIONS = 100`, `MAX_REROLLS = 100`) was modelled.
+    ...(caps !== undefined ? { caps } : {}),
   };
 }
