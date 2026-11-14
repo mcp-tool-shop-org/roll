@@ -696,14 +696,13 @@ fn ast_wide_budget_bounds_adversarial_inputs_in_time_and_method() {
         let t0 = Instant::now();
         let rep = analyze(&expr).unwrap();
         let elapsed = t0.elapsed();
-        if samples == DEFAULT_MONTE_CARLO_SAMPLES {
-            assert!(
-                elapsed < bound,
-                "{label} exceeded time bound {:?}: {:?}",
-                bound,
-                elapsed
-            );
-        }
+        // A hang guard only; the pinned count is the gate (`sampled_bound`).
+        assert!(
+            elapsed < sampled_bound(),
+            "{label} exceeded the hang guard {:?}: {:?}",
+            sampled_bound(),
+            elapsed
+        );
         assert_eq!(mc_samples(rep.method), samples, "{label}");
         let mass = sum_pmf_compensated(&rep.distribution);
         assert_close(mass, 1.0, 1e-12, label);
@@ -1101,7 +1100,26 @@ fn restored_exact_expressions_and_draw_gate_retry_margin() {
     ));
 }
 
-/// Time bound for inputs that stop well short of the analysis work ceiling.
+/// Hang guard for inputs that sample (`MonteCarlo` up to the work ceiling or the default 100,000
+/// samples). Not a performance assert: the gate for sampled inputs is their pinned sample count.
+///
+/// Native release: 10 s. The CI runner measured 1.000 s for `div_k248`, which runs to the ceiling
+/// (0.33 s on the reference machine), and 1.026 s for a 100,000-sample proptest case (0.326 s
+/// here), a factor of about 3.15. The slowest ceiling run here, `1000d6!>=2kh500` at about 0.86 s,
+/// is therefore about 2.7 s on the runner (an estimate), and 10 s is more than twice that.
+/// Debug and wasm: 600 s (a sampled case runs about 20x slower in debug and about 7x slower again
+/// under wasmtime on the runner).
+fn sampled_bound() -> std::time::Duration {
+    if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
+        std::time::Duration::from_secs(10)
+    } else {
+        std::time::Duration::from_secs(600)
+    }
+}
+
+/// Time bound for inputs that stop well short of the analysis work ceiling (exact results,
+/// refusals and errors in milliseconds; the slowest such assert measures 42 ms here, about 0.13 s
+/// on the runner, so 1 s is more than twice it).
 fn quick_bound() -> std::time::Duration {
     if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
         std::time::Duration::from_secs(1)
@@ -1347,7 +1365,9 @@ fn compare_checks_unchecked_divisors_on_both_sides_before_sampling() {
     assert_eq!(res, Err(RollError::DivisorUnchecked { divisors: 1 }));
     if runs_ceiling_inputs() {
         assert!(
-            elapsed < std::time::Duration::from_millis(300),
+            // About 30 ms here and an estimated 0.1 s on the runner; one sampling run of the
+            // clean side is about 0.8 s here (about 2.5 s on the runner).
+            elapsed < std::time::Duration::from_secs(1),
             "compare sampled before refusing: {elapsed:?}"
         );
     }
@@ -1394,6 +1414,13 @@ fn support_pass_full_range_products_do_not_hang() {
         "(d257-129)*99999999999999999*((d257-129)*99999999999999999)/1",
         &Err(RollError::ArithmeticOverflow),
     );
+    // The property case that tripped the old 1 s bound on the CI runner (1.026 s; 0.33 s here):
+    // it samples 100,000 times, so it is held to the hang guard and its pinned count.
+    let src = "((d257-129)*((3d4!>=1kl2-2)*((d257-129)*(1d6min6!kh1))))/1d6";
+    let t0 = std::time::Instant::now();
+    let rep = analyze(&parse(src).unwrap()).unwrap();
+    assert!(t0.elapsed() < sampled_bound(), "{src}");
+    assert_eq!(mc_samples(rep.method), DEFAULT_MONTE_CARLO_SAMPLES);
 }
 
 #[test]
@@ -1539,7 +1566,8 @@ proptest::proptest! {
         let t0 = std::time::Instant::now();
         let _ = analyze(&expr);
         let elapsed = t0.elapsed();
-        proptest::prop_assert!(elapsed < quick_bound(), "{} took {:?}", src, elapsed);
+        // A hang guard (`sampled_bound`): a case may sample up to the work ceiling.
+        proptest::prop_assert!(elapsed < sampled_bound(), "{} took {:?}", src, elapsed);
     }
 }
 
