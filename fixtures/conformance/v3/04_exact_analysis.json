@@ -6370,7 +6370,8 @@
       "canonical_expression": "4d6!>=6kh3",
       "method": {
         "kind": "monte_carlo",
-        "samples": 100000
+        "samples": 100000,
+        "ci95_half_width": 0.0030990321069650118
       },
       "support_len": 16,
       "stats": {
@@ -6622,7 +6623,8 @@
       "canonical_expression": "12d1000",
       "method": {
         "kind": "monte_carlo",
-        "samples": 100000
+        "samples": 100000,
+        "ci95_half_width": 0.0030990321069650118
       },
       "support_len": 5705,
       "stats": {
@@ -6857,7 +6859,8 @@
       "right_expression": "3d6",
       "method": {
         "kind": "monte_carlo",
-        "samples": 100000
+        "samples": 100000,
+        "ci95_half_width": 0.0030990321069650118
       },
       "p_left_greater": 0.6646327777777777,
       "p_equal": 0.07536851851851852,

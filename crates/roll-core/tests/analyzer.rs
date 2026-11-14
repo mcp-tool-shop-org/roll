@@ -3,9 +3,28 @@
 use core::num::NonZeroU64;
 use roll_core::{
     AnalysisMethod, DEFAULT_MONTE_CARLO_SAMPLES, Distribution, KeepDropOp, MAX_ANALYZE_DICE,
-    MAX_EXPLOSIONS, MAX_REROLLS, ModelledCaps, RollError, TargetDirection, analyze, compare,
-    compute_stats, lemire_witness_word, monte_carlo_distribution, parse, reduce_keep_drop_interval,
+    MAX_EXPLOSIONS, MAX_REROLLS, MIN_MONTE_CARLO_SAMPLES, ModelledCaps, RollError, TargetDirection,
+    analyze, compare, compute_stats, lemire_witness_word, monte_carlo_distribution, parse,
+    reduce_keep_drop_interval,
 };
+
+/// Sample count of a Monte Carlo method, after checking its `ci95_half_width`.
+fn mc_samples(method: AnalysisMethod) -> u32 {
+    match method {
+        AnalysisMethod::MonteCarlo {
+            samples,
+            ci95_half_width,
+        } => {
+            let expected = 1.96 * (0.25 / f64::from(samples)).sqrt();
+            assert!(
+                (ci95_half_width - expected).abs() <= 1e-15,
+                "ci95_half_width {ci95_half_width} != {expected} at {samples} samples"
+            );
+            samples
+        }
+        other => panic!("expected MonteCarlo, got {other:?}"),
+    }
+}
 
 fn assert_close(actual: f64, expected: f64, tol: f64, label: &str) {
     let diff = (actual - expected).abs();
@@ -294,14 +313,11 @@ fn order_statistic_dp_interval_reduction_exactness_and_cost_guard() {
 
     // §5.2 Cost guard: stays within `MAX_ANALYZE_DICE = 1_000` and has final support `<< 10^7`,
     // yet inner DP transitions exceed `MAX_EXACT_STATES`, cleanly aborting to Monte Carlo!
-    for dp_guard_expr in ["50d1000kh25", "200d1000kh100"] {
+    // Sample counts are deterministic: the exact DP's spent transitions are charged against the
+    // same work ceiling, so `200d1000kh100` stops short of the default 100,000.
+    for (dp_guard_expr, samples) in [("50d1000kh25", 100_000), ("200d1000kh100", 77_102)] {
         let dp_fallback = analyze(&parse(dp_guard_expr).unwrap()).unwrap();
-        assert_eq!(
-            dp_fallback.method,
-            AnalysisMethod::MonteCarlo {
-                samples: DEFAULT_MONTE_CARLO_SAMPLES
-            }
-        );
+        assert_eq!(mc_samples(dp_fallback.method), samples, "{dp_guard_expr}");
     }
 }
 
@@ -443,9 +459,7 @@ fn budgets_binary_algebra_compare_two_pointer_and_query_contracts() {
     let mc2 = analyze(&parse("4d6!kh3").unwrap()).unwrap();
     assert_eq!(
         mc1.method,
-        AnalysisMethod::MonteCarlo {
-            samples: DEFAULT_MONTE_CARLO_SAMPLES
-        }
+        AnalysisMethod::monte_carlo(DEFAULT_MONTE_CARLO_SAMPLES)
     );
     assert_eq!(mc1, mc2);
     let direct_mc = monte_carlo_distribution(&parse("4d6!kh3").unwrap(), 1_000).unwrap();
@@ -461,9 +475,7 @@ fn budgets_binary_algebra_compare_two_pointer_and_query_contracts() {
     let mc_big = analyze(&parse("15d1000").unwrap()).unwrap();
     assert_eq!(
         mc_big.method,
-        AnalysisMethod::MonteCarlo {
-            samples: DEFAULT_MONTE_CARLO_SAMPLES
-        }
+        AnalysisMethod::monte_carlo(DEFAULT_MONTE_CARLO_SAMPLES)
     );
 
     // 5. Query edge cases & InvalidProbability validation.
@@ -554,14 +566,12 @@ fn section_5_4_reachability_underflow_and_four_numbered_divide_by_zero_cases() {
         Err(RollError::DivisionByZero)
     );
 
-    // §5.4 Numbered Case 3: Non-exact divisor (`5d20!kh4-4`, `P(0) = 20^-5 ~ 3.125e-7`) where `0` is NOT
-    // sampled during the `100,000`-trial `MONTE_CARLO_DEFAULT_SEED` run -> returns `Ok` with `MonteCarlo`.
-    let case3 = analyze(&parse("1d6/(5d20!kh4-4)").unwrap()).unwrap();
+    // §5.4 Numbered Case 3: a divisor too large for the exact pass (`5d20!kh4-4`) whose zero has
+    // `P(0) = 20^-5` and is never sampled. The support pass sees it anyway: with no die exploding, the
+    // four kept dice can all be `1`, so the zero is reachable and the engine can raise it.
     assert_eq!(
-        case3.method,
-        AnalysisMethod::MonteCarlo {
-            samples: DEFAULT_MONTE_CARLO_SAMPLES
-        }
+        analyze(&parse("1d6/(5d20!kh4-4)").unwrap()),
+        Err(RollError::DivisionByZero)
     );
 
     // §5.4 Numbered Case 4: Non-exact divisor (`4d6!kh3-12`) where `0` IS sampled during the
@@ -677,34 +687,35 @@ fn ast_wide_budget_bounds_adversarial_inputs_in_time_and_method() {
             bound,
             elapsed
         );
-        assert_eq!(
-            rep.method,
-            AnalysisMethod::MonteCarlo {
-                samples: DEFAULT_MONTE_CARLO_SAMPLES
-            },
-            "{label} must report full 100k MonteCarlo fallback"
+        assert!(
+            mc_samples(rep.method) >= MIN_MONTE_CARLO_SAMPLES,
+            "{label} must report a MonteCarlo fallback above the sample floor"
         );
         let mass = sum_pmf_compensated(&rep.distribution);
         assert_close(mass, 1.0, 1e-12, label);
     }
 
-    // 4. Adversarial `< 1,000`-byte expressions whose per-sample evaluation cost exercises the
-    //    deterministic Monte Carlo work budget (`50 <= samples < 100_000`, honest `MonteCarlo { samples }` tag).
+    // 4. Adversarial `< 1,000`-byte expressions whose per-sample cost exercises the work ceiling:
+    //    above the floor they report the real count, below it they are refused (`§5.3`).
     let chained_reroll_mc = format!("10d6{}!kh1", "r>=1".repeat(240));
     let chained_keep_mc = format!("1000d6!{}", "kh999".repeat(198));
-    let budgeted_mc_cases: &[(&str, &str)] = &[
-        ("uniform_1000d100", "1000d100"),
-        ("dp_1000d1m_kh500", "1000d1000000kh500"),
-        ("capped_reroll_explode_1000d6", "1000d6r>=1!>=1kh500"),
-        ("chained_240_rerolls", &chained_reroll_mc),
-        ("chained_198_keep_drops", &chained_keep_mc),
+    let budgeted_mc_cases: &[(&str, &str, Option<u32>)] = &[
+        ("uniform_1000d100", "1000d100", Some(95_854)),
+        ("dp_1000d1m_kh500", "1000d1000000kh500", Some(16_907)),
+        ("capped_reroll_explode_1000d6", "1000d6r>=1!>=1kh500", None),
+        ("chained_240_rerolls", &chained_reroll_mc, None),
+        ("chained_198_keep_drops", &chained_keep_mc, None),
     ];
 
-    for &(label, expr_str) in budgeted_mc_cases {
+    for &(label, expr_str, expected) in budgeted_mc_cases {
         assert!(expr_str.len() <= roll_core::MAX_EXPRESSION_BYTES);
+        if expected.is_some() && !runs_ceiling_inputs() {
+            // Samples close to the work ceiling: pinned in native release only.
+            continue;
+        }
         let expr = parse(expr_str).unwrap();
         let t0 = Instant::now();
-        let rep = analyze(&expr).unwrap();
+        let res = analyze(&expr);
         let elapsed = t0.elapsed();
         assert!(
             elapsed < bound,
@@ -712,17 +723,23 @@ fn ast_wide_budget_bounds_adversarial_inputs_in_time_and_method() {
             bound,
             elapsed
         );
-        match rep.method {
-            AnalysisMethod::MonteCarlo { samples } => {
-                assert!(
-                    (50..DEFAULT_MONTE_CARLO_SAMPLES).contains(&samples),
-                    "{label} unexpected MC sample count {samples}"
-                );
+        match (expected, res) {
+            (Some(samples), Ok(rep)) => {
+                assert_eq!(mc_samples(rep.method), samples, "{label}");
+                assert_close(sum_pmf_compensated(&rep.distribution), 1.0, 1e-12, label);
             }
-            other => panic!("{label} expected MonteCarlo, got {other:?}"),
+            (
+                None,
+                Err(RollError::AnalysisTooExpensive {
+                    samples_affordable,
+                    min_samples,
+                }),
+            ) => {
+                assert!(samples_affordable < min_samples, "{label}");
+                assert_eq!(min_samples, MIN_MONTE_CARLO_SAMPLES);
+            }
+            (want, got) => panic!("{label}: expected {want:?} samples, got {got:?}"),
         }
-        let mass = sum_pmf_compensated(&rep.distribution);
-        assert_close(mass, 1.0, 1e-12, label);
     }
 
     // 5. §5.4 Divisor-first interaction with the AST-wide budget: an oversized left sibling on `+`
@@ -755,9 +772,7 @@ fn regression_flaky_proptest_5d9_compound_keep_lowest_returns_monte_carlo() {
     let rep = analyze(&expr).unwrap();
     assert_eq!(
         rep.method,
-        AnalysisMethod::MonteCarlo {
-            samples: DEFAULT_MONTE_CARLO_SAMPLES,
-        }
+        AnalysisMethod::monte_carlo(DEFAULT_MONTE_CARLO_SAMPLES)
     );
     assert!(rep.stats.min >= -909 && rep.stats.max <= -1);
     let mass = sum_pmf_compensated(&rep.distribution);
@@ -841,16 +856,20 @@ fn divisor_prepass_orders_cheapest_first_breaks_ties_by_byte_offset_and_prioriti
 
     // 3. Every exact divisor is checked for a reachable `0` before returning any other pre-pass error
     //    (`§5.4` items 1 & 5):
-    //    a) Cheaper divisor (`9223372036854775807+1`) raises `ArithmeticOverflow` first; later exact
-    //       divisor (`5d20-5`) has reachable `0` -> `DivisionByZero` wins.
+    //    a) and b) (#20 finding 1b): the left divisor overflows on every evaluation, and the engine
+    //       evaluates it first, so the later zero divisor is never reached. The analyzer reports
+    //       the engine's error, `ArithmeticOverflow`, not a `DivisionByZero` the engine cannot raise.
     assert_eq!(
         analyze(&parse("1/(9223372036854775807+1)+1/(5d20-5)").unwrap()),
-        Err(RollError::DivisionByZero)
+        Err(RollError::ArithmeticOverflow)
     );
-    //    b) Tied static cost bound, earlier byte offset (`9223372036854775807+1d6`) raises
-    //       `ArithmeticOverflow`, later byte offset (`1d6-1`) has reachable `0` -> `DivisionByZero` wins.
     assert_eq!(
         analyze(&parse("1/(9223372036854775807+1d6)+1/(1d6-1)").unwrap()),
+        Err(RollError::ArithmeticOverflow)
+    );
+    //       With the zero divisor first, both errors are reachable and the zero wins (`§5.4` item 5).
+    assert_eq!(
+        analyze(&parse("1/(1d6-1)+1/(9223372036854775807+1d6)").unwrap()),
         Err(RollError::DivisionByZero)
     );
     //    c) When NO exact divisor has a reachable `0`, the deferred divisor error still surfaces
@@ -862,7 +881,7 @@ fn divisor_prepass_orders_cheapest_first_breaks_ties_by_byte_offset_and_prioriti
 }
 
 #[test]
-fn monte_carlo_scan_budget_keeps_q1_inputs_15_to_19_under_one_second() {
+fn monte_carlo_scan_budget_refuses_q1_inputs_15_to_19_under_one_second() {
     use std::time::{Duration, Instant};
 
     let bound = if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
@@ -888,7 +907,7 @@ fn monte_carlo_scan_budget_keeps_q1_inputs_15_to_19_under_one_second() {
     ] {
         let expr = parse(expr_str).unwrap();
         let t0 = Instant::now();
-        let rep = analyze(&expr).unwrap();
+        let res = analyze(&expr);
         let elapsed = t0.elapsed();
         assert!(
             elapsed < bound,
@@ -896,23 +915,24 @@ fn monte_carlo_scan_budget_keeps_q1_inputs_15_to_19_under_one_second() {
             bound,
             elapsed
         );
-        match rep.method {
-            AnalysisMethod::MonteCarlo { samples } => {
-                assert!(
-                    (50..DEFAULT_MONTE_CARLO_SAMPLES).contains(&samples),
-                    "{label} unexpected sample count {samples}"
-                );
+        // Each sample scans or rolls about a thousand dice hundreds of times, so fewer than
+        // `MIN_MONTE_CARLO_SAMPLES` fit the ceiling: refused, with no low-sample estimate.
+        match res {
+            Err(RollError::AnalysisTooExpensive {
+                samples_affordable,
+                min_samples,
+            }) => {
+                assert!(samples_affordable < MIN_MONTE_CARLO_SAMPLES, "{label}");
+                assert_eq!(min_samples, MIN_MONTE_CARLO_SAMPLES);
             }
-            other => panic!("{label} expected MonteCarlo, got {other:?}"),
+            other => panic!("{label} expected AnalysisTooExpensive, got {other:?}"),
         }
-        let mass = sum_pmf_compensated(&rep.distribution);
-        assert_close(mass, 1.0, 1e-12, label);
     }
 
-    // Q1 #19: `compare(#15, #15)` must also complete well under 1 second in release.
+    // Q1 #19: `compare(#15, #15)` is refused the same way, well under 1 second in release.
     let expr_15 = parse(&q1_15).unwrap();
     let t_cmp = Instant::now();
-    let cmp_rep = compare(&expr_15, &expr_15).unwrap();
+    let cmp_res = compare(&expr_15, &expr_15);
     let elapsed_cmp = t_cmp.elapsed();
     assert!(
         elapsed_cmp < bound,
@@ -920,19 +940,10 @@ fn monte_carlo_scan_budget_keeps_q1_inputs_15_to_19_under_one_second() {
         bound,
         elapsed_cmp
     );
-    match cmp_rep.method {
-        AnalysisMethod::MonteCarlo { samples } => {
-            assert!((50..DEFAULT_MONTE_CARLO_SAMPLES).contains(&samples));
-        }
-        other => panic!("q1_19 expected MonteCarlo, got {other:?}"),
-    }
-    assert_eq!(cmp_rep.p_left_greater, cmp_rep.p_right_greater);
-    assert_close(
-        cmp_rep.p_left_greater + cmp_rep.p_equal + cmp_rep.p_right_greater,
-        1.0,
-        1e-12,
-        "q1_19 compare total mass",
-    );
+    assert!(matches!(
+        cmp_res,
+        Err(RollError::AnalysisTooExpensive { .. })
+    ));
 }
 
 #[test]
@@ -1040,11 +1051,14 @@ fn restored_exact_expressions_and_draw_gate_retry_margin() {
 
     // Problem 3 #10 (`1000d6` + 20 × `r=1` + 99 × `ro=1`): `expr_max_die_rolls == 2,100,000 == MAX_TOTAL_DRAWS`,
     // where a single 64-bit Lemire rejection retry (`2^64 mod 6 == 4 != 0`) triggers `DrawBudgetExceeded`
-    // in `eval.rs`. Because `2,100,000 > MAX_EXACT_DIE_ROLLS (2,020,000)`, it stays `MonteCarlo`.
+    // in `eval.rs`. Because `2,100,000 > MAX_EXACT_DIE_ROLLS (2,020,000)`, it is never `Exact`; its
+    // 119,000 reroll scans per sample also keep it below the Monte Carlo floor, so it is refused.
     let p3_10 = format!("1000d6{}{}", "r=1".repeat(20), "ro=1".repeat(99));
-    let rep_10 = analyze(&parse(&p3_10).unwrap()).unwrap();
     assert!(
-        matches!(rep_10.method, AnalysisMethod::MonteCarlo { .. }),
+        matches!(
+            analyze(&parse(&p3_10).unwrap()),
+            Err(RollError::AnalysisTooExpensive { .. })
+        ),
         "2,100,000 max die rolls leaves 0 retry margin and must not claim Exact"
     );
 
@@ -1068,4 +1082,270 @@ fn restored_exact_expressions_and_draw_gate_retry_margin() {
         rep_over_gate.method,
         AnalysisMethod::MonteCarlo { .. }
     ));
+}
+
+/// Time bound for inputs that stop well short of the analysis work ceiling.
+fn quick_bound() -> std::time::Duration {
+    if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
+        std::time::Duration::from_secs(1)
+    } else {
+        std::time::Duration::from_secs(60)
+    }
+}
+
+/// Whether this build runs the inputs that sample up to the work ceiling (`MAX_ANALYSIS_WORK`, about
+/// 0.93 s on the reference machine): native release only. Their sample counts are deterministic and
+/// pinned exactly; their wall time is measured by the calibration probe, not asserted here, because
+/// CI runners are about twice as slow as the reference machine.
+fn runs_ceiling_inputs() -> bool {
+    cfg!(all(not(debug_assertions), not(target_arch = "wasm32")))
+}
+
+#[test]
+fn divisor_check_finds_review_zeros_a_and_b_in_every_sibling_order() {
+    // #20 finding 1a: the shared pre-pass reserve let two ~9.4M-transition divisors starve a third,
+    // and which one depended on order. The support pass decides each divisor on its own.
+    let a = [
+        "1d6/(1d3000+1d50000)",
+        "1d6/(1d3000+1d50001)",
+        "1d6/(1d3000+1d50000-2)",
+    ];
+    let b = [
+        "1d6/(1d3000+1d50000)",
+        "1d6/(1d3000+1d50001)",
+        "1d6/(200d6kh100-100)",
+    ];
+    let orders = [
+        [0, 1, 2],
+        [0, 2, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+        [2, 0, 1],
+        [2, 1, 0],
+    ];
+    for terms in [a, b] {
+        for order in orders {
+            let src = order.map(|i| terms[i]).join("+");
+            let t0 = std::time::Instant::now();
+            let res = analyze(&parse(&src).unwrap());
+            let elapsed = t0.elapsed();
+            assert_eq!(res, Err(RollError::DivisionByZero), "{src}");
+            assert!(elapsed < quick_bound(), "{src}: {elapsed:?}");
+        }
+    }
+    // Each zero divisor alone is caught.
+    assert_eq!(
+        analyze(&parse(a[2]).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+    assert_eq!(
+        analyze(&parse(b[2]).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+}
+
+#[test]
+fn analyzer_errors_are_errors_the_engine_raises_first() {
+    let cases: &[(&str, RollError)] = &[
+        // #20 finding 1b: the left divisor overflows on every evaluation, before the zero.
+        (
+            "1d6/(9223372036854775807+1d2)+1d6/(1d2-1)",
+            RollError::ArithmeticOverflow,
+        ),
+        // Reversed, the zero is reached on half the evaluations and wins (`§5.4` item 5).
+        (
+            "1d6/(1d2-1)+1d6/(9223372036854775807+1d2)",
+            RollError::DivisionByZero,
+        ),
+        // The main pass evaluates a division first on `+`, but the left operand always overflows.
+        (
+            "(9223372036854775807+1d2)+1d6/(1d2-1)",
+            RollError::ArithmeticOverflow,
+        ),
+        (
+            "(9223372036854775807+1d2)+500d1000/(1d2-1)",
+            RollError::ArithmeticOverflow,
+        ),
+        // A too-large left operand that can succeed still lets the right operand error stand.
+        (
+            "500d1000+(9223372036854775807+1d2)",
+            RollError::ArithmeticOverflow,
+        ),
+        ("500d1000/(5d20-5)", RollError::DivisionByZero),
+    ];
+    for (src, want) in cases {
+        assert_eq!(analyze(&parse(src).unwrap()).as_ref(), Err(want), "{src}");
+    }
+}
+
+#[test]
+fn unchecked_divisor_refuses_a_sampled_result_and_exact_passes_still_decide() {
+    // `1000003` is prime and above the die size, so this divisor is never `0`, but neither the
+    // support pass nor an exact divisor round (10^12 pairs) can show it: a sampled result is refused.
+    assert_eq!(
+        analyze(&parse("1/(1d1000000*1d1000000-1000003)").unwrap()),
+        Err(RollError::DivisorUnchecked { divisors: 1 })
+    );
+    // When the exact rounds can decide it, the answer is exact either way.
+    assert_eq!(
+        analyze(&parse("1/(1d1000*1d1000-998001)").unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+    let exact = analyze(&parse("1/(1d1000*1d1000-999999)").unwrap()).unwrap();
+    assert!(matches!(exact.method, AnalysisMethod::Exact { .. }));
+}
+
+#[test]
+fn monte_carlo_floor_refuses_low_sample_results_unless_opted_in() {
+    use roll_core::analyze_with_min_samples;
+
+    // Below the floor: refused quickly, with how many samples would fit.
+    let q1_15 = parse(&format!("996d6!kh995{}", "r=7".repeat(240))).unwrap();
+    let t0 = std::time::Instant::now();
+    let refused = analyze(&q1_15);
+    assert!(t0.elapsed() < quick_bound());
+    let Err(RollError::AnalysisTooExpensive {
+        samples_affordable,
+        min_samples,
+    }) = refused
+    else {
+        panic!("expected AnalysisTooExpensive, got {refused:?}");
+    };
+    assert_eq!(min_samples, MIN_MONTE_CARLO_SAMPLES);
+    assert!(samples_affordable < MIN_MONTE_CARLO_SAMPLES);
+    let msg = RollError::AnalysisTooExpensive {
+        samples_affordable,
+        min_samples,
+    }
+    .to_string();
+    assert!(msg.contains("roll it instead"), "{msg}");
+
+    // The only way to a low-sample estimate: an explicit floor.
+    if runs_ceiling_inputs() {
+        let low = analyze_with_min_samples(&q1_15, 1).unwrap();
+        let n = mc_samples(low.method);
+        assert!((1..MIN_MONTE_CARLO_SAMPLES).contains(&n), "{n}");
+        assert_close(sum_pmf_compensated(&low.distribution), 1.0, 1e-12, "low");
+        // A floor of 0 is clamped to 1.
+        assert_eq!(analyze_with_min_samples(&q1_15, 0).unwrap(), low);
+    }
+
+    // The fixture draw-budget case still reports the engine error from its first sample.
+    let draw = parse(&format!("1000d2{}!kh1", "r>=1".repeat(21))).unwrap();
+    assert_eq!(
+        analyze(&draw),
+        Err(RollError::DrawBudgetExceeded {
+            limit: roll_core::MAX_TOTAL_DRAWS
+        })
+    );
+
+    // Above the floor, the default result reports its samples and worst-case half-width.
+    let rep = analyze(&parse("4d6!kh3").unwrap()).unwrap();
+    assert_eq!(mc_samples(rep.method), DEFAULT_MONTE_CARLO_SAMPLES);
+    let AnalysisMethod::MonteCarlo {
+        ci95_half_width, ..
+    } = rep.method
+    else {
+        unreachable!("checked by mc_samples")
+    };
+    assert_close(ci95_half_width, 0.98 / 100_000_f64.sqrt(), 1e-15, "ci95");
+
+    if runs_ceiling_inputs() {
+        // The #20 review inputs that must reach the floor (4,665, 2,915 and 3,044 samples at main).
+        for (src, samples) in [
+            ("1000d6!p>=2", 13_207),
+            ("1000d6!>=2kh500", 10_302),
+            ("1000d6r<=5!kh999", 10_749),
+        ] {
+            let rep = analyze(&parse(src).unwrap()).unwrap();
+            assert_eq!(mc_samples(rep.method), samples, "{src}");
+            assert_close(sum_pmf_compensated(&rep.distribution), 1.0, 1e-12, src);
+        }
+    }
+}
+
+#[test]
+fn compare_shares_one_work_ceiling_between_sampled_sides() {
+    use roll_core::compare_with_min_samples;
+
+    if !runs_ceiling_inputs() {
+        return;
+    }
+    // #20 review C2: `compare(E, E)` with E = 124 x `d2!>1kh+` then `1` took about 1.10 s; each side
+    // now samples under half of the ceiling.
+    let n10 = parse(&format!("{}1", "d2!>1kh+".repeat(124))).unwrap();
+    let alone = mc_samples(analyze(&n10).unwrap().method);
+    assert_eq!(alone, 69_821);
+    let cmp = compare(&n10, &n10).unwrap();
+    let side = mc_samples(cmp.left.method);
+    assert_eq!(side, mc_samples(cmp.right.method));
+    assert_eq!(mc_samples(cmp.method), side);
+    assert!(side >= MIN_MONTE_CARLO_SAMPLES && side < alone, "{side}");
+    assert_eq!(cmp.p_left_greater, cmp.p_right_greater);
+
+    // One sampled side against an exact side gets the whole remainder.
+    let kh500 = parse("1000d6!>=2kh500").unwrap();
+    let vs_exact = compare(&kh500, &parse("3d6").unwrap()).unwrap();
+    assert_eq!(mc_samples(vs_exact.method), 10_302);
+    assert!(matches!(
+        vs_exact.right.method,
+        AnalysisMethod::Exact { .. }
+    ));
+
+    // Two such sides do not both fit: refused, unless the caller lowers the floor.
+    assert!(matches!(
+        compare(&kh500, &kh500),
+        Err(RollError::AnalysisTooExpensive { .. })
+    ));
+    let low = compare_with_min_samples(&kh500, &kh500, 1).unwrap();
+    assert!(mc_samples(low.method) < MIN_MONTE_CARLO_SAMPLES);
+}
+
+#[test]
+fn mode_is_the_smallest_outcome_within_relative_tolerance_of_the_maximum() {
+    use roll_core::MODE_TIE_RELATIVE_TOLERANCE;
+
+    // `(1d6)*(1d6)`: `6` and `12` both have probability 4/36.
+    let prod = analyze(&parse("(1d6)*(1d6)").unwrap()).unwrap();
+    assert_eq!(prod.stats.mode, 6);
+    assert_eq!(
+        prod.distribution.prob_exactly(6),
+        prod.distribution.prob_exactly(12)
+    );
+
+    let dist = |entries: &[(i64, f64)]| -> Distribution {
+        let body: Vec<String> = entries
+            .iter()
+            .map(|(v, p)| format!("[{v},{p:?}]"))
+            .collect();
+        serde_json::from_str(&format!("{{\"entries\":[{}]}}", body.join(","))).unwrap()
+    };
+    // A near-tie made by summation order: four 1/36 terms added in two different orders, and
+    // the same value nudged one ulp up.
+    let q = 1.0_f64 / 36.0;
+    let left_to_right = ((q + q) + q) + q;
+    let paired = (q + q) + (q + q);
+    let one_ulp_up = f64::from_bits(left_to_right.to_bits() + 1);
+    for (p6, p12) in [
+        (left_to_right, paired),
+        (left_to_right, one_ulp_up),
+        (one_ulp_up, left_to_right),
+    ] {
+        // The other 7/9 of the mass is spread over ten outcomes below the tie.
+        let mut entries = alloc_entries(p6, p12);
+        entries.sort_by_key(|&(v, _)| v);
+        let d = dist(&entries);
+        assert_eq!(compute_stats(&d).mode, 6, "p6={p6:e} p12={p12:e}");
+    }
+    fn alloc_entries(p6: f64, p12: f64) -> Vec<(i64, f64)> {
+        let rest = (1.0 - p6 - p12) / 10.0;
+        let mut v: Vec<(i64, f64)> = (20..30).map(|k| (k, rest)).collect();
+        v.push((6, p6));
+        v.push((12, p12));
+        v
+    }
+    // Beyond the tolerance the larger probability wins, whatever its position.
+    let gap = 0.25 * (1.0 + 4.0 * MODE_TIE_RELATIVE_TOLERANCE);
+    let d = dist(&[(1, 0.5 - gap), (6, 0.25), (12, gap)]);
+    assert_eq!(compute_stats(&d).mode, 12);
 }

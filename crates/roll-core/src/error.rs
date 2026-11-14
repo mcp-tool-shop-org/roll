@@ -162,6 +162,17 @@ pub enum RollError {
         total_dice: u64,
         max: u64,
     },
+    /// Fewer than `min_samples` Monte Carlo samples fit the analysis work ceiling
+    /// (`analyze::MAX_ANALYSIS_WORK`). `samples_affordable` is at most the number that fit.
+    AnalysisTooExpensive {
+        samples_affordable: u32,
+        min_samples: u32,
+    },
+    /// A sampled analysis would rest on `divisors` divisions whose reachable zero could be neither
+    /// proven nor ruled out (`§5.4`), so no estimate is returned.
+    DivisorUnchecked {
+        divisors: u32,
+    },
     InvalidProbability {
         given: String,
     },
@@ -217,6 +228,17 @@ impl fmt::Display for RollError {
             Self::AnalysisBudgetExceeded { total_dice, max } => write!(
                 f,
                 "expression too complex to analyze: {total_dice} dice exceeds analysis limit of {max}"
+            ),
+            Self::AnalysisTooExpensive {
+                samples_affordable,
+                min_samples,
+            } => write!(
+                f,
+                "expression too expensive to analyze: at most {samples_affordable} Monte Carlo samples fit the work ceiling, below the minimum of {min_samples}; simplify the expression, or roll it instead"
+            ),
+            Self::DivisorUnchecked { divisors } => write!(
+                f,
+                "cannot analyze: {divisors} divisor(s) could not be checked for a reachable zero; simplify the divisor, or roll it instead"
             ),
             Self::InvalidProbability { given } => write!(
                 f,

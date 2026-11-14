@@ -1481,6 +1481,8 @@ fn classify_analyze_error(err: &RollError) -> &'static str {
     match err {
         RollError::DivisionByZero => "division_by_zero",
         RollError::AnalysisBudgetExceeded { .. } => "analysis_budget_exceeded",
+        RollError::AnalysisTooExpensive { .. } => "analysis_too_expensive",
+        RollError::DivisorUnchecked { .. } => "divisor_unchecked",
         RollError::DrawBudgetExceeded { .. } => "draw_budget_exceeded",
         RollError::ArithmeticOverflow => "arithmetic_overflow",
         RollError::InvalidProbability { .. } => "invalid_probability",

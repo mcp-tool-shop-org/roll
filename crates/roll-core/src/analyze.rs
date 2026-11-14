@@ -24,6 +24,7 @@ use crate::eval::{
 };
 use crate::math::{canon_f64, log2_f64, powi_u32, sqrt_f64};
 use crate::rng::DrawSource;
+use crate::support::Tri;
 
 /// Maximum sum of base dice counts across an AST accepted by [`analyze`] and [`compare`] (`§5.3`).
 pub const MAX_ANALYZE_DICE: u32 = 1_000;
@@ -48,41 +49,19 @@ pub const MAX_ANALYZE_DICE: u32 = 1_000;
 ///    per `BTreeMap` entry; `explosion_chain_sum_pmf` additionally caps `finished.len()` at
 ///    `MAX_EXPLOSION_FINISHED_STATES = 250_000`). Aborted subtrees restore the caller's
 ///    live-state baseline when their temporaries drop.
-/// 3. **Reserved divisor pre-pass (`§5.4` items 1–2, [`MAX_DIVISOR_PREPASS_STATES`]):** before
-///    the main `try_exact` pass begins, `precheck_divisors` analyzes every `BinaryOp::DivFloor`
-///    divisor subtree under a separate reserved budget so sibling order or main-budget exhaustion
-///    can never hide a reachable zero in an exact divisor.
+/// 3. **Divisor check (`§5.4`, [`MAX_DIVISOR_PREPASS_STATES`]):** before the main `try_exact`
+///    pass begins, `precheck_divisors` decides every `BinaryOp::DivFloor` division with a
+///    support-only pass and, where that is not enough, exact rounds under a separate reserved
+///    budget, so neither sibling order nor main-budget exhaustion can hide a reachable zero.
 pub const MAX_EXACT_STATES: usize = 10_000_000;
 
-/// Reserved cumulative transition budget for the `§5.4` `DivFloor` divisor pre-pass (`20_000_000`),
-/// strictly separate from the main pass's [`MAX_EXACT_STATES`] budget.
+/// Reserved cumulative transition budget for the exact rounds of the `§5.4` divisor check
+/// (`20_000_000`), separate from the main pass's [`MAX_EXACT_STATES`] budget.
 ///
-/// ### Divisor pre-pass rule, oversized-divisor rule, and total pre-pass bound (`§5.4` items 1–5)
-/// 1. **Reserved budget & per-divisor cap:** `precheck_divisors` maintains its own cumulative
-///    transition counter capped at `MAX_DIVISOR_PREPASS_STATES = 20_000_000` across all
-///    `BinaryOp::DivFloor` divisor subtrees in the AST. Each individual divisor is analyzed with
-///    `max_transitions = min(MAX_EXACT_STATES, MAX_DIVISOR_PREPASS_STATES - prepass_spent)` and
-///    live-slot cap [`MAX_EXACT_LIVE_STATES`] (`3_000_000` slots, `< 48 MiB`), releasing its
-///    distribution back to `0` live slots before the next divisor or the main pass runs.
-/// 2. **Cheapest-first ordering (`§5.4` item 1):** Divisors are ordered ascending by
-///    `(divisor_static_cost_bound(divisor), inorder_div_index)`, where `divisor_static_cost_bound`
-///    is a static upper bound on exact transition cost computed from parsed dice counts, sides,
-///    and stage modifiers, and `inorder_div_index` breaks ties by source byte offset (in Roll 3.0's
-///    infix grammar, every `/` token and its immediate `right` divisor subtree appear in strict
-///    left-to-right in-order AST sequence, so `inorder_div_index` is strictly order-isomorphic to
-///    source byte offset on every parsed expression).
-/// 3. **Zero-divisor error precedence (`§5.4` items 1, 2, 5):** Every divisor that is exact under
-///    the reserved budget (`Ok` with `expr_max_die_rolls(divisor) <= MAX_EXACT_DIE_ROLLS`) and has
-///    `is_reachable(0)` returns `Err(RollError::DivisionByZero)` immediately. Any non-`DivisionByZero`
-///    exact error raised inside a divisor (such as `RollError::ArithmeticOverflow`) is held until
-///    every remaining divisor within the reserved budget has been checked for a reachable `0`.
-/// 4. **Rule for a divisor too large for the reserved budget (`§5.4` item 4):** If a divisor
-///    exceeds its transition or live-slot cap (`ExactAbort::TooLarge`), uses an unsupported exact
-///    combination (`ExactAbort::Unsupported`, e.g. `4d6!kh3`), exceeds [`MAX_EXACT_DIE_ROLLS`], or
-///    is reached after `prepass_spent == MAX_DIVISOR_PREPASS_STATES`, the pre-pass skips it cleanly
-///    (with `0` retained slots) and defers it to the main pass / [`monte_carlo_distribution`]
-///    fallback, which reports `AnalysisMethod::MonteCarlo { samples }` (never `Exact`) unless a
-///    sampled trial hits `0` and propagates `Err(RollError::DivisionByZero)`.
+/// Each round gives every pending divisor the same cap, `1 << 16`, `1 << 20`, then
+/// [`MAX_EXACT_STATES`], and runs only when `pending * cap` fits what is left of this reserve, so
+/// the reserve can never run out part-way through a round and no divisor is starved by another.
+/// See `precheck_divisors` for the full rule.
 pub const MAX_DIVISOR_PREPASS_STATES: usize = 20_000_000;
 
 /// Maximum simultaneously retained state slots across all active stack frames and buffers
@@ -118,16 +97,89 @@ const FLAT_CONTIGUOUS_PAIRS_PER_STATE: u128 = 16;
 /// Maximum distinct finished totals retained by `explosion_chain_sum_pmf` before aborting to Monte Carlo.
 const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
 
-/// Deterministic cumulative work ceiling (`28,000,000`) for [`analyze`]'s internal Monte Carlo
-/// fallback before stopping at a sample boundary (`1 <= samples <= 100_000`, `§5.3`).
+/// Work ceiling of one [`analyze`] or [`compare`] call, in work units (`§5.3`).
 ///
-/// After `completed` samples, cumulative work is:
-/// `work = source.draws + completed * estimate_mc_work_per_sample(expr)`.
-/// Because Stage 1 already records `>= count` initial RNG draws per sample in `source.draws`,
-/// adding `count * (|r| + |ro| + |cs| + |cf|)` in `estimate_mc_work_per_sample` charges at least
-/// `count * (|r| + |ro| + |cs| + |cf| + 1)` units per sample for every dice group (plus actual
-/// reroll/explosion RNG draws and Stage 5 keep/drop sort + chained-collection work).
-const MAX_MC_WORK: u64 = 28_000_000;
+/// ### Work units and calibration
+/// One work unit is a quarter of a nanosecond of release-build time on the reference machine
+/// (Intel Core Ultra 9 285K, `x86_64-pc-windows-msvc`, `rustc 1.98.1`). The weights below were fitted
+/// to per-sample `monte_carlo_distribution` timings of 95 input shapes, taking for each shape the
+/// slowest of three differently linked release binaries (the same source runs tight loops up to
+/// 3x slower in one code layout than another). Charged work is then within a factor of 3 of that
+/// time for every shape, and never below about 0.9 times it, so no input that the sampler runs to
+/// this ceiling takes much more than `MAX_ANALYSIS_WORK / 4` nanoseconds there (about 0.93 s).
+///
+/// The ceiling covers the exact phase and the Monte Carlo phase together: exact transitions are
+/// charged at [`EXACT_TRANSITION_WORK`] each, and the sampler gets what is left. [`compare`]
+/// shares one ceiling between both sides.
+///
+/// ### Per-sample charge
+/// After `completed` samples the sampler has charged
+/// `MC_WORK_PER_DRAW * draws + completed * (MC_WORK_PER_SAMPLE + fixed(expr))`, where `draws` counts
+/// every RNG word taken and `fixed(expr)` sums [`MC_WORK_PER_NODE`] per AST node and, per dice
+/// group of `n` dice (`s` faces):
+/// - [`MC_WORK_PER_GROUP`];
+/// - `n` times: [`MC_WORK_PER_REROLL_SCAN`] per `r`, [`MC_WORK_PER_REROLL_ONCE_SCAN`] per `ro`,
+///   [`MC_WORK_PER_CLAMPED_DIE`] with a clamp, [`MC_WORK_PER_EXPLODING_DIE`] with an explosion;
+/// - [`MC_WORK_PER_UNPREDICTABLE_TEST`] per die with an explosion and
+///   [`MC_WORK_PER_UNPREDICTABLE_REROLL`] per die per `r`/`ro`, each weighted by `4 m (s - m) / s^2`
+///   for the `m` faces its compare point matches (an even split costs a branch miss per test);
+/// - [`MC_WORK_PER_CHILD`] per expected exploded child, `n * m / (s - m)`, capped at
+///   `n * MAX_EXPLOSIONS`;
+/// - per keep/drop modifier over a pool of `len` dice of which `kept` are still kept:
+///   [`MC_WORK_PER_KEEP_OP`] (plus [`MC_WORK_PER_LARGE_SORT`] when `kept > 20`),
+///   [`MC_WORK_PER_COLLECTED_DIE`] per pool die (plus [`MC_WORK_PER_RECOLLECTED_DIE`] after the
+///   first modifier), [`MC_WORK_PER_SORT_STEP`] per `kept * floor(log2(min(kept, distinct)))`
+///   (plus [`MC_WORK_PER_WIDE_SORT_STEP`] when the die has more than 16 distinct values), and
+///   [`MC_WORK_PER_MIXED_DIE`] per `4 * kept' * (len - kept') / len` for the `kept'` left after it;
+/// - [`MC_WORK_PER_POOL_TEST`] per pool die per `cs`/`cf` compare point.
+pub const MAX_ANALYSIS_WORK: u64 = 3_710_000_000;
+
+/// Work charged per exact transition against [`MAX_ANALYSIS_WORK`] (`§5.3`).
+pub const EXACT_TRANSITION_WORK: u64 = 40;
+
+/// Minimum Monte Carlo samples behind any default [`analyze`] or [`compare`] result (`§5.3`,
+/// Director 2026-11-14). Below it the call returns [`RollError::AnalysisTooExpensive`];
+/// [`analyze_with_min_samples`] and [`compare_with_min_samples`] lower it explicitly.
+pub const MIN_MONTE_CARLO_SAMPLES: u32 = 10_000;
+
+/// Monte Carlo work per sample (result tally and expression walk entry).
+const MC_WORK_PER_SAMPLE: u64 = 628;
+/// Monte Carlo work per AST node visited.
+const MC_WORK_PER_NODE: u64 = 54;
+/// Monte Carlo work per dice group (scratch reset and stage dispatch).
+const MC_WORK_PER_GROUP: u64 = 23;
+/// Monte Carlo work per RNG draw (Lemire mapping, push and final sum).
+const MC_WORK_PER_DRAW: u64 = 38;
+/// Monte Carlo work per die per `r` modifier scan.
+const MC_WORK_PER_REROLL_SCAN: u64 = 5;
+/// Monte Carlo work per die per `ro` modifier scan.
+const MC_WORK_PER_REROLL_ONCE_SCAN: u64 = 3;
+/// Monte Carlo work per clamped die.
+const MC_WORK_PER_CLAMPED_DIE: u64 = 36;
+/// Monte Carlo work per exploding initial die.
+const MC_WORK_PER_EXPLODING_DIE: u64 = 15;
+/// Monte Carlo work per die per explosion test at `4 m (s - m) / s^2 == 1`.
+const MC_WORK_PER_UNPREDICTABLE_TEST: u64 = 28;
+/// Monte Carlo work per die per reroll test at `4 m (s - m) / s^2 == 1`.
+const MC_WORK_PER_UNPREDICTABLE_REROLL: u64 = 6;
+/// Monte Carlo work per expected exploded child die beyond its draw.
+const MC_WORK_PER_CHILD: u64 = 1;
+/// Monte Carlo work per keep/drop modifier.
+const MC_WORK_PER_KEEP_OP: u64 = 124;
+/// Monte Carlo work per keep/drop modifier sorting more than 20 dice (the sort's scratch buffer).
+const MC_WORK_PER_LARGE_SORT: u64 = 8_800;
+/// Monte Carlo work per die collected for one keep/drop modifier.
+const MC_WORK_PER_COLLECTED_DIE: u64 = 3;
+/// Monte Carlo work per die collected again for each keep/drop modifier after the first.
+const MC_WORK_PER_RECOLLECTED_DIE: u64 = 9;
+/// Monte Carlo work per keep/drop sort step (`kept * floor(log2(min(kept, distinct)))`).
+const MC_WORK_PER_SORT_STEP: u64 = 3;
+/// Extra Monte Carlo work per sort step when a die has more than 16 distinct values.
+const MC_WORK_PER_WIDE_SORT_STEP: u64 = 13;
+/// Monte Carlo work per die of a kept/dropped mixture (`4 * kept * (len - kept) / len`).
+const MC_WORK_PER_MIXED_DIE: u64 = 18;
+/// Monte Carlo work per die per pool `cs`/`cf` compare point.
+const MC_WORK_PER_POOL_TEST: u64 = 23;
 
 /// Default trial count for [`AnalysisMethod::MonteCarlo`] (`§5.3`).
 pub const DEFAULT_MONTE_CARLO_SAMPLES: u32 = 100_000;
@@ -209,16 +261,36 @@ impl ModelledCaps {
 }
 
 /// Provenance tag reporting whether a distribution is closed-form exact or sampled (`§5.3`).
-#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum AnalysisMethod {
     Exact {
         #[serde(skip_serializing_if = "Option::is_none")]
         caps: Option<ModelledCaps>,
     },
+    /// A sampled estimate from `samples` engine evaluations.
+    ///
+    /// Each probability is a count divided by `samples`. The distribution's `min`, `max` and
+    /// percentiles are **observed** values: outcomes rarer than about `3 / samples` are likely
+    /// missing, so the true range can be wider than the reported one.
     MonteCarlo {
         samples: u32,
+        /// Worst-case 95% half-width of any single probability, `1.96 * sqrt(0.25 / samples)`
+        /// (the maximum over `p` of `1.96 * sqrt(p * (1 - p) / samples)`): `0.0098` at the
+        /// `MIN_MONTE_CARLO_SAMPLES` floor and `0.0031` at `DEFAULT_MONTE_CARLO_SAMPLES`. For
+        /// [`compare`] it uses the smaller side's `samples`.
+        ci95_half_width: f64,
     },
+}
+
+impl AnalysisMethod {
+    /// The Monte Carlo tag for `samples` completed trials, with its worst-case 95% half-width.
+    pub fn monte_carlo(samples: u32) -> Self {
+        Self::MonteCarlo {
+            samples,
+            ci95_half_width: canon_f64(1.96 * sqrt_f64(0.25 / f64::from(samples.max(1)))),
+        }
+    }
 }
 
 /// Summary statistics over a [`Distribution`] (`§1.2`).
@@ -432,6 +504,23 @@ impl Distribution {
     }
 }
 
+/// Relative tolerance of the mode tie-break ([`compute_stats`]).
+pub const MODE_TIE_RELATIVE_TOLERANCE: f64 = 1e-12;
+
+/// The mode: the **smallest** outcome whose probability is within [`MODE_TIE_RELATIVE_TOLERANCE`]
+/// (relative) of the largest probability, so a near-tie that differs only by summation rounding
+/// (`(1d6)*(1d6)`: `6` and `12` both `1/9`) always resolves to the same outcome.
+fn mode_of(dist: &Distribution, needs_norm: bool, inv_norm: f64, max_prob: f64) -> i64 {
+    let threshold = max_prob - max_prob * MODE_TIE_RELATIVE_TOLERANCE;
+    dist.entries
+        .iter()
+        .find(|&&(_, raw_p)| {
+            let p = if needs_norm { raw_p * inv_norm } else { raw_p };
+            p >= threshold
+        })
+        .map_or(dist.entries[0].0, |&(v, _)| v)
+}
+
 /// Computes summary statistics (`min`, `max`, `mean`, `median`, `mode`, `stddev`, `percentiles`, `entropy`).
 pub fn compute_stats(dist: &Distribution) -> DistributionStats {
     if dist.entries.is_empty() {
@@ -456,18 +545,15 @@ pub fn compute_stats(dist: &Distribution) -> DistributionStats {
 
     let mut mean_sum = 0.0_f64;
     let mut mean_comp = 0.0_f64;
-    let mut mode = min;
-    let mut mode_prob = -1.0_f64;
+    let mut max_prob = 0.0_f64;
 
     for &(v, raw_p) in &dist.entries {
         let p = if needs_norm { raw_p * inv_norm } else { raw_p };
         neumaier_add(&mut mean_sum, &mut mean_comp, (v as f64) * p);
-        if p > mode_prob {
-            mode_prob = p;
-            mode = v;
-        }
+        max_prob = max_prob.max(p);
     }
     let mean = canon_f64(mean_sum + mean_comp);
+    let mode = mode_of(dist, needs_norm, inv_norm, max_prob);
 
     let mut var_sum = 0.0_f64;
     let mut var_comp = 0.0_f64;
@@ -531,9 +617,19 @@ pub fn compute_stats(dist: &Distribution) -> DistributionStats {
     }
 }
 
-/// Analyzes `expr` and returns its exact probability distribution (with any exercised engine caps)
-/// or a deterministic Monte Carlo distribution (`Roll 3.0 §5`).
-pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
+/// Result of the exact phase of one analysis: a finished exact report, or the facts the
+/// sampling phase needs.
+pub(crate) enum ExactPhase {
+    Done(AnalysisReport),
+    NeedsSampling {
+        /// Work already charged against [`MAX_ANALYSIS_WORK`] by exact transitions.
+        exact_work: u64,
+        /// Divisions whose zero could be neither proven nor ruled out (`precheck_divisors`).
+        unchecked_divisors: u32,
+    },
+}
+
+pub(crate) fn exact_phase(expr: &Expr) -> Result<ExactPhase, RollError> {
     let total_dice = u64::from(expr.total_base_dice());
     if total_dice > u64::from(MAX_ANALYZE_DICE) {
         return Err(RollError::AnalysisBudgetExceeded {
@@ -542,32 +638,82 @@ pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
         });
     }
 
-    // §5.4 items 1–2 & 5: check every `DivFloor` divisor subtree (cheapest first, ties by source
-    // byte offset) under its own reserved budget before spending the main exact budget.
-    precheck_divisors(expr)?;
+    // §5.4: decide every division's reachable zero before spending the main exact budget.
+    let divisors = precheck_divisors(expr)?;
 
     let mut budget = ExactBudget::new();
     match try_exact(expr, &mut budget) {
         Ok((distribution, caps)) if expr_max_die_rolls(expr) <= MAX_EXACT_DIE_ROLLS => {
             let stats = compute_stats(&distribution);
-            Ok(AnalysisReport {
+            Ok(ExactPhase::Done(AnalysisReport {
                 distribution,
                 stats,
                 method: AnalysisMethod::Exact {
                     caps: caps.into_option(),
                 },
-            })
+            }))
         }
         Err(ExactAbort::Error(err)) => Err(err),
         Ok(_) | Err(ExactAbort::TooLarge | ExactAbort::Unsupported) => {
-            let (distribution, samples) = monte_carlo_fallback(expr, DEFAULT_MONTE_CARLO_SAMPLES)?;
-            let stats = compute_stats(&distribution);
-            Ok(AnalysisReport {
-                distribution,
-                stats,
-                method: AnalysisMethod::MonteCarlo { samples },
+            let transitions = divisors.transitions.saturating_add(budget.transitions) as u64;
+            Ok(ExactPhase::NeedsSampling {
+                exact_work: transitions.saturating_mul(EXACT_TRANSITION_WORK),
+                unchecked_divisors: divisors.unchecked,
             })
         }
+    }
+}
+
+fn sampling_phase(
+    expr: &Expr,
+    ceiling: u64,
+    min_samples: u32,
+    unchecked_divisors: u32,
+) -> Result<AnalysisReport, RollError> {
+    if unchecked_divisors > 0 {
+        return Err(RollError::DivisorUnchecked {
+            divisors: unchecked_divisors,
+        });
+    }
+    let (distribution, samples) = monte_carlo_fallback(expr, ceiling, min_samples)?;
+    let stats = compute_stats(&distribution);
+    Ok(AnalysisReport {
+        distribution,
+        stats,
+        method: AnalysisMethod::monte_carlo(samples),
+    })
+}
+
+/// Analyzes `expr` and returns its exact probability distribution (with any exercised engine caps)
+/// or a deterministic Monte Carlo distribution of at least [`MIN_MONTE_CARLO_SAMPLES`] samples
+/// (`Roll 3.0 §5`).
+///
+/// Returns [`RollError::AnalysisTooExpensive`] when fewer than [`MIN_MONTE_CARLO_SAMPLES`] samples
+/// fit [`MAX_ANALYSIS_WORK`], and [`RollError::DivisorUnchecked`] when a sampled result would rest on
+/// a division whose zero could not be checked (`§5.4`).
+pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
+    analyze_with_min_samples(expr, MIN_MONTE_CARLO_SAMPLES)
+}
+
+/// [`analyze`] with an explicit Monte Carlo sample floor (`1..=DEFAULT_MONTE_CARLO_SAMPLES`;
+/// values outside are clamped). This is the only way to obtain a sampled result with fewer than
+/// [`MIN_MONTE_CARLO_SAMPLES`] samples; the caller must then rely on `samples` and
+/// `ci95_half_width` in [`AnalysisMethod::MonteCarlo`].
+pub fn analyze_with_min_samples(
+    expr: &Expr,
+    min_samples: u32,
+) -> Result<AnalysisReport, RollError> {
+    match exact_phase(expr)? {
+        ExactPhase::Done(report) => Ok(report),
+        ExactPhase::NeedsSampling {
+            exact_work,
+            unchecked_divisors,
+        } => sampling_phase(
+            expr,
+            MAX_ANALYSIS_WORK.saturating_sub(exact_work),
+            min_samples,
+            unchecked_divisors,
+        ),
     }
 }
 
@@ -576,9 +722,43 @@ pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
 /// Computes exact `A - B` margin distribution when `|A| * |B|` and its accumulator stay within
 /// the exact budget, and falls back to an $O(|A| + |B|)$ symmetric two-pointer linear scan
 /// (`margin: None`) when `A - B` exceeds the budget (such as `compare("100d100", "100d100")`).
+///
+/// ### One work ceiling for both sides
+/// Both sides run their exact phase first. The sides that need sampling then share what is left
+/// of [`MAX_ANALYSIS_WORK`] equally, so `compare` costs no more than one `analyze`, and each sampled
+/// side must still reach [`MIN_MONTE_CARLO_SAMPLES`]. A side is sampled exactly as [`analyze`] would
+/// sample it, under its share of the ceiling. Errors are reported in this order: left exact phase,
+/// right exact phase, left sampling, right sampling.
 pub fn compare(left: &Expr, right: &Expr) -> Result<ComparisonReport, RollError> {
-    let left_report = analyze(left)?;
-    let right_report = analyze(right)?;
+    compare_with_min_samples(left, right, MIN_MONTE_CARLO_SAMPLES)
+}
+
+/// [`compare`] with an explicit Monte Carlo sample floor, as in [`analyze_with_min_samples`].
+pub fn compare_with_min_samples(
+    left: &Expr,
+    right: &Expr,
+    min_samples: u32,
+) -> Result<ComparisonReport, RollError> {
+    let left_phase = exact_phase(left)?;
+    let right_phase = exact_phase(right)?;
+
+    let mut used = 0_u64;
+    let mut sampled_sides = 0_u64;
+    for phase in [&left_phase, &right_phase] {
+        if let ExactPhase::NeedsSampling { exact_work, .. } = phase {
+            used = used.saturating_add(*exact_work);
+            sampled_sides += 1;
+        }
+    }
+    let share = MAX_ANALYSIS_WORK.saturating_sub(used) / sampled_sides.max(1);
+    let finish = |expr: &Expr, phase: ExactPhase| match phase {
+        ExactPhase::Done(report) => Ok(report),
+        ExactPhase::NeedsSampling {
+            unchecked_divisors, ..
+        } => sampling_phase(expr, share, min_samples, unchecked_divisors),
+    };
+    let left_report = finish(left, left_phase)?;
+    let right_report = finish(right, right_phase)?;
 
     let method = match (left_report.method, right_report.method) {
         (AnalysisMethod::Exact { caps: lc }, AnalysisMethod::Exact { caps: rc }) => {
@@ -594,13 +774,11 @@ pub fn compare(left: &Expr, right: &Expr) -> Result<ComparisonReport, RollError>
             }
         }
         (
-            AnalysisMethod::MonteCarlo { samples: sl },
-            AnalysisMethod::MonteCarlo { samples: sr },
-        ) => AnalysisMethod::MonteCarlo {
-            samples: sl.min(sr),
-        },
-        (AnalysisMethod::MonteCarlo { samples }, _)
-        | (_, AnalysisMethod::MonteCarlo { samples }) => AnalysisMethod::MonteCarlo { samples },
+            AnalysisMethod::MonteCarlo { samples: sl, .. },
+            AnalysisMethod::MonteCarlo { samples: sr, .. },
+        ) => AnalysisMethod::monte_carlo(sl.min(sr)),
+        (AnalysisMethod::MonteCarlo { samples, .. }, _)
+        | (_, AnalysisMethod::MonteCarlo { samples, .. }) => AnalysisMethod::monte_carlo(samples),
     };
 
     let a = &left_report.distribution;
@@ -795,190 +973,124 @@ impl ExactBudget {
     }
 }
 
-/// Static `(upper_cost_bound, upper_support_bound)` computed from parsed dice counts, sides,
-/// and stage modifiers (`§5.4` item 1) so the divisor pre-pass orders divisors cheapest first
-/// without executing `try_exact`.
-fn divisor_static_cost_bound(expr: &Expr) -> (u128, u128) {
-    match expr {
-        Expr::Number(_) => (1, 1),
-        Expr::UnaryNeg(inner) => {
-            let (c, sup) = divisor_static_cost_bound(inner);
-            (c.saturating_add(sup), sup)
-        }
-        Expr::Dice(spec) => {
-            let n_usize = spec.count.get() as usize;
-            let n = n_usize as u128;
-            let s = side_count(spec.sides) as u128;
-            let reroll_passes = 1_u128
-                .saturating_add(spec.reroll_unlimited.len() as u128)
-                .saturating_add(spec.reroll_once.len() as u128)
-                .saturating_add(u128::from(spec.clamp.is_some()));
-            let pre_cost = reroll_passes.saturating_mul(s);
+/// Exact-transition caps of the `§5.4` divisor rounds (phase 2 of [`precheck_divisors`]).
+const DIVISOR_ROUND_CAPS: [usize; 3] = [1 << 16, 1 << 20, MAX_EXACT_STATES];
 
-            let max_steps = u128::from(MAX_EXPLOSIONS) + 1;
-            let (die_sup, exp_cost) = match spec.explode {
-                None => (s, 0),
-                Some(rule) => match (&spec.mode, rule.variant, spec.keep_drop.is_empty()) {
-                    (
-                        ResultMode::Pool { .. },
-                        ExplosionVariant::Standard | ExplosionVariant::Penetrate,
-                        true,
-                    ) => {
-                        let pool_chain_sup = 2 * u128::from(MAX_EXPLOSIONS) + 3;
-                        let cost = max_steps.saturating_mul(pool_chain_sup).saturating_mul(s);
-                        (pool_chain_sup, cost)
-                    }
-                    _ => {
-                        let chain_sup = max_steps.saturating_mul(s);
-                        let cost = max_steps
-                            .saturating_mul(chain_sup)
-                            .saturating_mul(s)
-                            .saturating_mul(SPARSE_TRANSITION_WEIGHT);
-                        (chain_sup, cost)
-                    }
-                },
-            };
-
-            if !spec.keep_drop.is_empty() {
-                let (l, r) = reduce_keep_drop_interval(n_usize, &spec.keep_drop);
-                if l == r {
-                    return (pre_cost.saturating_add(exp_cost).saturating_add(1), 1);
-                }
-                if l > 0 || r < n_usize {
-                    let dp_sup = match &spec.mode {
-                        ResultMode::Pool { .. } => 2 * n + 1,
-                        ResultMode::Sum { .. } => n.saturating_mul(die_sup),
-                    };
-                    let dp_cost = die_sup
-                        .saturating_mul(n + 1)
-                        .saturating_mul(n + 1)
-                        .saturating_mul(dp_sup)
-                        .saturating_mul(SPARSE_TRANSITION_WEIGHT);
-                    return (
-                        pre_cost.saturating_add(exp_cost).saturating_add(dp_cost),
-                        dp_sup,
-                    );
-                }
-            }
-
-            let contrib_sup = match &spec.mode {
-                ResultMode::Pool { .. } if spec.explode.is_none() => 3,
-                ResultMode::Pool { .. } => 2 * u128::from(MAX_EXPLOSIONS) + 3,
-                ResultMode::Sum { .. } => die_sup,
-            };
-            let group_sup = n.saturating_mul(contrib_sup);
-            let conv_cost = if n <= 1 {
-                contrib_sup
-            } else {
-                n.saturating_mul(n)
-                    .saturating_mul(contrib_sup)
-                    .saturating_mul(contrib_sup)
-            };
-            (
-                pre_cost.saturating_add(exp_cost).saturating_add(conv_cost),
-                group_sup.max(1),
-            )
-        }
-        Expr::Binary { op, left, right } => {
-            let (lc, lsup) = divisor_static_cost_bound(left);
-            let (rc, rsup) = divisor_static_cost_bound(right);
-            let (step_cost, out_sup) = if lsup == 1 && rsup == 1 {
-                (1, 1)
-            } else if rsup == 1 {
-                (lsup.saturating_mul(SPARSE_TRANSITION_WEIGHT), lsup)
-            } else if lsup == 1 && *op != BinaryOp::DivFloor {
-                (rsup, rsup)
-            } else {
-                let pairs = lsup.saturating_mul(rsup);
-                let out_s = match op {
-                    BinaryOp::Add | BinaryOp::Sub => lsup.saturating_add(rsup).saturating_sub(1),
-                    BinaryOp::Mul | BinaryOp::DivFloor => pairs,
-                };
-                (pairs.saturating_mul(SPARSE_TRANSITION_WEIGHT), out_s.max(1))
-            };
-            (
-                lc.saturating_add(rc).saturating_add(step_cost),
-                out_sup.max(1),
-            )
-        }
-    }
+/// Outcome of [`precheck_divisors`] when it finds no engine-reachable zero divisor.
+struct DivisorCheck {
+    /// Divisors whose zero could be neither proven nor ruled out.
+    unchecked: u32,
+    /// Exact transitions spent in phase 2.
+    transitions: usize,
 }
 
-/// Collects every `BinaryOp::DivFloor` divisor subtree in left-to-right in-order AST sequence.
+/// The `§5.4` divisor check, run before the main exact pass.
 ///
-/// In Roll 3.0's infix binary / prefix unary grammar, every `/` token appears strictly after all
-/// tokens in its `left` child and strictly before all tokens in its `right` divisor subtree, and
-/// each divisor begins immediately after its `/` token. Consequently, for any two `DivFloor` nodes
-/// in a parsed AST, `inorder_idx` is strictly order-isomorphic to source byte offset.
-fn collect_divisors_inorder<'a>(expr: &'a Expr, out: &mut Vec<(u128, usize, &'a Expr)>) {
-    match expr {
-        Expr::Number(_) | Expr::Dice(_) => {}
-        Expr::UnaryNeg(inner) => collect_divisors_inorder(inner, out),
-        Expr::Binary { op, left, right } => {
-            collect_divisors_inorder(left, out);
-            if *op == BinaryOp::DivFloor {
-                let idx = out.len();
-                let (cost_bound, _) = divisor_static_cost_bound(right);
-                out.push((cost_bound, idx, right));
-            }
-            collect_divisors_inorder(right, out);
+/// ### Rule
+/// A `DivFloor` node raises `DivisionByZero` in the engine exactly when evaluation reaches the
+/// division with both operands evaluated successfully and the divisor equal to `0` (`eval.rs`
+/// evaluates the left operand, then the right, then applies the operator, and stops at the first
+/// error). The check classifies every division by two three-valued facts, `reached` and `zero`:
+/// 1. **Support pass** (`crate::support::walk`): the set of values each subexpression can produce
+///    without an error, held as a subset (`must`) and a superset (`may`) of interval sets, walked in
+///    engine order. `zero` is `Yes` when `0` is in the divisor's `must` set and `No` when it is not in
+///    its `may` set; `reached` is `Yes` when everything the engine evaluates before the division,
+///    and the dividend, has a known success value, and `No` when one of them can never succeed.
+///    Sums of contiguous dice, keep/drop over a fixed pool and explosion chains are exact interval
+///    sets, so inputs such as `1d6/(1d3000+1d50000-2)` are decided here without probabilities.
+/// 2. **Exact rounds** for divisors still `zero == Maybe` (and not `reached == No`): identical
+///    divisor subtrees are merged, then each round gives **every** pending divisor the same cap
+///    ([`DIVISOR_ROUND_CAPS`]) and runs only if `pending * cap` fits what is left of
+///    [`MAX_DIVISOR_PREPASS_STATES`]. A divisor that fits its cap gets an exact support.
+/// 3. Any division with `reached == Yes` and `zero == Yes` returns
+///    `Err(RollError::DivisionByZero)`. A division with `reached == No` or `zero == No` cannot raise
+///    it. Every other division is counted as **unchecked**: an exact main pass still decides it,
+///    but a Monte Carlo fallback is refused with [`RollError::DivisorUnchecked`] rather than left
+///    to whether a sample happens to hit the zero.
+///
+/// When the whole expression can make more than [`MAX_EXACT_DIE_ROLLS`] die rolls, the draw budget
+/// may end an evaluation before the division, so no division counts as `reached == Yes`.
+///
+/// ### Order and bound
+/// Each division's facts depend only on the expression, never on a shared budget that an earlier
+/// sibling could exhaust, and each round runs for all pending divisors or for none, so reordering
+/// siblings changes the answer only where it changes what the engine evaluates first. The support
+/// pass costs at most `O(nodes * 128^2 * log2(count))` interval operations, and the exact rounds at
+/// most [`MAX_DIVISOR_PREPASS_STATES`] transitions in total and [`MAX_EXACT_LIVE_STATES`] live slots
+/// per divisor.
+fn precheck_divisors(expr: &Expr) -> Result<DivisorCheck, RollError> {
+    let mut check = DivisorCheck {
+        unchecked: 0,
+        transitions: 0,
+    };
+    if !expr_contains_div(expr) {
+        return Ok(check);
+    }
+
+    let mut records = Vec::new();
+    crate::support::walk(expr, Tri::Yes, &mut records);
+    if expr_max_die_rolls(expr) > MAX_EXACT_DIE_ROLLS {
+        for rec in &mut records {
+            rec.reached = rec.reached.and(Tri::Maybe);
         }
     }
-}
-
-/// Runs the `§5.4` divisor pre-pass under [`MAX_DIVISOR_PREPASS_STATES`] before the main pass.
-fn precheck_divisors(expr: &Expr) -> Result<(), RollError> {
-    let mut divisors = Vec::new();
-    collect_divisors_inorder(expr, &mut divisors);
-    if divisors.is_empty() {
-        return Ok(());
+    if records
+        .iter()
+        .any(|r| r.reached == Tri::Yes && r.zero == Tri::Yes)
+    {
+        return Err(RollError::DivisionByZero);
     }
 
-    divisors.sort_by_key(|&(cost_bound, inorder_idx, _)| (cost_bound, inorder_idx));
-
-    let mut prepass_spent: usize = 0;
-    let mut deferred_error: Option<RollError> = None;
-
-    for (_, _, divisor) in divisors {
-        if expr_max_die_rolls(divisor) > MAX_EXACT_DIE_ROLLS {
+    // Phase 2: merge identical divisors, then all-or-nothing rounds.
+    let mut pending: Vec<(&Expr, Vec<usize>)> = Vec::new();
+    for (idx, rec) in records.iter().enumerate() {
+        if rec.zero != Tri::Maybe || rec.reached == Tri::No {
             continue;
         }
-        let rem = MAX_DIVISOR_PREPASS_STATES.saturating_sub(prepass_spent);
-        if rem == 0 {
+        match pending.iter_mut().find(|(d, _)| *d == rec.divisor) {
+            Some((_, idxs)) => idxs.push(idx),
+            None => pending.push((rec.divisor, alloc::vec![idx])),
+        }
+    }
+    for cap in DIVISOR_ROUND_CAPS {
+        if pending.is_empty() {
             break;
         }
-        let mut div_budget = ExactBudget::with_cap(rem.min(MAX_EXACT_STATES));
-        let res = try_exact(divisor, &mut div_budget);
-        prepass_spent = prepass_spent.saturating_add(div_budget.transitions);
+        let remaining = MAX_DIVISOR_PREPASS_STATES.saturating_sub(check.transitions);
+        if pending.len().saturating_mul(cap) > remaining {
+            break;
+        }
+        let mut retry = Vec::new();
+        for (divisor, idxs) in pending {
+            let mut div_budget = ExactBudget::with_cap(cap);
+            let res = try_exact(divisor, &mut div_budget);
+            check.transitions = check.transitions.saturating_add(div_budget.transitions);
+            match res {
+                Ok((dist, _)) => {
+                    let zero = if dist.is_reachable(0) {
+                        Tri::Yes
+                    } else {
+                        Tri::No
+                    };
+                    for &i in &idxs {
+                        records[i].zero = zero;
+                    }
+                }
+                Err(ExactAbort::TooLarge) => retry.push((divisor, idxs)),
+                Err(ExactAbort::Unsupported | ExactAbort::Error(_)) => {}
+            }
+        }
+        pending = retry;
+    }
 
-        match res {
-            Ok((dist, _)) => {
-                let zero_reachable = dist.is_reachable(0);
-                let dist_len = dist.len();
-                drop(dist);
-                div_budget.release_live(dist_len);
-                if zero_reachable {
-                    return Err(RollError::DivisionByZero);
-                }
-            }
-            Err(ExactAbort::Error(RollError::DivisionByZero)) => {
-                return Err(RollError::DivisionByZero);
-            }
-            Err(ExactAbort::Error(other_err)) => {
-                // §5.4 items 1 & 5: check every remaining exact divisor for a reachable `0`
-                // before returning any non-`DivisionByZero` error from the pre-pass.
-                if deferred_error.is_none() {
-                    deferred_error = Some(other_err);
-                }
-            }
-            Err(ExactAbort::TooLarge | ExactAbort::Unsupported) => {}
+    for rec in &records {
+        match (rec.reached, rec.zero) {
+            (Tri::Yes, Tri::Yes) => return Err(RollError::DivisionByZero),
+            (Tri::No, _) | (_, Tri::No) => {}
+            _ => check.unchecked = check.unchecked.saturating_add(1),
         }
     }
-
-    if let Some(err) = deferred_error {
-        return Err(err);
-    }
-    Ok(())
+    Ok(check)
 }
 
 enum Accum {
@@ -1117,12 +1229,14 @@ enum ExactCont<'a> {
     BinaryAfterFirst {
         op: BinaryOp,
         right_first: bool,
+        left: &'a Expr,
         second: &'a Expr,
         live_base: usize,
     },
     BinaryAfterSecond {
         op: BinaryOp,
         right_first: bool,
+        left: &'a Expr,
         first_res: ExactNodeResult,
         live_base: usize,
     },
@@ -1150,16 +1264,33 @@ fn finish_node_frame(
     }
 }
 
+/// Whether an error found in the right operand is one the engine can raise: `eval.rs` evaluates
+/// the left operand first and stops at its first error, so the right operand's error is reachable
+/// only when the left operand can succeed. An exact left distribution always can; otherwise the
+/// support pass decides, and when it cannot show a success the error is not reported here (the
+/// node aborts as too large, and the Monte Carlo fallback evaluates the engine itself).
+fn right_error_reachable(left_exact: bool, left: &Expr) -> bool {
+    left_exact || crate::support::can_succeed(left) == Tri::Yes
+}
+
 fn combine_binary_exact(
     op: BinaryOp,
     right_first: bool,
+    left: &Expr,
     first_res: ExactNodeResult,
     second_res: ExactNodeResult,
     budget: &mut ExactBudget,
 ) -> ExactNodeResult {
     if let Err(ExactAbort::Error(err)) = second_res {
+        // With `right_first` the second operand evaluated is the left one, whose errors the
+        // engine always reaches first.
+        let reachable = right_first || right_error_reachable(first_res.is_ok(), left);
         drop(first_res);
-        return Err(ExactAbort::Error(err));
+        return Err(if reachable {
+            ExactAbort::Error(err)
+        } else {
+            ExactAbort::TooLarge
+        });
     }
     let (left_res, right_res) = if right_first {
         (second_res, first_res)
@@ -1241,6 +1372,7 @@ fn try_exact(expr: &Expr, budget: &mut ExactBudget) -> ExactNodeResult {
                     stack.push(ExactCont::BinaryAfterFirst {
                         op: *op,
                         right_first,
+                        left: left.as_ref(),
                         second,
                         live_base,
                     });
@@ -1267,10 +1399,16 @@ fn try_exact(expr: &Expr, budget: &mut ExactBudget) -> ExactNodeResult {
                 Some(ExactCont::BinaryAfterFirst {
                     op,
                     right_first,
+                    left,
                     second,
                     live_base,
                 }) => match child_res {
-                    Err(ExactAbort::Error(err)) => {
+                    // A left operand evaluated first: its errors are the engine's first errors.
+                    // A right operand evaluated first: its error stands only if the left operand
+                    // can succeed; otherwise the left operand is evaluated, and its error wins.
+                    Err(ExactAbort::Error(err))
+                        if !right_first || right_error_reachable(false, left) =>
+                    {
                         last_res = Some(finish_node_frame(
                             Err(ExactAbort::Error(err)),
                             live_base,
@@ -1278,7 +1416,10 @@ fn try_exact(expr: &Expr, budget: &mut ExactBudget) -> ExactNodeResult {
                         ));
                     }
                     Ok((r_dist, _))
-                        if right_first && op == BinaryOp::DivFloor && r_dist.is_reachable(0) =>
+                        if right_first
+                            && op == BinaryOp::DivFloor
+                            && r_dist.is_reachable(0)
+                            && right_error_reachable(false, left) =>
                     {
                         drop(r_dist);
                         last_res = Some(finish_node_frame(
@@ -1288,9 +1429,15 @@ fn try_exact(expr: &Expr, budget: &mut ExactBudget) -> ExactNodeResult {
                         ));
                     }
                     first_res => {
+                        let first_res = match first_res {
+                            // The child frame already restored the live-state baseline.
+                            Err(ExactAbort::Error(_)) => Err(ExactAbort::TooLarge),
+                            other => other,
+                        };
                         stack.push(ExactCont::BinaryAfterSecond {
                             op,
                             right_first,
+                            left,
                             first_res,
                             live_base,
                         });
@@ -1300,10 +1447,12 @@ fn try_exact(expr: &Expr, budget: &mut ExactBudget) -> ExactNodeResult {
                 Some(ExactCont::BinaryAfterSecond {
                     op,
                     right_first,
+                    left,
                     first_res,
                     live_base,
                 }) => {
-                    let res = combine_binary_exact(op, right_first, first_res, child_res, budget);
+                    let res =
+                        combine_binary_exact(op, right_first, left, first_res, child_res, budget);
                     last_res = Some(finish_node_frame(res, live_base, budget));
                 }
             }
@@ -2960,74 +3109,220 @@ fn expr_max_die_rolls(expr: &Expr) -> u64 {
     }
 }
 
-/// Estimates per-sample deterministic CPU work outside `DrawSource::next_u64_word` (`§5.3`).
-///
-/// Combined with `source.draws` (which already counts `>= count` initial Stage 1 draws per sample
-/// plus any triggered reroll/explosion draws), each `DiceSpec` group contributes at least:
-/// `count * (|r| + |ro| + |cs| + |cf| + 1) + keep_drop_work` per sample.
-fn estimate_mc_work_per_sample(expr: &Expr) -> u64 {
-    match expr {
-        Expr::Number(_) => 0,
-        Expr::UnaryNeg(inner) => estimate_mc_work_per_sample(inner),
-        Expr::Binary { left, right, .. } => {
-            estimate_mc_work_per_sample(left).saturating_add(estimate_mc_work_per_sample(right))
-        }
-        Expr::Dice(spec) => {
-            let base = u64::from(spec.count.get());
-            let (cs_len, cf_len) = match &spec.mode {
-                ResultMode::Pool { cs, cf } => (cs.len() as u64, cf.len() as u64),
-                ResultMode::Sum { .. } => (0, 0),
-            };
-            let scan_passes = (spec.reroll_unlimited.len() as u64)
-                .saturating_add(spec.reroll_once.len() as u64)
-                .saturating_add(cs_len)
-                .saturating_add(cf_len);
-            let mut work = base.saturating_mul(scan_passes);
+/// Static per-sample Monte Carlo work and the RNG draws every sample is certain to make (`§5.3`).
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+struct SampleCost {
+    /// Work charged per sample on top of [`MC_WORK_PER_DRAW`] per draw actually taken.
+    fixed: u64,
+    /// Draws every evaluation takes whatever the faces (a lower bound on `source.draws` per sample).
+    certain_draws: u64,
+}
 
-            if spec.keep_drop.is_empty() {
-                return work;
-            }
-
-            let est_len = match spec.explode {
-                Some(rule) if rule.variant != ExplosionVariant::Compound => {
-                    let s = side_count(spec.sides) as u64;
-                    let m = count_matching_faces(spec.sides, rule.threshold);
-                    let max_len = base.saturating_mul(u64::from(MAX_EXPLOSIONS) + 1);
-                    if m >= s {
-                        max_len
-                    } else if m > 0 {
-                        base.saturating_add(base.saturating_mul(m) / (s - m))
-                            .max(base.saturating_mul(2))
-                            .min(max_len)
-                    } else {
-                        base.saturating_mul(2)
-                    }
-                }
-                _ => base,
-            };
-            let mut cur_len = est_len;
-            for (op_idx, &op) in spec.keep_drop.iter().enumerate() {
-                let log_term = u64::from(cur_len.max(2).ilog2());
-                let sort_work = (cur_len.saturating_mul(log_term)) / 20;
-                let collect_work = if op_idx > 0 { est_len / 4 } else { 0 };
-                work = work.saturating_add(sort_work).saturating_add(collect_work);
-                cur_len = match op {
-                    KeepDropOp::KeepHighest(k) | KeepDropOp::KeepLowest(k) => {
-                        cur_len.min(u64::from(k)).max(1)
-                    }
-                    KeepDropOp::DropHighest(k) | KeepDropOp::DropLowest(k) => {
-                        cur_len.saturating_sub(u64::from(k)).max(1)
-                    }
-                };
-            }
-            work
+/// Number of distinct values a die in a keep/drop pool can hold, which bounds the depth of the
+/// sort's partitioning (`eval.rs` sorts kept indices by value; equal values cost no extra levels).
+fn pool_distinct_values(spec: &DiceSpec) -> u64 {
+    let s = side_count(spec.sides) as u64;
+    let (raw_min, raw_max) = (spec.sides.min_face(), spec.sides.max_face());
+    let (lo, hi) = match spec.clamp {
+        Some(c) => (apply_clamp_value(raw_min, c), apply_clamp_value(raw_max, c)),
+        None => (raw_min, raw_max),
+    };
+    let clamped = (hi - lo) as u64 + 1;
+    match spec.explode {
+        None => clamped,
+        Some(rule) if rule.variant == ExplosionVariant::Compound => {
+            s.saturating_mul(u64::from(MAX_EXPLOSIONS) + 1)
         }
+        Some(_) => clamped.max(s),
     }
 }
 
+/// Expected pool length after Stage 4 (`count` plus expected exploded children, capped).
+fn expected_pool_len(spec: &DiceSpec) -> u64 {
+    let base = u64::from(spec.count.get());
+    match spec.explode {
+        Some(rule) if rule.variant != ExplosionVariant::Compound => {
+            let s = side_count(spec.sides) as u64;
+            let m = count_matching_faces(spec.sides, rule.threshold);
+            let max_len = base.saturating_mul(u64::from(MAX_EXPLOSIONS) + 1);
+            if m >= s {
+                max_len
+            } else {
+                base.saturating_add(base.saturating_mul(m) / (s - m))
+                    .min(max_len)
+            }
+        }
+        _ => base,
+    }
+}
+
+/// Draws one die of `spec` takes in every evaluation: Stage 1, every `r` that matches every face
+/// (exactly `MAX_REROLLS` draws), every `ro` that matches every face (one draw), and the explosion
+/// draws forced when every post-clamp value (and every raw face) matches.
+fn certain_draws_per_die(spec: &DiceSpec) -> u64 {
+    let s = side_count(spec.sides) as u64;
+    let mut draws: u64 = 1;
+    for &cp in &spec.reroll_unlimited {
+        if count_matching_faces(spec.sides, cp) == s {
+            draws = draws.saturating_add(u64::from(MAX_REROLLS));
+        }
+    }
+    for &cp in &spec.reroll_once {
+        if count_matching_faces(spec.sides, cp) == s {
+            draws = draws.saturating_add(1);
+        }
+    }
+    if let Some(rule) = spec.explode {
+        let (raw_min, raw_max) = (spec.sides.min_face(), spec.sides.max_face());
+        let (lo, hi) = match spec.clamp {
+            Some(c) => (apply_clamp_value(raw_min, c), apply_clamp_value(raw_max, c)),
+            None => (raw_min, raw_max),
+        };
+        if count_matching_range(lo, hi, rule.threshold) == (hi - lo) as u64 + 1 {
+            draws =
+                draws.saturating_add(if count_matching_faces(spec.sides, rule.threshold) == s {
+                    u64::from(MAX_EXPLOSIONS)
+                } else {
+                    1
+                });
+        }
+    }
+    draws
+}
+
+/// `n * 4 m (s - m) / s^2`: dice times the chance that one test of this compare point splits evenly
+/// (`1` at `m = s / 2`, `0` when it matches every face or none).
+fn unpredictable_tests(n: u64, s: u64, m: u64) -> u64 {
+    n.saturating_mul(4)
+        .saturating_mul(m)
+        .saturating_mul(s - m.min(s))
+        / s.saturating_mul(s).max(1)
+}
+
+fn dice_sample_cost(spec: &DiceSpec) -> SampleCost {
+    let n = u64::from(spec.count.get());
+    let s = side_count(spec.sides) as u64;
+    let (cs_len, cf_len) = match &spec.mode {
+        ResultMode::Pool { cs, cf } => (cs.len() as u64, cf.len() as u64),
+        ResultMode::Sum { .. } => (0, 0),
+    };
+    let per_die = MC_WORK_PER_REROLL_SCAN
+        .saturating_mul(spec.reroll_unlimited.len() as u64)
+        .saturating_add(MC_WORK_PER_REROLL_ONCE_SCAN.saturating_mul(spec.reroll_once.len() as u64))
+        .saturating_add(if spec.clamp.is_some() {
+            MC_WORK_PER_CLAMPED_DIE
+        } else {
+            0
+        })
+        .saturating_add(if spec.explode.is_some() {
+            MC_WORK_PER_EXPLODING_DIE
+        } else {
+            0
+        });
+    let pool_len = expected_pool_len(spec);
+    let mut fixed = MC_WORK_PER_GROUP
+        .saturating_add(n.saturating_mul(per_die))
+        .saturating_add(MC_WORK_PER_CHILD.saturating_mul(pool_len.saturating_sub(n)));
+    for &cp in spec.reroll_unlimited.iter().chain(&spec.reroll_once) {
+        let m = count_matching_faces(spec.sides, cp);
+        fixed = fixed.saturating_add(
+            MC_WORK_PER_UNPREDICTABLE_REROLL.saturating_mul(unpredictable_tests(n, s, m)),
+        );
+    }
+    if let Some(rule) = spec.explode {
+        let m = count_matching_faces(spec.sides, rule.threshold);
+        fixed = fixed.saturating_add(
+            MC_WORK_PER_UNPREDICTABLE_TEST.saturating_mul(unpredictable_tests(n, s, m)),
+        );
+    }
+
+    let distinct = pool_distinct_values(spec);
+    let mut kept = pool_len;
+    for (op_idx, &op) in spec.keep_drop.iter().enumerate() {
+        let depth = u64::from(kept.min(distinct).max(2).ilog2());
+        let steps = kept.saturating_mul(depth);
+        let collected = if op_idx == 0 {
+            MC_WORK_PER_COLLECTED_DIE
+        } else {
+            MC_WORK_PER_COLLECTED_DIE + MC_WORK_PER_RECOLLECTED_DIE
+        };
+        fixed = fixed
+            .saturating_add(MC_WORK_PER_KEEP_OP)
+            .saturating_add(if kept > 20 { MC_WORK_PER_LARGE_SORT } else { 0 })
+            .saturating_add(collected.saturating_mul(pool_len))
+            .saturating_add(MC_WORK_PER_SORT_STEP.saturating_mul(steps))
+            .saturating_add(if distinct > 16 {
+                MC_WORK_PER_WIDE_SORT_STEP.saturating_mul(steps)
+            } else {
+                0
+            });
+        kept = match op {
+            KeepDropOp::KeepHighest(k) | KeepDropOp::KeepLowest(k) => kept.min(u64::from(k)),
+            KeepDropOp::DropHighest(k) | KeepDropOp::DropLowest(k) => {
+                kept.saturating_sub(u64::from(k))
+            }
+        };
+        let mixed = 4_u64
+            .saturating_mul(kept)
+            .saturating_mul(pool_len - kept.min(pool_len))
+            / pool_len.max(1);
+        fixed = fixed.saturating_add(MC_WORK_PER_MIXED_DIE.saturating_mul(mixed));
+    }
+    fixed = fixed.saturating_add(
+        MC_WORK_PER_POOL_TEST.saturating_mul(pool_len.saturating_mul(cs_len + cf_len)),
+    );
+    SampleCost {
+        fixed,
+        certain_draws: n.saturating_mul(certain_draws_per_die(spec)),
+    }
+}
+
+/// Static Monte Carlo cost of one sample of `expr` (`§5.3`), summed over every AST node. Left
+/// spines are walked iteratively; recursion follows right and unary operands only.
+fn sample_cost(expr: &Expr) -> SampleCost {
+    let mut total = SampleCost::default();
+    let mut cur = expr;
+    loop {
+        total.fixed = total.fixed.saturating_add(MC_WORK_PER_NODE);
+        match cur {
+            Expr::Number(_) => break,
+            Expr::Dice(spec) => {
+                let c = dice_sample_cost(spec);
+                total.fixed = total.fixed.saturating_add(c.fixed);
+                total.certain_draws = total.certain_draws.saturating_add(c.certain_draws);
+                break;
+            }
+            Expr::UnaryNeg(inner) => cur = inner,
+            Expr::Binary { left, right, .. } => {
+                let c = sample_cost(right);
+                total.fixed = total.fixed.saturating_add(c.fixed);
+                total.certain_draws = total.certain_draws.saturating_add(c.certain_draws);
+                cur = left;
+            }
+        }
+    }
+    total
+}
+
+/// Deterministic Monte Carlo sampler under a work ceiling and a sample floor (`§5.3`).
+///
+/// After `completed` samples the charged work is
+/// `MC_WORK_PER_DRAW * source.draws + completed * (MC_WORK_PER_SAMPLE + sample_cost(expr).fixed)`,
+/// and sampling stops at the first sample boundary where it reaches `ceiling` (or at
+/// [`DEFAULT_MONTE_CARLO_SAMPLES`]). An evaluation error on any sample is returned at once.
+///
+/// If fewer than `min_samples` samples fit, the result is
+/// `Err(RollError::AnalysisTooExpensive { samples_affordable, min_samples })` with the exact count.
+/// One shortcut: after the first sample, if the floor is out of reach even when every later sample
+/// costs only its static work and certain draws (`lower_bound`), that is
+/// `work + (min_samples - 2) * lower_bound >= ceiling`, sampling stops there, and
+/// `samples_affordable` is the upper bound `1 + ceil((ceiling - work) / lower_bound)` (capped at
+/// `min_samples - 1`). The first sample always runs, so an error every evaluation raises is still
+/// returned as that error.
 fn monte_carlo_fallback(
     expr: &Expr,
-    target_samples: u32,
+    ceiling: u64,
+    min_samples: u32,
 ) -> Result<(Distribution, u32), RollError> {
     let mut source = StreamDrawSource {
         rng: ChaCha12Rng::from_seed(*MONTE_CARLO_DEFAULT_SEED),
@@ -3035,23 +3330,46 @@ fn monte_carlo_fallback(
     };
     let mut scratch = EvalScratch::new();
     let mut counts = BTreeMap::<i64, u32>::new();
-    let static_work_per_sample = estimate_mc_work_per_sample(expr);
+    let cost = sample_cost(expr);
+    let per_sample = MC_WORK_PER_SAMPLE.saturating_add(cost.fixed);
+    let lower_bound = per_sample
+        .saturating_add(MC_WORK_PER_DRAW.saturating_mul(cost.certain_draws))
+        .max(1);
+    let min_samples = min_samples.clamp(1, DEFAULT_MONTE_CARLO_SAMPLES);
     let mut completed: u32 = 0;
 
-    for _ in 0..target_samples {
+    while completed < DEFAULT_MONTE_CARLO_SAMPLES {
         let total = evaluate_total_with_source(expr, &mut source, &mut scratch)?;
         *counts.entry(total).or_insert(0) += 1;
         completed += 1;
 
-        let work = source
-            .draws
-            .saturating_add(u64::from(completed).saturating_mul(static_work_per_sample));
-        if work >= MAX_MC_WORK {
+        let work = MC_WORK_PER_DRAW
+            .saturating_mul(source.draws)
+            .saturating_add(u64::from(completed).saturating_mul(per_sample));
+        if work >= ceiling {
             break;
+        }
+        if completed == 1 && min_samples > 1 {
+            // Every later sample costs at least `lower_bound`, so the floor is out of reach when
+            // `work + (min_samples - 2) * lower_bound >= ceiling`.
+            let still_needed = u64::from(min_samples - 2);
+            if work.saturating_add(still_needed.saturating_mul(lower_bound)) >= ceiling {
+                let upper = 1_u64.saturating_add((ceiling - work).div_ceil(lower_bound));
+                return Err(RollError::AnalysisTooExpensive {
+                    samples_affordable: upper.min(u64::from(min_samples - 1)) as u32,
+                    min_samples,
+                });
+            }
         }
     }
 
-    let denom = f64::from(completed.max(1));
+    if completed < min_samples {
+        return Err(RollError::AnalysisTooExpensive {
+            samples_affordable: completed,
+            min_samples,
+        });
+    }
+    let denom = f64::from(completed);
     let mut entries: Vec<(i64, f64)> = counts
         .into_iter()
         .map(|(v, c)| (v, canon_f64(f64::from(c) / denom)))

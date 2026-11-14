@@ -10,6 +10,15 @@ pub const MAX_EXPRESSION_BYTES: usize = 1_000;
 ///
 /// Prefix unary `-` directly over an unparenthesized number literal (`--1`, `- 5`) counts as two
 /// levels so its parenthesized canonical form (`-(-1)`, `-(5)`) also stays within `MAX_NESTING_DEPTH`.
+///
+/// Depth is counted on the input as written: every `(` and every prefix unary `-` on the path to a
+/// token adds one level, and the minus-over-literal case above adds two. Parentheses the canonical
+/// writer would drop still count, so an input can be refused while its canonical form parses:
+/// `63 x "("` + `--1` + `63 x ")"` is refused at depth 65, and its canonical form `-(-1)` parses.
+/// The check runs when a level is entered, before the operand is read, so at the limit
+/// `ExpressionTooDeep` is reported ahead of any error in the operand itself (an overflowing literal).
+/// Every canonical string of an [`Expr`] whose own nesting is at most `MAX_NESTING_DEPTH` parses back
+/// to that `Expr` (`tests/properties.rs`).
 /// Sized at `64` so unoptimized debug builds on constrained stacks (`1–2 MiB` Windows/CI/Wasm threads)
 /// never approach stack overflow during parsing, evaluation, analysis, formatting, or recursive `Drop`.
 pub const MAX_NESTING_DEPTH: usize = 64;
