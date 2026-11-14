@@ -91,13 +91,14 @@ pub const MAX_EXACT_LIVE_STATES: usize = 3_000_000;
 
 /// Raw `u64` draw headroom reserved below [`MAX_TOTAL_DRAWS`] (`2,100,000`) for 64-bit Lemire
 /// multiplication-rejection retries before [`analyze`] may certify a distribution as
-/// [`AnalysisMethod::Exact`] (`80,000` raw draws, matching `crates/roll-core/src/ast.rs:38-52`).
+/// [`AnalysisMethod::Exact`] (`80,000` raw draws, matching `crates/roll-core/src/ast.rs:40-54`).
 ///
 /// At `expr_max_die_rolls(expr) == MAX_TOTAL_DRAWS`, even a single Lemire rejection retry (`2^64 mod s != 0`)
 /// pushes `eval.rs` over `MAX_TOTAL_DRAWS` into `Err(RollError::DrawBudgetExceeded)` — an outcome not
 /// modelled by independent per-die convolution. Requiring `expr_max_die_rolls(expr) <= MAX_EXACT_DIE_ROLLS`
-/// (`2_020_000`) guarantees at least `80_000` retry draws of headroom (for `s <= 1,000,000`, per-roll
-/// retry probability is `(2^64 mod s) / 2^64 < 5.5e-14`, so `P(> 80,000 retries)` is `< 10^-1_000_000`).
+/// (`2_020_000`) guarantees at least `80_000` retry draws of headroom (for `s <= 1,000,000`, per-draw
+/// retry probability is `(2^64 mod s) / 2^64 <= 997,870 / 2^64 < 5.42e-14`, so across `2,100,000`
+/// raw draws `P(> 80,000 retries)` is `~10^-913,759 < 10^-913,000`).
 pub const EXACT_DRAW_RETRY_MARGIN: u64 = 80_000;
 
 /// Maximum worst-case `roll_single_die` invocations (`2,020_000 = MAX_TOTAL_DRAWS - EXACT_DRAW_RETRY_MARGIN`)

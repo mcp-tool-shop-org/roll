@@ -618,3 +618,203 @@ fn parser_enforces_max_nesting_depth_with_structured_error_and_safe_debug_evalua
     );
     assert_eq!(analyze(&parsed_flat_div).unwrap().stats.min, 1);
 }
+
+#[test]
+fn canonical_round_trip_and_receipt_verification_at_nesting_depths_63_64_and_refusal_at_65() {
+    use roll_core::{
+        MAX_NESTING_DEPTH, analyze, to_canonical_receipt_json, verify_receipt, verify_receipt_json,
+    };
+
+    fn assert_round_trip_and_receipt_ok(label: &str, raw: &str) {
+        let expr = parse(raw).unwrap_or_else(|e| panic!("{label}: expected Ok parse, got {e:?}"));
+        let canonical = expr.to_canonical_string();
+        let reparsed = parse(&canonical).unwrap_or_else(|e| {
+            panic!("{label}: canonical form {canonical:?} failed to re-parse: {e:?}")
+        });
+        assert_eq!(reparsed, expr, "{label}: canonical AST mismatch");
+        assert_eq!(
+            reparsed.to_canonical_string(),
+            canonical,
+            "{label}: canonical string not idempotent"
+        );
+        assert!(
+            analyze(&expr).is_ok(),
+            "{label}: expected analyze Ok on {canonical:?}"
+        );
+
+        let addr = RollAddress::new(SeedMaterial::Int64(2026), 1, "depth_rt", "", 0);
+        let (_outcome, receipt) = evaluate_addressed(&expr, &addr)
+            .unwrap_or_else(|e| panic!("{label}: expected evaluate_addressed Ok, got {e:?}"));
+        verify_receipt(&receipt).unwrap_or_else(|e| {
+            panic!("{label}: receipt from evaluate_addressed failed verify_receipt: {e:?}")
+        });
+        let json = to_canonical_receipt_json(&receipt);
+        assert_eq!(verify_receipt_json(&json).unwrap(), receipt);
+    }
+
+    fn assert_refused_at_65(label: &str, raw: &str, expected_offset: usize) {
+        assert_eq!(
+            parse(raw),
+            Err(RollError::ExpressionTooDeep {
+                depth: MAX_NESTING_DEPTH + 1,
+                max: MAX_NESTING_DEPTH,
+                byte_offset: expected_offset,
+            }),
+            "{label}: expected ExpressionTooDeep at depth 65 (offset {expected_offset}) on {raw:?}"
+        );
+    }
+
+    let check_all = || {
+        // 1. `-` before a literal (`(d - 1)` unary minuses before `-1`, where the innermost unary
+        //    minus counts as 2 levels because canonical form parenthesizes `Number` as `-(-1)`).
+        assert_round_trip_and_receipt_ok("minus_before_lit_d63", &format!("{}1", "-".repeat(63)));
+        assert_round_trip_and_receipt_ok("minus_before_lit_d64", &format!("{}1", "-".repeat(64)));
+        assert_refused_at_65("minus_before_lit_d65", &format!("{}1", "-".repeat(65)), 63);
+        assert_refused_at_65("minus_before_lit_d66", &format!("{}1", "-".repeat(66)), 64);
+        assert_refused_at_65(
+            "parens_64_then_double_minus_lit",
+            &format!("{}--1{}", "(".repeat(64), ")".repeat(64)),
+            64,
+        );
+
+        // Also verify `-` before `1d6` (non-literal operand, 1 level per `-`).
+        assert_round_trip_and_receipt_ok(
+            "minus_before_dice_d63",
+            &format!("{}1d6", "-".repeat(63)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "minus_before_dice_d64",
+            &format!("{}1d6", "-".repeat(64)),
+        );
+        assert_refused_at_65(
+            "minus_before_dice_d65",
+            &format!("{}1d6", "-".repeat(65)),
+            64,
+        );
+
+        // 2. `-` before `(` (`(d - 1)` unary minuses before a parenthesized expression).
+        assert_round_trip_and_receipt_ok(
+            "minus_before_paren_num_d63",
+            &format!("{}(5)", "-".repeat(62)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "minus_before_paren_num_d64",
+            &format!("{}(5)", "-".repeat(63)),
+        );
+        assert_refused_at_65(
+            "minus_before_paren_num_d65",
+            &format!("{}(5)", "-".repeat(64)),
+            64,
+        );
+        assert_round_trip_and_receipt_ok(
+            "minus_before_paren_bin_d63",
+            &format!("{}(1d6+1)", "-".repeat(62)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "minus_before_paren_bin_d64",
+            &format!("{}(1d6+1)", "-".repeat(63)),
+        );
+        assert_refused_at_65(
+            "minus_before_paren_bin_d65",
+            &format!("{}(1d6+1)", "-".repeat(64)),
+            64,
+        );
+
+        // 3. `(` alone (both bare collapsible `(((1d6)))` and precedence-preserved `1-(1-(...))`).
+        assert_round_trip_and_receipt_ok(
+            "paren_alone_bare_d63",
+            &format!("{}1d6{}", "(".repeat(63), ")".repeat(63)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "paren_alone_bare_d64",
+            &format!("{}1d6{}", "(".repeat(64), ")".repeat(64)),
+        );
+        assert_refused_at_65(
+            "paren_alone_bare_d65",
+            &format!("{}1d6{}", "(".repeat(65), ")".repeat(65)),
+            64,
+        );
+        assert_round_trip_and_receipt_ok(
+            "paren_alone_preserved_d63",
+            &format!("{}1d6{}", "1-(".repeat(63), ")".repeat(63)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "paren_alone_preserved_d64",
+            &format!("{}1d6{}", "1-(".repeat(64), ")".repeat(64)),
+        );
+        assert_refused_at_65(
+            "paren_alone_preserved_d65",
+            &format!("{}1d6{}", "1-(".repeat(65), ")".repeat(65)),
+            194,
+        );
+
+        // 4. Mixed `-(`, both bare and precedence-preserved (`-(1+...)`).
+        assert_round_trip_and_receipt_ok(
+            "mixed_minus_paren_bare_d63",
+            &format!("{}-1d6{}", "-(".repeat(31), ")".repeat(31)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "mixed_minus_paren_bare_d64",
+            &format!("{}1d6{}", "-(".repeat(32), ")".repeat(32)),
+        );
+        assert_refused_at_65(
+            "mixed_minus_paren_bare_d65",
+            &format!("{}-1d6{}", "-(".repeat(32), ")".repeat(32)),
+            64,
+        );
+        assert_round_trip_and_receipt_ok(
+            "mixed_minus_paren_preserved_d63",
+            &format!("{}-1d6{}", "-(1+".repeat(31), ")".repeat(31)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "mixed_minus_paren_preserved_d64",
+            &format!("{}1d6{}", "-(1+".repeat(32), ")".repeat(32)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "mixed_minus_paren_lit_d64",
+            &format!("{}--1{}", "-(1+".repeat(31), ")".repeat(31)),
+        );
+        assert_refused_at_65(
+            "mixed_minus_paren_preserved_d65",
+            &format!("{}-1d6{}", "-(1+".repeat(32), ")".repeat(32)),
+            128,
+        );
+        assert_refused_at_65(
+            "mixed_minus_paren_lit_d65",
+            &format!("{}---1{}", "-(1+".repeat(31), ")".repeat(31)),
+            125,
+        );
+
+        // 5. With a space (`- 5`), both leading contiguous minuses before `" 5"` and fully spaced `"- "` chains.
+        assert_round_trip_and_receipt_ok("space_minus_lit_d63", &format!("{} 5", "-".repeat(62)));
+        assert_round_trip_and_receipt_ok("space_minus_lit_d64", &format!("{} 5", "-".repeat(63)));
+        assert_refused_at_65("space_minus_lit_d65", &format!("{} 5", "-".repeat(64)), 63);
+
+        assert_round_trip_and_receipt_ok(
+            "all_spaced_minus_lit_d63",
+            &format!("{}5", "- ".repeat(62)),
+        );
+        assert_round_trip_and_receipt_ok(
+            "all_spaced_minus_lit_d64",
+            &format!("{}5", "- ".repeat(63)),
+        );
+        assert_refused_at_65(
+            "all_spaced_minus_lit_d65",
+            &format!("{}5", "- ".repeat(64)),
+            126,
+        );
+    };
+
+    check_all();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        std::thread::Builder::new()
+            .name(String::from("roll-depth-1mib"))
+            .stack_size(1024 * 1024)
+            .spawn(check_all)
+            .expect("spawn 1 MiB stack thread")
+            .join()
+            .expect("1 MiB stack thread must complete without overflow");
+    }
+}

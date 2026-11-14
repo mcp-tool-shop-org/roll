@@ -247,27 +247,17 @@
             {
               "in": "prob_exactly",
               "kind": "match-err",
-              "line": 324
+              "line": 325
             },
             {
               "in": "target_for_probability",
               "kind": "err",
-              "line": 371
+              "line": 372
             },
             {
               "in": "analyze",
               "kind": "err",
-              "line": 538
-            },
-            {
-              "in": "analyze",
-              "kind": "match-err",
-              "line": 560
-            },
-            {
-              "in": "analyze",
-              "kind": "err",
-              "line": 560
+              "line": 539
             },
             {
               "in": "analyze",
@@ -275,14 +265,14 @@
               "line": 561
             },
             {
-              "in": "compare",
-              "kind": "match-err",
-              "line": 653
+              "in": "analyze",
+              "kind": "err",
+              "line": 561
             },
             {
-              "in": "compare",
-              "kind": "err",
-              "line": 653
+              "in": "analyze",
+              "kind": "match-err",
+              "line": 562
             },
             {
               "in": "compare",
@@ -290,207 +280,217 @@
               "line": 654
             },
             {
+              "in": "compare",
+              "kind": "err",
+              "line": 654
+            },
+            {
+              "in": "compare",
+              "kind": "match-err",
+              "line": 655
+            },
+            {
               "in": "charge_transitions",
               "kind": "err",
-              "line": 769
+              "line": 770
             },
             {
               "in": "reserve_live",
               "kind": "err",
-              "line": 779
+              "line": 780
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 960
+              "line": 961
             },
             {
               "in": "precheck_divisors",
               "kind": "match-err",
-              "line": 963
-            },
-            {
-              "in": "precheck_divisors",
-              "kind": "err",
               "line": 964
             },
             {
               "in": "precheck_divisors",
-              "kind": "match-err",
-              "line": 966
+              "kind": "err",
+              "line": 965
             },
             {
               "in": "precheck_divisors",
               "kind": "match-err",
-              "line": 973
+              "line": 967
+            },
+            {
+              "in": "precheck_divisors",
+              "kind": "match-err",
+              "line": 974
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 978
+              "line": 979
             },
             {
               "in": "add_capped",
               "kind": "err",
-              "line": 1046
+              "line": 1047
             },
             {
               "in": "finish_node_frame",
               "kind": "match-err",
-              "line": 1145
+              "line": 1146
             },
             {
               "in": "finish_node_frame",
               "kind": "err",
-              "line": 1147
+              "line": 1148
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1159
+              "line": 1160
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1161
-            },
-            {
-              "in": "combine_binary_exact",
-              "kind": "match-err",
-              "line": 1170
-            },
-            {
-              "in": "combine_binary_exact",
-              "kind": "err",
-              "line": 1172
+              "line": 1162
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1177
+              "line": 1171
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1179
+              "line": 1173
+            },
+            {
+              "in": "combine_binary_exact",
+              "kind": "match-err",
+              "line": 1178
+            },
+            {
+              "in": "combine_binary_exact",
+              "kind": "err",
+              "line": 1180
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1262
+              "line": 1263
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1262
+              "line": 1263
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1272
+              "line": 1273
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1274
+              "line": 1275
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1284
+              "line": 1285
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1390
+              "line": 1391
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1399
+              "line": 1400
             },
             {
               "in": "explosion_chain_sum_pmf_inner",
               "kind": "err",
-              "line": 1676
+              "line": 1677
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1860
+              "line": 1861
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1877
+              "line": 1878
             },
             {
               "in": "divide_distribution_weighted",
               "kind": "err",
-              "line": 2314
+              "line": 2315
             },
             {
               "in": "convolve",
               "kind": "err",
-              "line": 2449
+              "line": 2450
             },
             {
               "in": "subtract_distributions",
               "kind": "err",
-              "line": 2490
+              "line": 2491
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2566
+              "line": 2567
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2570
+              "line": 2571
             },
             {
               "in": "convolve_n_inner",
               "kind": "err",
-              "line": 2743
+              "line": 2744
             },
             {
               "in": "multiply_distributions",
               "kind": "err",
-              "line": 2767
+              "line": 2768
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2813
+              "line": 2814
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2846
+              "line": 2847
             },
             {
               "in": "next_u64_word",
               "kind": "err",
-              "line": 3120
+              "line": 3121
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3172
+              "line": 3173
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3175
+              "line": 3176
             },
             {
               "in": "walk",
               "kind": "err",
-              "line": 3175
+              "line": 3176
             }
           ],
-          "hash": "4527539d83750367b92c2655bbd1691ef222c0335bda75f7b983907da07c2761",
+          "hash": "61277c261f2eb765522ceb3d33cd3bd2f5de280974e33c29c6b38c8477e6fd55",
           "importOrder": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs",
@@ -511,7 +511,7 @@
           "testsInside": true
         },
         {
-          "hash": "50b24ecbb132c5d7e40428c7597905c34863fefd6c57c52d8df3d0a8680002cd",
+          "hash": "a4fb234c6c0c4b8d7d38c3cbfcd44fe003b74e84440e13ee0f85d7dd76907810",
           "path": "crates/roll-core/src/ast.rs"
         },
         {
@@ -705,140 +705,145 @@
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 164
+              "line": 180
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 189
+              "line": 205
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 207
+              "line": 221
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 226
+              "line": 240
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 231
+              "line": 259
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 246
+              "line": 264
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 267
+              "line": 279
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 274
+              "line": 300
+            },
+            {
+              "in": "parse_factor",
+              "kind": "err",
+              "line": 307
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 287
+              "line": 320
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 311
+              "line": 344
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 318
+              "line": 351
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 328
+              "line": 361
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 357
+              "line": 390
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 366
+              "line": 399
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 376
+              "line": 409
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 385
+              "line": 418
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 429
+              "line": 462
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 435
+              "line": 468
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 457
+              "line": 490
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 467
+              "line": 500
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 475
+              "line": 508
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 486
+              "line": 519
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 496
+              "line": 529
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 504
+              "line": 537
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 514
+              "line": 547
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 523
+              "line": 556
             },
             {
               "in": "parse_required_i64",
               "kind": "err",
-              "line": 588
+              "line": 621
             }
           ],
-          "hash": "5e4fba898bdade199c099d667857770e908df50d9b68c33c68a17f78a1b303fd",
+          "hash": "b46006c5e1ab910d66e9f42f07a642a4dc7e9c21b1795ccd50f2e13b61d8df6b",
           "importsFiles": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs"
@@ -1049,7 +1054,7 @@
           "testsInside": true
         },
         {
-          "hash": "8a82186bb08f0f733b7cac4a0a0666137742a8e2f28413a47461ea683710130f",
+          "hash": "a6e7b308b913affbe6de0b04144251a9ac5c0059a447319c10ac06f142f72221",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -1077,7 +1082,7 @@
           "testsInside": true
         },
         {
-          "hash": "3df48bb4b49ff663f67f3b277996087cb9c3efe15c3aec14bc8237ea4c417839",
+          "hash": "1195fc63ec030ae70fff8fbfdfccbaae87cdc5ce165ded1c9c09808687d489f8",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs",
@@ -1155,7 +1160,7 @@
           "path": ".gitignore"
         },
         {
-          "hash": "1fc9d9bffdc952b566005134fab96a54d0b691c16c90e8120c11962cd2e60d86",
+          "hash": "ae69b68f18aec05351cb372b6088755ae70630df22e5e094f0d97476e7003fd5",
           "path": "CHANGELOG.md"
         },
         {
@@ -8101,7 +8106,7 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "40f43a12137167fc73f8446dbb5c16efebd8d243",
+    "commit": "59bc61337bac8ea996db433a72b850b6c634536b",
     "tracked": 127
   },
   "landings": [

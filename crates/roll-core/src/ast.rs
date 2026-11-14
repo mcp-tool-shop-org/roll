@@ -8,6 +8,8 @@ use core::num::NonZeroU32;
 pub const MAX_EXPRESSION_BYTES: usize = 1_000;
 /// Maximum recursive factor nesting depth (`(` parentheses and prefix unary `-`) accepted by [`crate::parse`] (`§4.2`).
 ///
+/// Prefix unary `-` directly over an unparenthesized number literal (`--1`, `- 5`) counts as two
+/// levels so its parenthesized canonical form (`-(-1)`, `-(5)`) also stays within `MAX_NESTING_DEPTH`.
 /// Sized at `64` so unoptimized debug builds on constrained stacks (`1–2 MiB` Windows/CI/Wasm threads)
 /// never approach stack overflow during parsing, evaluation, analysis, formatting, or recursive `Drop`.
 pub const MAX_NESTING_DEPTH: usize = 64;
