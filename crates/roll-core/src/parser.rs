@@ -6,22 +6,35 @@ use core::num::NonZeroU32;
 
 use crate::ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
-    ExplosionVariant, Expr, KeepDropOp, MAX_DICE_PER_GROUP, MAX_DIE_SIDES, MAX_EXPRESSION_BYTES,
-    MAX_NESTING_DEPTH, MAX_TOTAL_DICE_PER_EXPR, ResultMode, SortOrder,
+    ExplosionVariant, Expr, KeepDropOp, MAX_BINARY_OPERATORS, MAX_CANONICAL_EXPRESSION_BYTES,
+    MAX_DICE_PER_GROUP, MAX_DIE_SIDES, MAX_EXPRESSION_BYTES, MAX_NESTING_DEPTH,
+    MAX_TOTAL_DICE_PER_EXPR, ResultMode, SortOrder,
 };
 use crate::error::RollError;
 
 /// Parses a Roll 3.0 dice/arithmetic expression into a statically validated [`Expr`].
 pub fn parse(input: &str) -> Result<Expr, RollError> {
-    parse_with_max_bytes(input, MAX_EXPRESSION_BYTES)
+    // An input of at most `MAX_EXPRESSION_BYTES` cannot hold more than `MAX_BINARY_OPERATORS`
+    // operators, so the input path needs no operator count of its own.
+    parse_with_limits(input, MAX_EXPRESSION_BYTES, usize::MAX)
 }
 
-/// [`parse`] with a byte cap of `max_bytes` in place of [`MAX_EXPRESSION_BYTES`].
+/// Re-parses a receipt's canonical expression for [`crate::verify_receipt`] (`§3.3`).
 ///
-/// [`crate::verify_receipt`] re-parses a receipt's canonical expression under
-/// [`crate::ast::MAX_CANONICAL_EXPRESSION_BYTES`], because the canonical form of an accepted input
-/// can be longer than the input. Every other rule (nesting depth, dice budgets) is unchanged.
-pub(crate) fn parse_with_max_bytes(input: &str, max_bytes: usize) -> Result<Expr, RollError> {
+/// The canonical form of an accepted input can be longer than the input, so the byte cap is
+/// [`MAX_CANONICAL_EXPRESSION_BYTES`]. A receipt is third-party input, so its tree must never be
+/// deeper than an accepted parse tree: the binary operators (`+ - * /`) of the whole expression
+/// are counted while parsing, and the parse is refused as soon as the count passes
+/// [`MAX_BINARY_OPERATORS`], before any deeper tree is built. Every other rule is unchanged.
+pub(crate) fn parse_canonical(input: &str) -> Result<Expr, RollError> {
+    parse_with_limits(input, MAX_CANONICAL_EXPRESSION_BYTES, MAX_BINARY_OPERATORS)
+}
+
+fn parse_with_limits(
+    input: &str,
+    max_bytes: usize,
+    max_binary_ops: usize,
+) -> Result<Expr, RollError> {
     if input.len() > max_bytes {
         return Err(RollError::ExpressionTooLong {
             len: input.len(),
@@ -35,6 +48,8 @@ pub(crate) fn parse_with_max_bytes(input: &str, max_bytes: usize) -> Result<Expr
         pos: 0,
         total_dice: 0,
         depth: 0,
+        binary_ops: 0,
+        max_binary_ops,
     };
 
     let expr = scanner.parse_expression()?;
@@ -110,6 +125,8 @@ struct Scanner<'a> {
     pos: usize,
     total_dice: u64,
     depth: usize,
+    binary_ops: usize,
+    max_binary_ops: usize,
 }
 
 impl<'a> Scanner<'a> {
@@ -139,6 +156,18 @@ impl<'a> Scanner<'a> {
         idx > digit_start && !matches!(self.bytes.get(idx), Some(b'd' | b'D'))
     }
 
+    /// Counts one binary operator; refuses once the count passes `max_binary_ops`.
+    fn count_binary_op(&mut self) -> Result<(), RollError> {
+        self.binary_ops += 1;
+        if self.binary_ops > self.max_binary_ops {
+            return Err(RollError::TooManyBinaryOperators {
+                count: self.binary_ops,
+                max: self.max_binary_ops,
+            });
+        }
+        Ok(())
+    }
+
     fn next_char_display(&self) -> char {
         self.input[self.pos..].chars().next().unwrap_or('\0')
     }
@@ -153,6 +182,7 @@ impl<'a> Scanner<'a> {
                 _ => break,
             };
             self.pos += 1;
+            self.count_binary_op()?;
             let right = self.parse_term()?;
             left = Expr::Binary {
                 op,
@@ -173,6 +203,7 @@ impl<'a> Scanner<'a> {
                 _ => break,
             };
             self.pos += 1;
+            self.count_binary_op()?;
             let right = self.parse_factor()?;
             left = Expr::Binary {
                 op,

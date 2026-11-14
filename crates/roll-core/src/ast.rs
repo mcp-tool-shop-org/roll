@@ -32,6 +32,9 @@ pub const MAX_EXPRESSION_BYTES: usize = 1_000;
 ///     (6 bytes for 2), exactly 3 per byte; an explicit count of `c >= 1` digits writes at most
 ///     `c` digits, so `<c>d%` writes at most `c + 5` bytes for `c + 2`;
 ///   - `F` cannot explode, and writes `F` (1 for 1).
+/// - **Bare `cs`/`cf`** write `cs`/`cf`, **`sa`/`sd`** write `sa`/`sd`, **`min`/`max`** write
+///   `min`/`max` and their argument, and **pool `cs<cmp>`/`cf<cmp>`** write their compare point as
+///   read or shorter: each at most 1 byte per input byte.
 ///
 /// No charge exceeds 3 bytes per input byte, so `canonical.len() <= 3 * input.len() <= 3,000`.
 /// The bound is reached: `d%!` followed by `997 x r` (1,000 bytes) writes `1d%`, `997 x r=1` and
@@ -40,6 +43,20 @@ pub const MAX_EXPRESSION_BYTES: usize = 1_000;
 pub const MAX_CANONICAL_EXPRESSION_BYTES: usize = 3 * MAX_EXPRESSION_BYTES;
 
 const _: () = assert!(MAX_CANONICAL_EXPRESSION_BYTES == 3_000);
+/// Maximum number of binary operators (`+ - * /`, counted over the whole expression) in a receipt's
+/// `canonical_expression` accepted by [`crate::verify_receipt`] (`(MAX_EXPRESSION_BYTES - 1) / 2 = 499`).
+///
+/// `n` binary operators join `n + 1` operands and every operand takes at least one byte, so an
+/// input of at most `MAX_EXPRESSION_BYTES` bytes needs `2n + 1 <= 1,000` bytes for them: at most
+/// `499` operators. The binary-operator loops are iterative and do not count toward
+/// `MAX_NESTING_DEPTH`, so a chain of operators is a left spine as deep as its count, which the
+/// writer, `Drop`, `total_base_dice` and the evaluator recurse over. A receipt is third-party input,
+/// and the 3,000-byte canonical cap alone would admit `0+` x 1,499 + `0` (2,999 bytes, a spine
+/// 1,499 deep), so the receipt re-parse refuses the 500th operator before a deeper tree is built.
+/// [`crate::parse`] needs no such count: its byte cap already implies it.
+pub const MAX_BINARY_OPERATORS: usize = (MAX_EXPRESSION_BYTES - 1) / 2;
+
+const _: () = assert!(MAX_BINARY_OPERATORS == 499);
 /// Maximum recursive factor nesting depth (`(` parentheses and prefix unary `-`) accepted by [`crate::parse`] (`§4.2`).
 ///
 /// Prefix unary `-` directly over an unparenthesized number literal (`--1`, `- 5`) counts as two

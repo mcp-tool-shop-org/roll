@@ -6,12 +6,12 @@ use rand_chacha::ChaCha12Rng;
 use rand_core::{Rng, SeedableRng};
 use sha2::{Digest, Sha256};
 
-use crate::ast::{Expr, MAX_CANONICAL_EXPRESSION_BYTES, MAX_TOTAL_DRAWS};
+use crate::ast::{Expr, MAX_TOTAL_DRAWS};
 use crate::canonical_json::to_canonical_json;
 use crate::codec::{encode_hex_lower, encode_u64_hex};
 use crate::error::{ReceiptVerifyError, RollError};
 use crate::eval::{ExpressionOutcome, evaluate_with_rng, evaluate_with_source};
-use crate::parser::parse_with_max_bytes;
+use crate::parser::parse_canonical;
 use crate::rng::{DEFAULT_RULES_VERSION, RollAddress, RollRng, TapeSource, derive_roll_key};
 
 /// Normative receipt schema version identifier (`Roll 3.0 §3.1`).
@@ -192,15 +192,14 @@ pub fn verify_receipt(receipt: &RollReceipt) -> Result<(), RollError> {
     }
 
     // The canonical form can be longer than the input it came from (bare `r` -> `r=1`,
-    // `!` -> `!>=6`), so it is re-parsed under its own cap (`ast.rs`, the bound on
-    // `MAX_CANONICAL_EXPRESSION_BYTES`), never the 1,000-byte input cap.
-    let expr = parse_with_max_bytes(canonical_expression, MAX_CANONICAL_EXPRESSION_BYTES).map_err(
-        |err| {
-            RollError::ReceiptInvalid(ReceiptVerifyError::InvalidSpecExpression {
-                message: format!("{err}"),
-            })
-        },
-    )?;
+    // `!` -> `!>=6`), so it is re-parsed under its own byte cap, never the 1,000-byte input cap,
+    // and with no more binary operators than an accepted input can hold (`ast.rs`,
+    // `MAX_CANONICAL_EXPRESSION_BYTES` and `MAX_BINARY_OPERATORS`).
+    let expr = parse_canonical(canonical_expression).map_err(|err| {
+        RollError::ReceiptInvalid(ReceiptVerifyError::InvalidSpecExpression {
+            message: format!("{err}"),
+        })
+    })?;
     let expected_canonical = expr.to_canonical_string();
     if &expected_canonical != canonical_expression {
         return Err(RollError::ReceiptInvalid(

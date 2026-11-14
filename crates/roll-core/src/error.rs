@@ -136,6 +136,12 @@ pub enum RollError {
         max: usize,
         byte_offset: usize,
     },
+    /// A receipt's canonical expression holds more binary operators than any accepted input can
+    /// ([`crate::ast::MAX_BINARY_OPERATORS`]). Raised only by the receipt re-parse (`§3.3`).
+    TooManyBinaryOperators {
+        count: usize,
+        max: usize,
+    },
     Lex {
         message: String,
         byte_offset: usize,
@@ -190,6 +196,10 @@ impl fmt::Display for RollError {
             Self::ExpressionTooLong { len, max } => write!(
                 f,
                 "expression length {len} bytes exceeds maximum of {max} bytes"
+            ),
+            Self::TooManyBinaryOperators { count, max } => write!(
+                f,
+                "expression binary operator count {count} exceeds maximum of {max}"
             ),
             Self::ExpressionTooDeep {
                 depth,
