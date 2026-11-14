@@ -1082,7 +1082,7 @@
           "testsInside": true
         },
         {
-          "hash": "1195fc63ec030ae70fff8fbfdfccbaae87cdc5ce165ded1c9c09808687d489f8",
+          "hash": "ebf2d145f9bb03640df306aa883e21aaec3be9fb978f47ed91b4aff8ed52cfad",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs",
@@ -1160,7 +1160,7 @@
           "path": ".gitignore"
         },
         {
-          "hash": "ae69b68f18aec05351cb372b6088755ae70630df22e5e094f0d97476e7003fd5",
+          "hash": "046b90e30c1a348d76a277a25e70c45313e0fce8a349342dfd73e2a5e11061cc",
           "path": "CHANGELOG.md"
         },
         {
@@ -8106,8 +8106,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "59bc61337bac8ea996db433a72b850b6c634536b",
-    "tracked": 127
+    "commit": "1b4e83a4cb2599da5f907d913ed481f328b5ff79",
+    "tracked": 128
   },
   "landings": [
     {
@@ -8161,7 +8161,23 @@
     {
       "readers": [
         {
+          "by": "docs/spec/roll-3.0.md",
+          "call": "--",
+          "confidence": "text"
+        }
+      ],
+      "target": "fixtures",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "CHANGELOG.md",
+          "call": "--out",
+          "confidence": "text"
+        },
+        {
+          "by": "docs/spec/roll-3.0.md",
           "call": "--out",
           "confidence": "text"
         }
@@ -8258,6 +8274,17 @@
     {
       "readers": [
         {
+          "by": "docs/spec/roll-3.0.md",
+          "call": "--prefix",
+          "confidence": "text"
+        }
+      ],
+      "target": "site",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
           "by": "site/astro.config.mjs",
           "call": "content-collection",
           "confidence": "ast"
@@ -8331,5 +8358,10 @@
   "submodules": [],
   "symlinks": [],
   "testFiles": 39,
-  "unassigned": []
+  "unassigned": [
+    {
+      "hash": "a76d7c0ae2f05d4b5c34e291561b97a578ff34080e5804e98fbad07960ea8474",
+      "path": "docs/spec/roll-3.0.md"
+    }
+  ]
 }

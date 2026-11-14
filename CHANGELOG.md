@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- **Roll 3.0 design specification (`docs/spec/roll-3.0.md`).** The design basis for the Rust core and the pure TypeScript port, now in the repository. §5.3 states the AST-wide exact budget and the variable Monte Carlo sample count; §5.4 states the divisor pre-pass, which makes a reachable zero divisor error whatever the sibling order, and the error precedence; §9.1 item 4 separates the Rust byte-determinism check from the cross-language value check (probabilities within 1e-12 absolute, moments within 1e-12 relative to max(1, |x|)), and adds knife-edge margins, Monte Carlo counts and classified fixture diffs. §4 adds a parser nesting-depth limit.
+
 ### Fixed
 
 - **Roll 3.0 analyzer follow-up: reserved `§5.4` divisor pre-pass, scan-aware Monte Carlo budget, restored contiguous exactness, parser nesting limit, and upfront receipt length guard** — adds `precheck_divisors` (`MAX_DIVISOR_PREPASS_STATES = 20_000_000`) ordering `DivFloor` divisors cheapest-first by static upper cost bound (`divisor_static_cost_bound`) with byte-offset tie-breaking and zero-divisor error precedence so budget-heavy siblings cannot mask reachable `0` divisors; counts per-die `r`/`ro`/`cs`/`cf` modifier scans in `estimate_mc_work_per_sample` (`MAX_MC_WORK = 28_000_000`) and enforces release-mode 1 s bounds in CI; restores `AnalysisMethod::Exact` for wide/repeated contiguous convolutions (`convolve_contiguous`, `FLAT_CONTIGUOUS_PAIRS_PER_STATE = 16`, `MAX_DENSE_SPAN = 1_048_576`, `MAX_EXACT_LIVE_STATES = 3_000_000`) while reserving `EXACT_DRAW_RETRY_MARGIN = 80_000` (`MAX_EXACT_DIE_ROLLS = 2_020_000`) for 64-bit Lemire rejection retries; enforces `MAX_NESTING_DEPTH = 64` in `parse` (`RollError::ExpressionTooDeep`, counting prefix unary `-` over an unparenthesized number literal as two levels so canonical `-(-1)` / `-(5)` always re-parses and verifies); and rejects receipts with `raw_draws.len() > MAX_TOTAL_DRAWS` (`ReceiptVerifyError::DrawBudgetExceeded`) before SHA-256 or `ChaCha12Rng` replay in `verify_receipt`.
