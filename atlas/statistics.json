@@ -67,7 +67,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "roll-core",
-      "qualifyingSourceCommits": 2,
+      "qualifyingSourceCommits": 3,
       "rebaseline": null
     },
     {
@@ -166,8 +166,8 @@
         "path": ".gitignore"
       },
       {
-        "commits": 20,
-        "lines": 198,
+        "commits": 21,
+        "lines": 202,
         "path": "CHANGELOG.md"
       },
       {
@@ -236,8 +236,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 13,
-        "lines": 479,
+        "commits": 14,
+        "lines": 490,
         "path": "atlas/README.md"
       },
       {
@@ -246,18 +246,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 13,
-        "lines": 1984,
+        "commits": 14,
+        "lines": 2019,
         "path": "atlas/page.json"
       },
       {
-        "commits": 13,
-        "lines": 3343,
+        "commits": 14,
+        "lines": 3452,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 13,
-        "lines": 22462,
+        "commits": 14,
+        "lines": 22697,
         "path": "atlas/structure.json"
       },
       {
@@ -291,8 +291,8 @@
         "path": "crates/roll-core/Cargo.toml"
       },
       {
-        "commits": 3,
-        "lines": 3479,
+        "commits": 4,
+        "lines": 5506,
         "path": "crates/roll-core/src/analyze.rs"
       },
       {
@@ -326,8 +326,8 @@
         "path": "crates/roll-core/src/eval.rs"
       },
       {
-        "commits": 6,
-        "lines": 171,
+        "commits": 7,
+        "lines": 178,
         "path": "crates/roll-core/src/lib.rs"
       },
       {
@@ -351,8 +351,8 @@
         "path": "crates/roll-core/src/rng.rs"
       },
       {
-        "commits": 2,
-        "lines": 1122,
+        "commits": 3,
+        "lines": 1356,
         "path": "crates/roll-core/tests/analyzer.rs"
       },
       {
@@ -366,13 +366,13 @@
         "path": "crates/roll-core/tests/grammar_and_eval.rs"
       },
       {
-        "commits": 2,
-        "lines": 400,
+        "commits": 3,
+        "lines": 457,
         "path": "crates/roll-core/tests/oracle.rs"
       },
       {
-        "commits": 6,
-        "lines": 1576,
+        "commits": 7,
+        "lines": 1759,
         "path": "crates/roll-core/tests/properties.rs"
       },
       {
@@ -381,8 +381,8 @@
         "path": "crates/roll-core/tests/receipts.rs"
       },
       {
-        "commits": 6,
-        "lines": 60,
+        "commits": 7,
+        "lines": 62,
         "path": "crates/roll-core/tests/reproducibility.rs"
       },
       {
@@ -406,13 +406,13 @@
         "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
       },
       {
-        "commits": 3,
-        "lines": 13869,
+        "commits": 4,
+        "lines": 14643,
         "path": "fixtures/conformance/v3/04_exact_analysis.json"
       },
       {
-        "commits": 6,
-        "lines": 19,
+        "commits": 7,
+        "lines": 21,
         "path": "fixtures/conformance/v3/MANIFEST.sha256"
       },
       {
@@ -736,9 +736,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T13:55:46.696Z",
+  "generatedAt": "2026-11-14T14:29:47.825Z",
   "generatedFrom": {
-    "commit": "461e2c4dade587deba5c3a6b40653f257ea4e3a1"
+    "commit": "40f43a12137167fc73f8446dbb5c16efebd8d243"
   },
   "pairs": [
     {
@@ -772,43 +772,43 @@
     {
       "a": "atlas/README.md",
       "b": "atlas/page.json",
-      "either": 6,
-      "shared": 6,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/statistics.json",
-      "either": 6,
-      "shared": 6,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/README.md",
       "b": "atlas/structure.json",
-      "either": 6,
-      "shared": 6,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/statistics.json",
-      "either": 6,
-      "shared": 6,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/page.json",
       "b": "atlas/structure.json",
-      "either": 6,
-      "shared": 6,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
       "a": "atlas/statistics.json",
       "b": "atlas/structure.json",
-      "either": 6,
-      "shared": 6,
+      "either": 7,
+      "shared": 7,
       "strength": 1
     },
     {
@@ -871,16 +871,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T08:13:33-05:00",
+    "headDate": "2026-11-14T09:24:33-05:00",
     "inScopeFiles": 132,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 45,
+    "qualifyingCommits": 46,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T13:13:33.000Z",
+    "since": "2026-05-18T14:24:33.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
