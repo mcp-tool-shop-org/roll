@@ -1,6 +1,17 @@
 import type { ASTNode, ComparePoint, DiceNode, DiceModifier, DiceSides } from "../parser/ast.js";
-import { matchesCompare, MAX_EXPLOSIONS, MAX_REROLLS } from "../engine/pipeline.js";
-import { monteCarloDistribution, DEFAULT_MONTE_CARLO_SAMPLES } from "./montecarlo.js";
+import {
+  matchesCompare,
+  countMatchingFaces,
+  estimateAstAnalyzeRolls,
+  MAX_EXPLOSIONS,
+  MAX_EXPLOSION_ROLLS,
+  MAX_REROLLS,
+} from "../engine/pipeline.js";
+import {
+  monteCarloDistribution,
+  DEFAULT_MONTE_CARLO_SAMPLES,
+  MAX_ANALYZE_DICE,
+} from "./montecarlo.js";
 import { ParseError } from "../parser/parser.js";
 
 /** A probability distribution: value → probability (0..1) */
@@ -140,18 +151,6 @@ export function classifyModifier(mod: Pick<DiceModifier, "kind">): ModifierFamil
 const MAX_EXACT_STATES = 10_000_000;
 
 /**
- * Cap on the TOTAL number of dice rolled across the whole AST. This bounds the
- * Monte-Carlo fallback: each of the DEFAULT_SAMPLES (100_000) samples calls
- * evaluate(ast), which rolls every die in the expression. With this cap MC does
- * at most MAX_ANALYZE_DICE × 100_000 = 1e8 rolls — acceptable. 1000 dice is far
- * beyond any realistic RPG analysis (100d100, 20d20kh3, 8d6!, 10d10cs>=7 all
- * use ≤100 dice), so this rejects only the absurd. Exceeding it throws a
- * structured ParseError ("Expression too complex to analyze") at the top of
- * computeDistribution — before any convolution or sampling work begins.
- */
-const MAX_ANALYZE_DICE = 1_000;
-
-/**
  * Sentinel thrown internally by the convolution helpers when an exact
  * distribution's support would exceed MAX_EXACT_STATES. Caught in tryExact so
  * the whole exact attempt cleanly abandons to Monte Carlo. NEVER escapes this
@@ -164,18 +163,9 @@ class ExactTooLargeError extends Error {
   }
 }
 
-/** Count the total number of dice rolled across an AST (sum over all dice nodes). */
+/** Estimate per-sample dice rolls across an AST, including stacked explosions (`101^k`) and rerolls. */
 function countTotalDice(node: ASTNode): number {
-  switch (node.type) {
-    case "number":
-      return 0;
-    case "dice":
-      return node.count;
-    case "binary":
-      return countTotalDice(node.left) + countTotalDice(node.right);
-    case "unary_minus":
-      return countTotalDice(node.operand);
-  }
+  return estimateAstAnalyzeRolls(node);
 }
 
 function sideCount(sides: DiceSides): number {
@@ -292,9 +282,10 @@ function singleDieWithReroll(
 
     const newDist: Distribution = new Map();
     const pFace = 1 / s;
+    const rerollShare = pMatch > 0 ? (pMatch * pFace || Number.MIN_VALUE) : 0;
     for (const face of faces) {
       const isMatch = matchesCompare(face, mod.compare!);
-      const p = (isMatch ? 0 : (dist.get(face) ?? 0)) + pMatch * pFace;
+      const p = (isMatch ? 0 : (dist.get(face) ?? 0)) + rerollShare;
       if (p > 0) newDist.set(face, p);
     }
     dist = newDist;
@@ -524,6 +515,17 @@ function explosionDistribution(
     operator: ">=",
     value: s,
   };
+  // `explosionDistribution` convolves `node.count` independent single-die chains
+  // without coupling across dice; if `node.count * MAX_EXPLOSIONS` could exceed
+  // `stageExplode`'s group-wide `MAX_EXPLOSION_ROLLS` cap (`node.count > 100`
+  // with an active explosion threshold), fall back to Monte Carlo rather than
+  // claiming `"exact"` without modelling the group cap.
+  if (
+    node.count * MAX_EXPLOSIONS > MAX_EXPLOSION_ROLLS &&
+    countMatchingFaces(node.sides, explodeCompare) > 0
+  ) {
+    return null;
+  }
   const isPenetrate = explodeMod.kind === "penetrate";
 
   function singleExploding(): Distribution {
@@ -789,6 +791,9 @@ function tryExact(node: ASTNode, caps: ModelledCaps): Distribution | null {
       // P-CORE-002: route by an EXHAUSTIVE classification of each modifier kind,
       // not independent `.some(m => m.kind === ...)` probes.
       const families = new Set(node.modifiers.map(classifyModifier));
+      if (node.count === 0) {
+        return new Map([[0, 1]]);
+      }
       const hasKeepDrop = families.has("keep-drop");
       const hasExplosion = families.has("explosion");
       const isSuccessCount = node.resultMode === "success_count";

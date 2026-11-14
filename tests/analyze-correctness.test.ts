@@ -630,24 +630,41 @@ describe("Item 1 — explosion cap (MAX_EXPLOSIONS = 100) exactness & degenerate
     expectDistributionMatchesOracle(res.distribution, oracle, 1e-15);
   });
 
-  it("1d6!>=1 (all-faces explode) models MAX_EXPLOSIONS = 100 (101d6, mean 353.5) and agrees with engine", () => {
+  it("1d6!>=1 (all-faces explode) models MAX_EXPLOSIONS = 100 (101d6, mean 353.5) and agrees bucket-by-bucket with 101d6 and engine", () => {
     const res = analyzePublic("1d6!>=1");
+    const ref = analyzePublic("101d6");
     expect(res.method).toBe("exact");
+    expect(ref.method).toBe("exact");
     expect(res.caps).toEqual({ maxExplosions: MAX_EXPLOSIONS });
     expect(roll("1d6!>=1", () => 1).total).toBe(101);
     expect(roll("1d6!>=1", () => 6).total).toBe(606);
     expect(res.stats.min).toBe(101);
     expect(res.stats.max).toBe(606);
     expect(res.stats.mean).toBeCloseTo(101 * 3.5, 10); // 353.5
+
+    // Pin every bucket 101..606 against exact 101d6 convolution at tight tolerance:
+    const resKeys = [...res.distribution.keys()].sort((a, b) => a - b);
+    const refKeys = [...ref.distribution.keys()].sort((a, b) => a - b);
+    expect(resKeys).toEqual(refKeys);
+    expect(resKeys.length).toBe(506);
+    for (const k of refKeys) {
+      const pa = res.distribution.get(k) ?? 0;
+      const pb = ref.distribution.get(k) ?? 0;
+      expect(Math.abs(pa - pb)).toBeLessThanOrEqual(1e-14);
+      expect(Math.abs(pa - pb)).toBeLessThanOrEqual(1e-13 * pb);
+    }
+
     const emp = empiricalEngineDistribution("1d6!>=1", 40_000);
     expect(maxCdfDiff(res.distribution, emp)).toBeLessThan(0.012);
   });
 
-  it("1d6r=1!>=1 (reroll + all-faces explode) models both caps (mean 354) and agrees with engine", () => {
+  it("1d6r=1!>=1 (reroll + all-faces explode) models both caps (mean 354) and agrees bucket-by-bucket with 1d6r=1+100d6 and engine", () => {
     // Stage 2 `r=1` gives mean 4 on initial die (up to 6^-101 residual); Stage 4
     // `!>=1` adds 100 raw d6 bonus rolls (mean 350) -> total mean 354 (not 39!).
     const res = analyzePublic("1d6r=1!>=1");
+    const ref = analyzePublic("1d6r=1+100d6");
     expect(res.method).toBe("exact");
+    expect(ref.method).toBe("exact");
     expect(res.caps).toEqual({
       maxRerolls: MAX_REROLLS,
       maxExplosions: MAX_EXPLOSIONS,
@@ -657,6 +674,19 @@ describe("Item 1 — explosion cap (MAX_EXPLOSIONS = 100) exactness & degenerate
     expect(res.stats.min).toBe(101);
     expect(res.stats.max).toBe(606);
     expect(res.stats.mean).toBeCloseTo(354, 10);
+
+    // Pin every bucket 101..606 against exact `1d6r=1+100d6` convolution at tight tolerance:
+    const resKeys = [...res.distribution.keys()].sort((a, b) => a - b);
+    const refKeys = [...ref.distribution.keys()].sort((a, b) => a - b);
+    expect(resKeys).toEqual(refKeys);
+    expect(resKeys.length).toBe(506);
+    for (const k of refKeys) {
+      const pa = res.distribution.get(k) ?? 0;
+      const pb = ref.distribution.get(k) ?? 0;
+      expect(Math.abs(pa - pb)).toBeLessThanOrEqual(1e-14);
+      expect(Math.abs(pa - pb)).toBeLessThanOrEqual(1e-13 * pb);
+    }
+
     const emp = empiricalEngineDistribution("1d6r=1!>=1", 40_000);
     expect(maxCdfDiff(res.distribution, emp)).toBeLessThan(0.012);
   });
@@ -744,6 +774,23 @@ describe("Item 2 — unlimited reroll cap (MAX_REROLLS = 100) exactness & residu
     expect(() => roll("1d6/(1d100r<=99-50)", () => 50)).toThrow(/division by zero/i);
     expect(() => analyzePublic("1d6/(1d100r<=99-50)")).toThrow(ParseError);
     expect(() => analyzePublic("1d6/(1d100r<=99-50)")).toThrow(/division by zero/i);
+  });
+
+  it("1d2000r=1ro=1 preserves subnormal bucket 1 (stats.min === 1) and 1d6/(1d2000r=1ro=1-1) throws Division by zero", () => {
+    // On d2000, `r=1` leaves residual Number.MIN_VALUE (5e-324) at face 1; `ro=1`
+    // multiplies `pMatch * (1 / 2000)`, which would flush to 0 in IEEE-754 float64
+    // without the subnormal underflow guard (`|| Number.MIN_VALUE`).
+    expect(roll("1d2000r=1ro=1", () => 1).total).toBe(1);
+    const res = analyzePublic("1d2000r=1ro=1");
+    expect(res.method).toBe("exact");
+    expect(res.caps).toEqual({ maxRerolls: MAX_REROLLS });
+    expect(res.distribution.get(1) ?? 0).toBeGreaterThan(0);
+    expect(res.stats.min).toBe(1);
+
+    expect(() => roll("1d6/(1d2000r=1ro=1-1)", () => 1)).toThrow(ParseError);
+    expect(() => roll("1d6/(1d2000r=1ro=1-1)", () => 1)).toThrow(/division by zero/i);
+    expect(() => analyzePublic("1d6/(1d2000r=1ro=1-1)")).toThrow(ParseError);
+    expect(() => analyzePublic("1d6/(1d2000r=1ro=1-1)")).toThrow(/division by zero/i);
   });
 });
 
@@ -868,6 +915,21 @@ describe("Engine-cap metadata surfaced across analyze(), CLI, Bridge, and MCP", 
     ) as { method: string; caps?: unknown };
     expect(mcpPayload.method).toBe("exact");
     expect(mcpPayload.caps).toEqual({ maxExplosions: 100 });
+  });
+
+  it("zero-dice nodes (0d6! and 0d6r=1) return {0: 1} with no caps field", () => {
+    for (const expr of ["0d6!", "0d6r=1"]) {
+      const res = analyzePublic(expr);
+      expect(res.method).toBe("exact");
+      expect([...res.distribution.entries()]).toEqual([[0, 1]]);
+      expect("caps" in res).toBe(false);
+      expect(res.caps).toBeUndefined();
+
+      const dm = computeDistributionWithMethod(parse(expr));
+      expect(dm.method).toBe("exact");
+      expect([...dm.distribution.entries()]).toEqual([[0, 1]]);
+      expect("caps" in dm).toBe(false);
+    }
   });
 });
 

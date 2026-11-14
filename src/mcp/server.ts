@@ -9,6 +9,7 @@ import { isMainModule } from "../entry.js";
 import { TOOLS } from "./tools.js";
 import { parse, ParseError } from "../parser/parser.js";
 import { LexerError } from "../parser/lexer.js";
+import { estimateAstAnalyzeRolls } from "../engine/pipeline.js";
 import { evaluate } from "../engine/roller.js";
 import { computeDistributionWithMethod, type ModelledCaps } from "../analyze/distribution.js";
 import {
@@ -217,10 +218,16 @@ function handleToolCall(name: string, args: Record<string, unknown>): unknown {
       const times = optionalCount(args, "times", 1);
       const seed = optionalNumber(args, "seed");
       const rng: RngFn = seed !== undefined ? seededRng(seed) : cryptoRng;
+      const ast = parse(expression);
+      const rollsPerEval = estimateAstAnalyzeRolls(ast);
+      if (rollsPerEval * times > 1_000_000) {
+        throw new ToolValidationError(
+          `Total dice rolls (${rollsPerEval} × ${times}) exceeds maximum of 1,000,000`,
+        );
+      }
 
       const results = [];
       for (let i = 0; i < times; i++) {
-        const ast = parse(expression);
         const result = evaluate(ast, rng);
         result.expression = expression;
         results.push(result);

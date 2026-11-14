@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { isMainModule } from "./entry.js";
 import { parse } from "./parser/parser.js";
 import type { ASTNode } from "./parser/ast.js";
+import { estimateAstAnalyzeRolls } from "./engine/pipeline.js";
 import { evaluate } from "./engine/roller.js";
 import { seededRng } from "./engine/random.js";
 import {
@@ -477,22 +478,12 @@ function dispatch(argv: string[], io: IO): void {
 }
 
 /**
- * Sum the dice counts across every `dice` node in an AST — a cheap upper bound
- * on how many dice one evaluation allocates (modifiers like explode can add a
- * few more, but the base count dominates and is what we gate on). Used to bound
- * `times × dice-per-roll` before any rolling happens.
+ * Estimate dice rolls per evaluation across an AST (accounting for rerolls and
+ * stacked `101^k` explosions) so `times × dice-per-roll` is bounded before any
+ * rolling happens.
  */
 function estimateDiceCount(node: ASTNode): number {
-  switch (node.type) {
-    case "dice":
-      return node.count;
-    case "binary":
-      return estimateDiceCount(node.left) + estimateDiceCount(node.right);
-    case "unary_minus":
-      return estimateDiceCount(node.operand);
-    default:
-      return 0;
-  }
+  return estimateAstAnalyzeRolls(node);
 }
 
 function handleRoll(
