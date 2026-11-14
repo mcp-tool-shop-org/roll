@@ -42,7 +42,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists — `build && typecheck && test`
-- [x] `[all]` Version in manifest matches git tag — package.json 2.1.1, tagged v2.1.1 at release
+- [x] `[all]` Version in manifest matches git tag — package.json 2.1.2, tagged v2.1.2 at release
 - [x] `[all]` Dependency scanning runs in CI — `npm audit --audit-level=high` step in ci.yml
 - [x] `[all]` SKIP: zero runtime dependencies; the dev-tooling tree is audited in CI and updated manually (org CI-cost policy: no Dependabot)
 - [x] `[npm]` `npm pack --dry-run` includes dist/, README.md, CHANGELOG.md, LICENSE (verified)

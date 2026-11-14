@@ -32,15 +32,15 @@ Roll supporta lo standard completo di notazione Roll20/VTT, che copre D&D, World
 | Notazione | Significato |
 |----------|---------|
 | `2d6` | Lancia 2 dadi a sei facce |
-| `d20+5` | Lancia un d20, aggiungi il modificatore |
+| `d20+5` | Lancia d20, aggiungi un modificatore |
 | `4d6kh3` | Lancia 4d6, mantieni i 3 più alti |
-| `4d6dl1` | Lancia 4d6, scarta il più basso |
-| `1d6!` | Esplosivo (rilancia al valore massimo, aggiungi) |
+| `4d6dl1` | Lancia 4d6, scarta l'1 più basso |
+| `1d6!` | Esplosione (rilancia al valore massimo, aggiungi) |
 | `1d6!>4` | Esplodi con 4 o più |
-| `1d6!!` | Composto (somma le esplosioni nello stesso dado) |
-| `1d6!p` | Penetrante (le esplosioni sottraggono 1) |
+| `1d6!!` | Composizione (somma le esplosioni nello stesso dado) |
+| `1d6!p` | Penetrazione (le esplosioni sottraggono 1) |
 | `2d6r<2` | Rilancia i valori inferiori a 2 (illimitato) |
-| `2d6ro=1` | Rilancia i 1 una volta |
+| `2d6ro=1` | Rilancia gli 1 una volta |
 | `2d6min3` | Limite inferiore: nessun dado inferiore a 3 |
 | `2d6max5` | Limite superiore: nessun dado superiore a 5 |
 | `8d6cs>=5` | Conta i successi (dadi >= 5) |
@@ -74,7 +74,7 @@ roll 2d6 --analyze --no-color     # Disable ANSI color for this run
 
 ### Query di probabilità
 
-Oltre a `--at-least`, questi flag rispondono alle domande che un progettista si pone effettivamente. Ognuno stampa una singola riga pulita e rispetta esattamente le stesse etichette esatte/Monte-Carlo di `--analyze`:
+Oltre a `--at-least`, questi flag rispondono alle domande che un progettista si pone effettivamente. Ognuno stampa una singola riga pulita e rispetta esattamente le stesse etichette (esatte/Monte-Carlo) di `--analyze`:
 
 | Flag | Risposte |
 |------|---------|
@@ -85,11 +85,11 @@ Oltre a `--at-least`, questi flag rispondono alle domande che un progettista si 
 | `--target-for P` | Il valore di destinazione più grande T tale che P(risultato ≥ T) ≥ P ("per colpire il 65% delle volte, destinazione ≤ T") |
 | `--at-most-for P` | Il valore T più piccolo tale che P(risultato ≤ T) ≥ P ("il 65% dei risultati è uguale o inferiore a T") |
 
-`--compare A B` ora aggiunge un verdetto **Versus** in aggiunta ai due blocchi di statistiche: P(A vince), P(pareggio), P(B vince) e il margine medio E[A−B], in modo da poter risolvere direttamente la questione dell'equilibrio. Con `--json`, include un oggetto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
+`--compare A B` aggiunge ora un verdetto "**Versus**" oltre ai due blocchi di statistiche: P(A vince), P(pareggio), P(B vince) e il margine medio E[A−B], in modo da poter risolvere direttamente la questione dell'equilibrio. Con `--json`, include un oggetto `comparison` (`pAGreater`, `pEqual`, `pBGreater`, `meanMargin`).
 
 ### Lanci deterministici (`--seed`)
 
-`--seed <int>` inizializza il generatore di numeri casuali in modo che un lancio (o un'intera sequenza `--times N`) sia riproducibile byte per byte: il determinismo che il motore, il bridge e l'MCP avevano già, ora anche nella riga di comando. Il seme deve essere un numero intero finito; un seme errato genera un errore e termina con codice 1. Per passare un seme **negativo**, utilizzare il formato `=` (`--seed=-3`), poiché un valore con un trattino iniziale separato da spazi è ambiguo per l'analizzatore degli argomenti. `--json` fa eco a `seed` in modo che l'output registri esattamente cosa lo ha prodotto.
+`--seed <int>` inizializza il generatore di numeri casuali (RNG) in modo che un lancio (o un'intera sequenza `--times N`) sia riproducibile byte per byte: il determinismo che il motore, il bridge e l'MCP avevano già, ora anche nella riga di comando. Il seme deve essere un numero intero finito; un seme errato genera un errore e termina con codice 1. Per passare un seme **negativo**, utilizzare il formato `=` (`--seed=-3`), poiché un valore con un trattino iniziale separato da spazi è ambiguo per l'analizzatore degli argomenti. `--json` fa eco a `seed` in modo che l'output registri esattamente cosa lo ha prodotto.
 
 ```bash
 roll 4d6kh3 --seed 42             # same result every time
@@ -99,12 +99,12 @@ roll 2d6 --seed 99 --json         # output includes "seed": 99
 
 ### Colore
 
-Il colore è abilitato per impostazione predefinita. Disabilitalo in due modi:
+Il colore è attivo per impostazione predefinita. Disabilitalo in due modi:
 
 - `--no-color`: sopprime lo stile ANSI per una singola invocazione
-- `NO_COLOR=1` (variabile d'ambiente): viene rispettato in base allo standard [NO_COLOR](https://no-color.org/)
+- `NO_COLOR=1` (variabile d'ambiente): viene rispettato secondo lo standard [NO_COLOR](https://no-color.org/)
 
-Quando l'analizzatore passa a Monte Carlo per un'espressione grande o complessa, `--analyze` e `--at-least` etichettano il risultato come stimato (con il numero di campioni) anziché presentare i numeri campionati come esatti. I risultati esatti sono contrassegnati come tali. L'output `--json` include un campo `method` (`"exact"` o `"monte-carlo"`, con `samples` quando viene campionato) in modo che anche i consumatori automatici possano distinguerli.
+Quando l'analizzatore passa a Monte Carlo per un'espressione ampia o complessa, `--analyze` e `--at-least` etichettano il risultato come stimato (con il conteggio dei campioni) anziché presentare i numeri campionati come esatti. I risultati esatti sono contrassegnati come tali e, ogni volta che una distribuzione esatta si basa sui limiti finiti del ciclo del motore (`MAX_EXPLOSIONS = 100`, `MAX_REROLLS = 100`), la nota indica il/i limite/i modellato/i (`exact probabilities (engine caps: ...)`). L'output `--json` include `method` (`"exact"` o `"monte-carlo"`), `samples` quando viene campionato e `caps` (`{ maxExplosions?: 100, maxRerolls?: 100 }`) quando si applicano i limiti del motore.
 
 ### Codici di uscita
 
@@ -113,13 +113,13 @@ Roll segue un contratto deliberato a due codici: una promessa di stabilità su c
 | Codice | Significato |
 |------|---------|
 | `0` | Successo |
-| `1` | Qualsiasi errore: espressione errata, errore di convalida, file di oggetti mancante o superamento di un limite |
+| `1` | Qualsiasi errore: espressione errata, errore di convalida, file di bottino mancante o limite superato |
 
 Gli errori stampano sempre una singola riga pulita (codice/messaggio/suggerimento) su stderr; la riga di comando non rivela mai una traccia dello stack.
 
 ## Tabelle di gioco
 
-La versione 2 introduce un sistema di tabelle di gioco universale per incontri, colpi critici, oggetti, effetti di stato e altro.
+V2 introduce un sistema di tabelle di gioco universale per incontri, colpi critici, bottino, effetti di stato e altro.
 
 ```typescript
 import { rollGameTable } from '@mcptoolshop/roll';
@@ -170,19 +170,24 @@ const r = evaluate(ast, seededRng(42));       // reproducible
 L'**API di alto livello è stabile** e segue semver: le modifiche che causano interruzioni avvengono solo con un aggiornamento della versione principale:
 
 - `roll`, `analyze`
-- le API per gli oggetti (`rollLootTable`, `validateLootTables`) e le API per le tabelle di gioco (`rollGameTable`)
-- la superficie JSON-RPC `BridgeHandler`
+- le API del bottino (`rollLootTable`, `validateLootTables`) e le API delle tabelle di gioco (`rollGameTable`)
+- la superficie `BridgeHandler` JSON-RPC
 
-**Gli elementi interni del parser di basso livello sono avanzati e possono cambiare nelle versioni secondarie:** utilizzali solo se devi analizzare l'AST da solo e fissa una versione se ne dipendi:
+**Gli elementi interni del parser di basso livello sono avanzati e possono cambiare nelle versioni secondarie**: utilizzali solo se devi analizzare l'AST da solo e blocca una versione se ne dipendi:
 
 - `tokenize`, `Token`, `TokenType`
 - `runPipeline`, `matchesCompare`
 
-`analyze` segnala anche `.method` (`"exact"` | `"monte-carlo"`) e, per il percorso campionato, `.samples`, in modo che i chiamanti possano rispettare il contratto delle probabilità esatte a livello di programma.
+`analyze` segnala anche `.method` (`"exact"` | `"monte-carlo"`), `.samples` per il percorso campionato e `.caps` (`{ maxExplosions?: number; maxRerolls?: number }`) sul percorso esatto ogni volta che viene modellato un limite del ciclo del motore, in modo che i chiamanti possano rispettare il contratto delle probabilità esatte a livello di programma.
+
+### Esattezza, limiti del motore e divisione per zero
+
+- **Cosa significa `"exact"` con l'uso di limiti:** Nella matematica pura, i dadi esplosivi (`!`, `!!`, `!p`) e i tiri ripetuti illimitati (`r`) non hanno un supporto finito. In Roll, `method: "exact"` significa "esatto" per il motore così come è stato costruito (`runPipeline`), inclusi i suoi limiti di ciclo (`MAX_EXPLOSIONS = 100` tiri bonus per dado iniziale; `MAX_REROLLS = 100` tiri ripetuti per modificatore illimitato `r`, dopodiché il 100° tiro è definitivo). Ogni volta che uno dei limiti viene applicato, `analyze()` lo manifesta in `.caps` (`{ maxExplosions: 100 }`, `{ maxRerolls: 100 }`) e la CLI stampa `exact probabilities (engine caps: ...)`. Se il supporto limitato o la convoluzione superano `10,000,000` stati, o se ogni faccia corrisponde a un tiro ripetuto illimitato (`1d6r>=1`), l'analisi torna a `method: "monte-carlo"`.
+- **Divisione per zero (`/`):** `roll()` genera un errore `ParseError("Division by zero")` ogni volta che un divisore valutato è `0`. `analyze()` rifiuta qualsiasi divisore esatto con $P(\text{divisor} = 0) > 0$ utilizzando lo stesso `ParseError("Division by zero")`, valutando e controllando il divisore *prima* del dividendo, in modo che un dividendo elevato (`500d1000/(5d20-5)`) non possa saltare il controllo tramite `ExactTooLargeError`. Quando il divisore *stesso* non può essere calcolato esattamente (ad esempio `1d6/(5d20!kh4-4)`, dove `5d20!kh4` combina l'esplosione con la conservazione/eliminazione), `analyze()` torna a Monte Carlo (`100,000` prove tramite `evaluate()`): se una qualsiasi delle prove campionate raggiunge `0`, viene generato un errore `ParseError("Division by zero")`; se un raro risultato zero viene perso durante il campionamento, il risultato viene restituito come `method: "monte-carlo"` (`samples: 100_000`) — mai `"exact"`.
 
 ## Bridge JSON (Godot / Unreal / Rust)
 
-Roll include un bridge JSON-RPC 2.0 per l'integrazione con il motore di gioco tramite processo figlio:
+Roll include un bridge JSON-RPC 2.0 per l'integrazione con il motore di gioco tramite un processo figlio:
 
 ```bash
 # Stdio mode (pipe JSON in, get JSON out)
@@ -215,20 +220,20 @@ Roll viene fornito come server MCP per l'integrazione con Claude durante la prog
 ## Motore di probabilità
 
 - **Distribuzioni esatte** tramite convoluzione polinomiale per NdM di base
-- **Enumerazione completa** per meccaniche di mantenimento/eliminazione (4d6 = 1.296 stati)
-- **Rilancio analitico:** ridistribuisce la massa di probabilità sui lati non corrispondenti
-- **Min/max analitico:** tronca la distribuzione e accumula la massa al limite
-- **Conteggio analitico dei successi:** mappa i lati a +1/0/-1, convoluziona N volte
-- **Ricorsione troncata** per dadi esplosivi/composti/penetranti
-- **Fallback Monte Carlo** (100.000 campioni) quando il calcolo esatto supera i 10 milioni di stati
+- **Enumerazione completa** per meccaniche di conservazione/eliminazione (4d6 = 1.296 stati)
+- **Ritiro analitico** — ridistribuzione della massa in forma chiusa sulle facce non corrispondenti più il residuo del limite `MAX_REROLLS = 100`
+- **Minimo/massimo analitico** — tronca la distribuzione e accumula la massa al limite
+- **Conteggio analitico dei successi** — mappa le facce a +1/0/-1, convoluziona N volte
+- **Espansione esatta del limite del motore** per dadi esplosivi/composti/penetranti fino a `MAX_EXPLOSIONS = 100`
+- **Fallback Monte Carlo** (100.000 campioni) quando il calcolo esatto supera i 10 milioni di stati o combina esplosioni a numero variabile con la conservazione/eliminazione o il conteggio dei successi
 
 Ogni modificatore ha un'analisi di probabilità esatta, non solo una simulazione.
 
 ## Sicurezza e affidabilità
 
-Elabora le espressioni relative ai dadi e nient’altro. Non effettua richieste di rete, non scrive file (eccetto `--loot`, che legge un file JSON), non raccoglie dati di telemetria, non utilizza segreti. Tutte le operazioni di lancio dei dadi utilizzano `crypto.randomInt` per generare numeri casuali crittograficamente sicuri. Le espressioni sono limitate in fase di analisi (numero di dadi, numero di facce, lunghezza) per evitare un eccessivo consumo di risorse e qualsiasi testo letto da un file `--loot` viene privato dei caratteri di controllo del terminale prima della visualizzazione, in modo che una tabella ostile non possa inserire sequenze di escape ANSI nel terminale.
+Elabora espressioni di dadi e nient'altro. Nessuna richiesta di rete, nessuna scrittura di file (eccetto `--loot` che legge un file JSON), nessun telemetria, nessun segreto. Tutti i tiri di dadi utilizzano `crypto.randomInt` per la casualità crittografica. Le espressioni sono limitate al momento dell'analisi (numero di dadi, facce del dado, lunghezza) per prevenire l'esaurimento delle risorse e qualsiasi testo letto da un file `--loot` viene privato dei caratteri di controllo del terminale prima della visualizzazione, in modo che una tabella ostile non possa iniettare sequenze di escape ANSI nel terminale.
 
-Per la politica di segnalazione delle vulnerabilità, consultare il file [SECURITY.md](./SECURITY.md).
+Consultare [SECURITY.md](./SECURITY.md) per la politica di segnalazione delle vulnerabilità.
 
 ## Licenza
 
@@ -236,4 +241,4 @@ MIT
 
 ---
 
-Realizzato da <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>.
+Creato da <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>

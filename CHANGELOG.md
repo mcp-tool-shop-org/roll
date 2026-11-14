@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 2.1.2
+
 ### Fixed
 
 - **Exact analysis for combined dice modifiers and engine loop caps** — `tryExact` now composes Stage 1 (roll), Stage 2 (`reroll` / `reroll_once`), and Stage 3 (`min` / `max`) per die before Stage 4 (`explode` / `compound` / `penetrate`), Stage 5 (`keep` / `drop`), or Stage 8 (`sum` / `success_count`), matching `runPipeline` instead of routing to single-family strategies that silently dropped earlier modifiers (`2d6r=1!`, `2d6min2!`, `2d6r=1min3`, `2d4ro=1min2!`, `3d4ro=1kh2`). Unlimited rerolls and explosions model the engine's exact `MAX_REROLLS = 100` and `MAX_EXPLOSIONS = 100` caps (within the 10M-state budget) and surface any exercised cap via `caps` (`{ maxExplosions?: 100, maxRerolls?: 100 }`) on `analyze()`, CLI, bridge, and MCP outputs. Combinations that add variable dice counts before keep/drop or success counting, or exceed the exact state budget, fall back to Monte Carlo (`method: "monte-carlo"`).
