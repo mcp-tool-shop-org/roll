@@ -11,7 +11,7 @@ use crate::canonical_json::to_canonical_json;
 use crate::codec::{encode_hex_lower, encode_u64_hex};
 use crate::error::{ReceiptVerifyError, RollError};
 use crate::eval::{ExpressionOutcome, evaluate_with_rng, evaluate_with_source};
-use crate::parser::parse;
+use crate::parser::parse_canonical;
 use crate::rng::{DEFAULT_RULES_VERSION, RollAddress, RollRng, TapeSource, derive_roll_key};
 
 /// Normative receipt schema version identifier (`Roll 3.0 §3.1`).
@@ -191,7 +191,11 @@ pub fn verify_receipt(receipt: &RollReceipt) -> Result<(), RollError> {
         ));
     }
 
-    let expr = parse(canonical_expression).map_err(|err| {
+    // The canonical form can be longer than the input it came from (bare `r` -> `r=1`,
+    // `!` -> `!>=6`), so it is re-parsed under its own byte cap, never the 1,000-byte input cap,
+    // and with no more binary operators than an accepted input can hold (`ast.rs`,
+    // `MAX_CANONICAL_EXPRESSION_BYTES` and `MAX_BINARY_OPERATORS`).
+    let expr = parse_canonical(canonical_expression).map_err(|err| {
         RollError::ReceiptInvalid(ReceiptVerifyError::InvalidSpecExpression {
             message: format!("{err}"),
         })

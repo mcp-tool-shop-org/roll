@@ -334,3 +334,160 @@ fn verify_receipt_refuses_raw_draws_exceeding_max_total_draws_before_chacha_work
         ))
     );
 }
+
+/// Rolls `input` at a fixed address and returns its receipt, asserting the roll succeeds.
+fn roll_receipt(input: &str) -> RollReceipt {
+    let expr = parse(input).expect("input parses");
+    let addr = RollAddress::new(SeedMaterial::Int64(7), 1, "receipt_length", "canonical", 0);
+    let (_outcome, receipt) = evaluate_addressed(&expr, &addr).expect("input rolls");
+    receipt
+}
+
+fn canonical_of(receipt: &RollReceipt) -> &str {
+    let ReceiptSpec::Expression {
+        canonical_expression,
+    } = &receipt.spec;
+    canonical_expression
+}
+
+#[test]
+fn receipt_verifies_when_canonical_form_outgrows_the_input_cap() {
+    // The #21 tester's smallest case: 1,000 bytes in, 1,003 bytes canonical (`!` -> `!>=6`).
+    let input = format!("1000d6!{}", "dl1".repeat(331));
+    assert_eq!(input.len(), roll_core::MAX_EXPRESSION_BYTES);
+    let receipt = roll_receipt(&input);
+    let canonical = canonical_of(&receipt);
+    assert_eq!(canonical.len(), 1_003);
+    assert!(canonical.starts_with("1000d6!>=6dl1"));
+    verify_receipt(&receipt).expect("a roll's own receipt verifies");
+    verify_receipt_json(&to_canonical_receipt_json(&receipt)).expect("its JSON verifies");
+}
+
+#[test]
+fn worst_case_canonical_growth_reaches_the_canonical_cap_and_verifies() {
+    // `d%!` + 997 x `r` (1,000 bytes) is the longest canonical form (`ast.rs`, the bound on
+    // `MAX_CANONICAL_EXPRESSION_BYTES`): `1d%`, 997 x `r=1`, `!>=100`. It has no binary operator.
+    let input = format!("d%!{}", "r".repeat(997));
+    assert_eq!(input.len(), roll_core::MAX_EXPRESSION_BYTES);
+    let receipt = roll_receipt(&input);
+    let canonical = canonical_of(&receipt);
+    assert_eq!(canonical.len(), roll_core::MAX_CANONICAL_EXPRESSION_BYTES);
+    assert_eq!(canonical, format!("1d%{}!>=100", "r=1".repeat(997)));
+    assert_eq!(canonical.len(), 3 * input.len());
+    verify_receipt(&receipt).expect("the worst-case receipt verifies");
+    let verified = verify_receipt_json(&to_canonical_receipt_json(&receipt))
+        .expect("the worst-case receipt JSON verifies");
+    assert_eq!(verified, receipt);
+}
+
+#[test]
+fn verify_receipt_refuses_canonical_expression_over_the_canonical_cap() {
+    // A canonical string one byte over the cap (`11d6` + 999 x `r=1`, 3,001 bytes), re-hashed so
+    // the digest check passes and the length check is what refuses it.
+    let mut receipt = roll_receipt("1d6");
+    let over = format!("11d6{}", "r=1".repeat(999));
+    assert_eq!(over.len(), roll_core::MAX_CANONICAL_EXPRESSION_BYTES + 1);
+    assert_eq!(
+        parse(&over),
+        Err(RollError::ExpressionTooLong {
+            len: 3_001,
+            max: 1_000
+        })
+    );
+    receipt.spec = ReceiptSpec::Expression {
+        canonical_expression: over,
+    };
+    receipt.receipt_sha256 = compute_receipt_sha256(&receipt).expect("digest");
+    let expected = RollError::ReceiptInvalid(ReceiptVerifyError::InvalidSpecExpression {
+        message: String::from("expression length 3001 bytes exceeds maximum of 3000 bytes"),
+    });
+    assert_eq!(verify_receipt(&receipt), Err(expected.clone()));
+    assert_eq!(
+        verify_receipt_json(&to_canonical_receipt_json(&receipt)).err(),
+        Some(expected)
+    );
+}
+
+#[test]
+fn product_of_four_d1000000_overflows_and_returns_no_receipt() {
+    // `arb_canonical_growth_input` (`tests/properties.rs`) can generate this; a roll that overflows
+    // `i64` returns an error and no receipt, so the property must not count it as a failure.
+    let input = "1d1000000*1d1000000*1d1000000*1d1000000";
+    let expr = parse(input).expect("input parses");
+    let addr = RollAddress::new(SeedMaterial::Int64(7), 1, "receipt_length", "canonical", 0);
+    assert_eq!(
+        evaluate_addressed(&expr, &addr).err(),
+        Some(RollError::ArithmeticOverflow)
+    );
+}
+
+/// `leaf (op leaf) x ops`: a left-associative chain, already canonical. The binary-operator loop is
+/// iterative and does not count toward `MAX_NESTING_DEPTH`, so this is a left spine `ops` deep.
+fn operator_chain(op: char, ops: usize) -> String {
+    let leaf = if op == '/' { '1' } else { '0' };
+    let mut out = String::with_capacity(1 + 2 * ops);
+    out.push(leaf);
+    for _ in 0..ops {
+        out.push(op);
+        out.push(leaf);
+    }
+    out
+}
+
+fn check_operator_chains() {
+    assert_eq!(roll_core::MAX_BINARY_OPERATORS, 499);
+    for op in ['+', '-', '*', '/'] {
+        // Exactly the bound (999 bytes): an accepted input, and its receipt verifies.
+        let at_bound = operator_chain(op, roll_core::MAX_BINARY_OPERATORS);
+        assert_eq!(at_bound.len(), 999);
+        let receipt = roll_receipt(&at_bound);
+        assert_eq!(canonical_of(&receipt), at_bound);
+        verify_receipt(&receipt).expect("499 operators verify");
+        verify_receipt_json(&to_canonical_receipt_json(&receipt)).expect("499 operators (JSON)");
+
+        // Over the bound: a real receipt whose canonical expression is replaced by the chain and
+        // re-hashed. 500 is the first count refused; 1,499 (2,999 bytes) is the deepest chain the
+        // 3,000-byte cap alone would admit. Refused while parsing, before any deep tree exists.
+        for ops in [roll_core::MAX_BINARY_OPERATORS + 1, 1_499] {
+            let text = operator_chain(op, ops);
+            assert!(text.len() <= roll_core::MAX_CANONICAL_EXPRESSION_BYTES);
+            let mut crafted = roll_receipt("1d6");
+            crafted.spec = ReceiptSpec::Expression {
+                canonical_expression: text,
+            };
+            crafted.receipt_sha256 = compute_receipt_sha256(&crafted).expect("digest");
+            let expected = RollError::ReceiptInvalid(ReceiptVerifyError::InvalidSpecExpression {
+                message: String::from(
+                    "expression binary operator count 500 exceeds maximum of 499",
+                ),
+            });
+            assert_eq!(
+                verify_receipt(&crafted),
+                Err(expected.clone()),
+                "{op} x {ops}"
+            );
+            assert_eq!(
+                verify_receipt_json(&to_canonical_receipt_json(&crafted)).err(),
+                Some(expected),
+                "{op} x {ops} (JSON)"
+            );
+        }
+    }
+}
+
+#[test]
+fn receipt_operator_chains_are_bounded_on_a_1_mib_stack() {
+    // A receipt is third-party input: `0+` x 1,499 + `0` (2,999 bytes) fits the canonical byte cap
+    // but no accepted input holds more than 499 operators. Run on a 1 MiB stack so the result does
+    // not depend on the harness's default; wasm32-wasip1 has no threads, so there it runs on the
+    // test's own stack.
+    #[cfg(not(target_family = "wasm"))]
+    std::thread::Builder::new()
+        .stack_size(1 << 20)
+        .spawn(check_operator_chains)
+        .expect("spawn a 1 MiB thread")
+        .join()
+        .expect("operator chains on a 1 MiB stack");
+    #[cfg(target_family = "wasm")]
+    check_operator_chains();
+}

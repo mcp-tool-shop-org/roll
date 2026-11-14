@@ -1072,3 +1072,135 @@ proptest! {
         }
     }
 }
+
+/// Generates inputs of at most `MAX_EXPRESSION_BYTES` that lean on every token the canonical writer
+/// lengthens (bare `d`, bare `!`/`!!`/`!p`, `d%`, bare `r`/`ro`, bare `kh`/`kl`/`dh`/`dl`, unary minus
+/// over a literal), filled toward the cap, so their canonical forms run past `1,000` bytes. Groups
+/// also carry bare and pool `cs`/`cf`, `min`/`max`, `sa`/`sd`, upper-case spellings, leading zeros,
+/// and an explosion written before or after the other modifiers.
+fn arb_canonical_growth_input() -> impl Strategy<Value = String> {
+    let group = (
+        (0u8..6u8, 0u8..8u8, any::<bool>()),
+        (0u8..6u8, any::<bool>()),
+        prop::collection::vec(0u8..16u8, 0..=520),
+        (0u8..5u8, 0u8..8u8, 0u8..4u8),
+    );
+    (
+        prop::collection::vec(0u8..6u8, 0..=3),
+        prop::collection::vec((0u8..3u8, group), 1..=4),
+    )
+        .prop_map(|(lead, groups)| {
+            const LEAD: [&str; 6] = ["--1", "- 5", "-(-3)", "-\t7", "-007", "--01"];
+            const OPS: [&str; 3] = ["+", " - ", "*"];
+            const TOKENS: [&str; 16] = [
+                "r", "ro", "kh", "kl", "dh", "dl", "R", "Ro", "KH", "r=1", "RO", "KL", "Dh",
+                "kh02", "r=01", "dl001",
+            ];
+            const COUNTS: [&str; 6] = ["", "1", "2", "3", "01", "003"];
+            const SIDES: [(&str, bool); 8] = [
+                ("%", false),
+                ("6", false),
+                ("20", false),
+                ("1000000", false),
+                ("F", true),
+                ("f", true),
+                ("006", false),
+                ("0020", false),
+            ];
+            const EXPLODE: [&str; 6] = ["", "!", "!!", "!p", "!P", "!>=05"];
+            const CLAMP: [&str; 5] = ["", "min2", "MAX5", "min-1max006", "Min002"];
+            const MODE: [&str; 8] = [
+                "",
+                "cs",
+                "CF",
+                "cscf",
+                "cs>=5",
+                "cf<=01",
+                "CS>=4CF<=1",
+                "cs=6cf=1",
+            ];
+            const SORT: [&str; 4] = ["", "sa", "SD", "Sa"];
+            let mut out = String::new();
+            for l in lead {
+                out.push_str(LEAD[l as usize]);
+                out.push('+');
+            }
+            for (i, (op, ((count, sides, upper), (explode, late), tokens, (clamp, mode, sort)))) in
+                groups.into_iter().enumerate()
+            {
+                let (sides, fate) = SIDES[sides as usize];
+                let explode = if fate { "" } else { EXPLODE[explode as usize] };
+                let mut piece = String::new();
+                if i > 0 {
+                    piece.push_str(OPS[op as usize]);
+                }
+                piece.push_str(COUNTS[count as usize]);
+                piece.push(if upper { 'D' } else { 'd' });
+                piece.push_str(sides);
+                let mut tail = String::new();
+                tail.push_str(CLAMP[clamp as usize]);
+                tail.push_str(MODE[mode as usize]);
+                tail.push_str(SORT[sort as usize]);
+                if late {
+                    tail.push_str(explode);
+                } else {
+                    piece.push_str(explode);
+                }
+                if out.len() + piece.len() + tail.len() > roll_core::MAX_EXPRESSION_BYTES {
+                    break;
+                }
+                out.push_str(&piece);
+                for t in tokens {
+                    let tok = TOKENS[t as usize];
+                    if out.len() + tok.len() + tail.len() > roll_core::MAX_EXPRESSION_BYTES {
+                        break;
+                    }
+                    out.push_str(tok);
+                }
+                out.push_str(&tail);
+            }
+            out
+        })
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 64, ..proptest_cfg() })]
+
+    /// Every receipt a roll returns verifies, including inputs whose canonical form is longer than
+    /// `MAX_EXPRESSION_BYTES`; the canonical form stays within `3 * input.len()` and
+    /// `MAX_CANONICAL_EXPRESSION_BYTES` (`ast.rs`). A roll that overflows `i64` (`*` over large
+    /// dice) returns no receipt, so it is not a failure; any other roll error is.
+    #[test]
+    fn prop_every_receipt_verifies_whatever_its_canonical_length(
+        raw in arb_canonical_growth_input(),
+        addr in arb_roll_address(),
+    ) {
+        prop_assert!(raw.len() <= roll_core::MAX_EXPRESSION_BYTES);
+        let expr = parse(&raw);
+        prop_assert!(expr.is_ok(), "generated input {:?} failed to parse: {:?}", raw, expr.err());
+        let expr = expr.unwrap();
+        let canonical = expr.to_canonical_string();
+        prop_assert!(canonical.len() <= 3 * raw.len());
+        prop_assert!(canonical.len() <= roll_core::MAX_CANONICAL_EXPRESSION_BYTES);
+        let receipt = match evaluate_addressed(&expr, &addr) {
+            Ok((_outcome, receipt)) => receipt,
+            Err(RollError::ArithmeticOverflow) => return Ok(()),
+            Err(other) => {
+                return Err(TestCaseError::fail(format!(
+                    "generated input {raw:?} failed to roll: {other:?}"
+                )));
+            }
+        };
+        let verified = verify_receipt(&receipt);
+        prop_assert!(
+            verified.is_ok(),
+            "receipt of {:?} ({} bytes, canonical {} bytes) failed to verify: {:?}",
+            raw,
+            raw.len(),
+            canonical.len(),
+            verified.err()
+        );
+        let verified_json = verify_receipt_json(&to_canonical_receipt_json(&receipt));
+        prop_assert!(verified_json.is_ok(), "receipt JSON of {:?} failed: {:?}", raw, verified_json.err());
+    }
+}
