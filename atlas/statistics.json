@@ -141,8 +141,13 @@
     "definition": "commits is how many commits in the window touch the file, including merges and commits dropped from coupling. lines is added plus deleted in those commits.",
     "files": [
       {
-        "commits": 16,
-        "lines": 286,
+        "commits": 2,
+        "lines": 12,
+        "path": ".gitattributes"
+      },
+      {
+        "commits": 18,
+        "lines": 396,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -156,14 +161,24 @@
         "path": ".github/workflows/release.yml"
       },
       {
-        "commits": 1,
-        "lines": 1,
+        "commits": 3,
+        "lines": 5,
         "path": ".gitignore"
       },
       {
-        "commits": 8,
-        "lines": 135,
+        "commits": 10,
+        "lines": 143,
         "path": "CHANGELOG.md"
+      },
+      {
+        "commits": 2,
+        "lines": 978,
+        "path": "Cargo.lock"
+      },
+      {
+        "commits": 2,
+        "lines": 52,
+        "path": "Cargo.toml"
       },
       {
         "commits": 4,
@@ -221,34 +236,154 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 7,
-        "lines": 261,
+        "commits": 9,
+        "lines": 363,
         "path": "atlas/README.md"
       },
       {
-        "commits": 2,
-        "lines": 44,
+        "commits": 4,
+        "lines": 68,
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 7,
-        "lines": 845,
+        "commits": 9,
+        "lines": 1415,
         "path": "atlas/page.json"
       },
       {
-        "commits": 7,
-        "lines": 1935,
+        "commits": 9,
+        "lines": 2429,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 7,
-        "lines": 14724,
+        "commits": 9,
+        "lines": 18654,
         "path": "atlas/structure.json"
       },
       {
         "commits": 2,
         "lines": 36,
         "path": "codecov.yml"
+      },
+      {
+        "commits": 2,
+        "lines": 44,
+        "path": "crates/roll-cli/Cargo.toml"
+      },
+      {
+        "commits": 2,
+        "lines": 194,
+        "path": "crates/roll-cli/src/lib.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 22,
+        "path": "crates/roll-cli/src/main.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 306,
+        "path": "crates/roll-cli/tests/cli_fixtures.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 52,
+        "path": "crates/roll-core/Cargo.toml"
+      },
+      {
+        "commits": 2,
+        "lines": 760,
+        "path": "crates/roll-core/src/ast.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 182,
+        "path": "crates/roll-core/src/canonical_json.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 432,
+        "path": "crates/roll-core/src/codec.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 2468,
+        "path": "crates/roll-core/src/conformance.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 410,
+        "path": "crates/roll-core/src/error.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 792,
+        "path": "crates/roll-core/src/eval.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 90,
+        "path": "crates/roll-core/src/lib.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 1188,
+        "path": "crates/roll-core/src/parser.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 532,
+        "path": "crates/roll-core/src/receipt.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 630,
+        "path": "crates/roll-core/src/rng.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 780,
+        "path": "crates/roll-core/tests/grammar_and_eval.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 710,
+        "path": "crates/roll-core/tests/properties.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 496,
+        "path": "crates/roll-core/tests/receipts.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 36,
+        "path": "crates/roll-core/tests/reproducibility.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 464,
+        "path": "crates/roll-core/tests/rng_and_address.rs"
+      },
+      {
+        "commits": 2,
+        "lines": 11652,
+        "path": "fixtures/conformance/v3/01_kdf_and_rng.json"
+      },
+      {
+        "commits": 2,
+        "lines": 3884,
+        "path": "fixtures/conformance/v3/02_grammar_and_ast.json"
+      },
+      {
+        "commits": 2,
+        "lines": 3524,
+        "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
+      },
+      {
+        "commits": 2,
+        "lines": 6,
+        "path": "fixtures/conformance/v3/MANIFEST.sha256"
       },
       {
         "commits": 9,
@@ -561,9 +696,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T09:41:39.382Z",
+  "generatedAt": "2026-11-14T11:31:39.532Z",
   "generatedFrom": {
-    "commit": "caeb56c6a5e00dfcd5e392a0e971d5b370c8e9e6"
+    "commit": "f5002bc8b82c4931df2078dcda95713f2adfc6bb"
   },
   "pairs": [
     {
@@ -645,7 +780,7 @@
     }
   ],
   "parameters": {
-    "appliedChangesetLimit": 31.5,
+    "appliedChangesetLimit": 32.75,
     "changeset": 50,
     "changesetFraction": 0.25,
     "cohesionDrop": 0.2,
@@ -654,8 +789,8 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T02:18:36-05:00",
-    "inScopeFiles": 126,
+    "headDate": "2026-11-14T05:42:02-05:00",
+    "inScopeFiles": 131,
     "pinnedStart": null,
     "priorFloor": "fallen",
     "qualifyingCommits": 37,
@@ -663,7 +798,7 @@
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T07:18:36.000Z",
+    "since": "2026-05-18T10:42:02.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

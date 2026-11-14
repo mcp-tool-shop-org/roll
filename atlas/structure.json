@@ -44,7 +44,7 @@
           "path": "fixtures/conformance/v3/01_kdf_and_rng.json"
         },
         {
-          "hash": "505e26d2dcfc0871352a8632bba21d742d83abbbe1604f182b019c132f9a4d88",
+          "hash": "26ed1cfa3647644e79d4ada639608b8688aefa1f40986ad774d8bc665b6d3d4d",
           "path": "fixtures/conformance/v3/02_grammar_and_ast.json"
         },
         {
@@ -52,7 +52,11 @@
           "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
         },
         {
-          "hash": "ddcc2368c21c1055379f0a8dbad3e4c30178363e54e383a115540953c1397897",
+          "hash": "5f7099997f77c255e30eea2c4814b6625ce101972cee6c3a53162a9c589bae0f",
+          "path": "fixtures/conformance/v3/04_exact_analysis.json"
+        },
+        {
+          "hash": "39a590bc1e76864715823d394bd199ce892acb7bb8ff010f53a442976131994b",
           "path": "fixtures/conformance/v3/MANIFEST.sha256"
         }
       ],
@@ -177,7 +181,7 @@
           ]
         },
         {
-          "hash": "b34e652055f18bb97e5067de892ce8d1d234d33542f4e1872360cd967f4dd059",
+          "hash": "a31d613af33edf53760d3c7100cd206586872fc14090b962057b212054305381",
           "importsFiles": [
             "crates/roll-cli/src/lib.rs"
           ],
@@ -230,7 +234,219 @@
           "path": "crates/roll-core/Cargo.toml"
         },
         {
-          "hash": "29fc2883c8e97df9cb7a60586f3d2ce3fe006eef3fce01c513c1b562008b75e4",
+          "exports": [
+            "analyze",
+            "compare",
+            "compute_stats",
+            "lemire_witness_word",
+            "monte_carlo_distribution",
+            "reduce_keep_drop_interval",
+            "run_prefix_tape_oracle"
+          ],
+          "failurePaths": [
+            {
+              "in": "prob_exactly",
+              "kind": "match-err",
+              "line": 205
+            },
+            {
+              "in": "target_for_probability",
+              "kind": "err",
+              "line": 257
+            },
+            {
+              "in": "analyze",
+              "kind": "err",
+              "line": 414
+            },
+            {
+              "in": "analyze",
+              "kind": "match-err",
+              "line": 431
+            },
+            {
+              "in": "analyze",
+              "kind": "err",
+              "line": 431
+            },
+            {
+              "in": "analyze",
+              "kind": "match-err",
+              "line": 432
+            },
+            {
+              "in": "compare",
+              "kind": "match-err",
+              "line": 515
+            },
+            {
+              "in": "compare",
+              "kind": "err",
+              "line": 515
+            },
+            {
+              "in": "compare",
+              "kind": "match-err",
+              "line": 516
+            },
+            {
+              "in": "try_exact",
+              "kind": "err",
+              "line": 664
+            },
+            {
+              "in": "try_exact",
+              "kind": "match-err",
+              "line": 668
+            },
+            {
+              "in": "try_exact",
+              "kind": "err",
+              "line": 668
+            },
+            {
+              "in": "try_exact",
+              "kind": "match-err",
+              "line": 669
+            },
+            {
+              "in": "try_exact",
+              "kind": "err",
+              "line": 669
+            },
+            {
+              "in": "try_exact",
+              "kind": "match-err",
+              "line": 674
+            },
+            {
+              "in": "try_exact",
+              "kind": "err",
+              "line": 674
+            },
+            {
+              "in": "try_exact",
+              "kind": "match-err",
+              "line": 675
+            },
+            {
+              "in": "try_exact",
+              "kind": "err",
+              "line": 675
+            },
+            {
+              "in": "single_die_pre_explode",
+              "kind": "err",
+              "line": 747
+            },
+            {
+              "in": "single_die_pre_explode",
+              "kind": "err",
+              "line": 833
+            },
+            {
+              "in": "explosion_chain_sum_pmf",
+              "kind": "err",
+              "line": 892
+            },
+            {
+              "in": "explosion_chain_pool_pmf",
+              "kind": "err",
+              "line": 983
+            },
+            {
+              "in": "try_exact_dice",
+              "kind": "err",
+              "line": 1031
+            },
+            {
+              "in": "try_exact_dice",
+              "kind": "err",
+              "line": 1043
+            },
+            {
+              "in": "order_statistic_dp",
+              "kind": "err",
+              "line": 1172
+            },
+            {
+              "in": "order_statistic_dp",
+              "kind": "err",
+              "line": 1252
+            },
+            {
+              "in": "divide_distribution_weighted",
+              "kind": "err",
+              "line": 1358
+            },
+            {
+              "in": "convolve",
+              "kind": "err",
+              "line": 1376
+            },
+            {
+              "in": "subtract_distributions",
+              "kind": "err",
+              "line": 1402
+            },
+            {
+              "in": "convolve_n",
+              "kind": "err",
+              "line": 1485
+            },
+            {
+              "in": "multiply_distributions",
+              "kind": "err",
+              "line": 1496
+            },
+            {
+              "in": "divide_distributions",
+              "kind": "err",
+              "line": 1531
+            },
+            {
+              "in": "divide_distributions",
+              "kind": "err",
+              "line": 1534
+            },
+            {
+              "in": "next_u64_word",
+              "kind": "err",
+              "line": 1603
+            },
+            {
+              "in": "sample_lemire_u64",
+              "kind": "err",
+              "line": 1614
+            },
+            {
+              "in": "walk",
+              "kind": "match-err",
+              "line": 1679
+            },
+            {
+              "in": "walk",
+              "kind": "match-err",
+              "line": 1682
+            },
+            {
+              "in": "walk",
+              "kind": "err",
+              "line": 1682
+            }
+          ],
+          "hash": "24a5250dc3bfda012eeadc8da0c68684c0d297ce995a3a029e5dc25e007fc8c4",
+          "importsFiles": [
+            "crates/roll-core/src/ast.rs",
+            "crates/roll-core/src/error.rs",
+            "crates/roll-core/src/eval.rs",
+            "crates/roll-core/src/math.rs",
+            "crates/roll-core/src/rng.rs"
+          ],
+          "path": "crates/roll-core/src/analyze.rs"
+        },
+        {
+          "hash": "90227057de1dbba9528688e6bda1a4bf7ec2c636bdbe49876982fc35231eb7e7",
           "path": "crates/roll-core/src/ast.rs"
         },
         {
@@ -304,21 +520,22 @@
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 796
+              "line": 888
             },
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 804
+              "line": 896
             },
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 812
+              "line": 904
             }
           ],
-          "hash": "5d79e7e9696e6a4f58ccd0d0086163b0b104a8d9e24085b1605240b6ac4eaca8",
+          "hash": "93a05f17bbdbd909d4af2913b968bce309deb5ff2fbfd3777fac217eff4228b2",
           "importsFiles": [
+            "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/canonical_json.rs",
             "crates/roll-core/src/codec.rs",
@@ -331,14 +548,16 @@
           "path": "crates/roll-core/src/conformance.rs"
         },
         {
-          "hash": "3750e41c7e74ae91e2cd2a9eb235df5359220ec26838779f5bff639286b470e6",
+          "hash": "77bc838b5d3ca984f2114b5334dcc038546ee4d4589f52267e1d448b4a984466",
           "path": "crates/roll-core/src/error.rs"
         },
         {
           "exports": [
             "checked_div_floor",
+            "evaluate_total_with_source",
             "evaluate_with_rng",
-            "evaluate_with_source"
+            "evaluate_with_source",
+            "pool_die_delta"
           ],
           "failurePaths": [
             {
@@ -347,7 +566,7 @@
               "line": 64
             }
           ],
-          "hash": "fc1e050c1a495d2f8d71588ea1215eb36906fda0c35e6c94f315dd8e484fa623",
+          "hash": "49ca6e44d6f00bc667c289cbf548f760396618152757f66b8fa8d2ae0db3cff9",
           "importsFiles": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs",
@@ -356,19 +575,31 @@
           "path": "crates/roll-core/src/eval.rs"
         },
         {
-          "hash": "175f4c95a64e4ca6e5afa53087ca33fbef47a0dfd374da3d6e787a33169cbe32",
+          "hash": "70f5de93d3cb858a01316d318136b55e097bb50127dff7de59560678fe9fae65",
           "importsFiles": [
+            "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/canonical_json.rs",
             "crates/roll-core/src/codec.rs",
             "crates/roll-core/src/conformance.rs",
             "crates/roll-core/src/error.rs",
             "crates/roll-core/src/eval.rs",
+            "crates/roll-core/src/math.rs",
             "crates/roll-core/src/parser.rs",
             "crates/roll-core/src/receipt.rs",
             "crates/roll-core/src/rng.rs"
           ],
           "path": "crates/roll-core/src/lib.rs"
+        },
+        {
+          "exports": [
+            "canon_f64",
+            "log2_f64",
+            "powi_u32",
+            "sqrt_f64"
+          ],
+          "hash": "959362c71c66f57a042fd2fb69cde6b8644767a7ea694eae7e9d9f0dc43a91cf",
+          "path": "crates/roll-core/src/math.rs"
         },
         {
           "exports": [
@@ -398,125 +629,125 @@
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 186
+              "line": 202
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 191
+              "line": 207
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 206
+              "line": 222
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 227
+              "line": 243
             },
             {
               "in": "parse_factor",
               "kind": "err",
-              "line": 234
+              "line": 250
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 247
+              "line": 263
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 271
+              "line": 287
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 278
+              "line": 294
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 288
+              "line": 304
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 317
+              "line": 333
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 326
+              "line": 342
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 336
+              "line": 352
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 345
+              "line": 361
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 389
+              "line": 405
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 395
+              "line": 411
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 417
+              "line": 433
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 427
+              "line": 443
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 435
+              "line": 451
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 446
+              "line": 462
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 456
+              "line": 472
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 464
+              "line": 480
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 474
+              "line": 490
             },
             {
               "in": "parse_dice",
               "kind": "err",
-              "line": 483
+              "line": 499
             },
             {
               "in": "parse_required_i64",
               "kind": "err",
-              "line": 548
+              "line": 564
             }
           ],
-          "hash": "6afd447262e03f2f6db148db959d396febeddde961553828cdb197c0a1e6bc9f",
+          "hash": "dfb20ecf27d4cde0b288ca24d0655afdde463f246068a482256dd98412b89c7e",
           "importsFiles": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs"
@@ -694,7 +925,21 @@
           "path": "crates/roll-core/src/rng.rs"
         },
         {
-          "hash": "9fc6c441010e3ff5a2038ba3abcaa41b3c58f7507f259054807affc7203a9816",
+          "hash": "7f02d78df09903cd67282a8a9f1e51ae77108909b6fe257261c3b9772d855866",
+          "importOrder": [
+            "crates/roll-core/src/lib.rs",
+            "crates/roll-core/src/analyze.rs"
+          ],
+          "importsFiles": [
+            "crates/roll-core/src/analyze.rs",
+            "crates/roll-core/src/lib.rs"
+          ],
+          "library": "crates/roll-core/src/lib.rs",
+          "path": "crates/roll-core/tests/analyzer.rs",
+          "testsInside": true
+        },
+        {
+          "hash": "d4f988e1e17b77004011aebf15874d8d9c1728c2854dd6a04b287ddc24267a93",
           "importsFiles": [
             "crates/roll-core/src/lib.rs"
           ],
@@ -703,16 +948,42 @@
           "testsInside": true
         },
         {
-          "hash": "373700fb7ae248fe19ea3b92de75b34ef990b5b2e030c667b4ada9748885b0c8",
+          "hash": "7fa35d7147aba97be1c7648344b58b8c17b0a869c18a1a53a793dfa715142120",
+          "importOrder": [
+            "crates/roll-core/src/lib.rs",
+            "crates/roll-core/src/analyze.rs"
+          ],
           "importsFiles": [
+            "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/lib.rs"
+          ],
+          "library": "crates/roll-core/src/lib.rs",
+          "path": "crates/roll-core/tests/oracle.rs",
+          "testsInside": true
+        },
+        {
+          "hash": "60b5d5cb8d85f8e433aee66a207919f87d62a1f151bd871eb9460b94088ba8ac",
+          "importOrder": [
+            "crates/roll-core/src/lib.rs",
+            "crates/roll-core/src/analyze.rs",
+            "crates/roll-core/src/math.rs"
+          ],
+          "importsFiles": [
+            "crates/roll-core/src/analyze.rs",
+            "crates/roll-core/src/lib.rs",
+            "crates/roll-core/src/math.rs"
           ],
           "library": "crates/roll-core/src/lib.rs",
           "path": "crates/roll-core/tests/properties.rs"
         },
         {
-          "hash": "61280bf7298dfe374f50a158daed668d891fa9a2e15ba5f3b5f8e65effcf2a8c",
+          "hash": "591d3baff035a9febd13338bef22cd554ac14ff6f5f3d3d7716f0e56400ad77a",
+          "importOrder": [
+            "crates/roll-core/src/lib.rs",
+            "crates/roll-core/src/codec.rs"
+          ],
           "importsFiles": [
+            "crates/roll-core/src/codec.rs",
             "crates/roll-core/src/lib.rs"
           ],
           "library": "crates/roll-core/src/lib.rs",
@@ -720,7 +991,7 @@
           "testsInside": true
         },
         {
-          "hash": "205eeeb949d6b294ecd652393ffb1355dc86dc1c0851cc5656d5b209344437ec",
+          "hash": "9fde29be3270e5087d1b87630890fafc2d7bb686772e030c86a2898348c63869",
           "importsFiles": [
             "crates/roll-core/src/conformance.rs"
           ],
@@ -749,7 +1020,7 @@
       "testRunners": [
         "cargo test"
       ],
-      "testedBy": 6,
+      "testedBy": 8,
       "unresolvedSites": 0
     },
     {
@@ -769,7 +1040,7 @@
           "path": ".gitignore"
         },
         {
-          "hash": "c060fe494d849f19592b26090444673ee07201a4f038363636bcb901e9223cd9",
+          "hash": "80bcc393aae4272006ac767066a8b52339719540cd7055be0c66185e064df7db",
           "path": "CHANGELOG.md"
         },
         {
@@ -6720,7 +6991,7 @@
         {
           "boundary": "roll-core",
           "depth": 0,
-          "files": 15
+          "files": 19
         },
         {
           "boundary": "src",
@@ -6819,13 +7090,13 @@
           ]
         },
         {
-          "files": 6,
+          "files": 8,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (native)"
         },
         {
-          "files": 6,
+          "files": 8,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (wasm32-wasip1)"
@@ -7265,7 +7536,7 @@
             "file": "crates/roll-core/src/conformance.rs",
             "from": "crates/roll-cli/src/lib.rs"
           },
-          "files": 9
+          "files": 11
         }
       ],
       "readers": [],
@@ -7486,8 +7757,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "caeb56c6a5e00dfcd5e392a0e971d5b370c8e9e6",
-    "tracked": 121
+    "commit": "f5002bc8b82c4931df2078dcda95713f2adfc6bb",
+    "tracked": 126
   },
   "landings": [
     {
@@ -7583,6 +7854,18 @@
         }
       ],
       "target": "fixtures/conformance/v3/03_rolls_and_receipts.json",
+      "writers": []
+    },
+    {
+      "readers": [
+        {
+          "by": "crates/roll-cli/tests/cli_fixtures.rs",
+          "call": "include_bytes",
+          "confidence": "ast",
+          "fromTests": true
+        }
+      ],
+      "target": "fixtures/conformance/v3/04_exact_analysis.json",
       "writers": []
     },
     {
@@ -7698,6 +7981,6 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 35,
+  "testFiles": 37,
   "unassigned": []
 }

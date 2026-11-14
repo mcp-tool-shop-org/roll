@@ -3,8 +3,8 @@ use alloc::vec::Vec;
 use core::num::NonZeroU64;
 
 use crate::ast::{
-    BinaryOp, DiceSides, DiceSpec, ExplosionVariant, Expr, KeepDropOp, MAX_EXPLOSIONS, MAX_REROLLS,
-    ResultMode,
+    BinaryOp, ComparePoint, DiceSides, DiceSpec, ExplosionVariant, Expr, KeepDropOp,
+    MAX_EXPLOSIONS, MAX_REROLLS, ResultMode,
 };
 use crate::error::RollError;
 use crate::rng::{DrawSource, RollRng};
@@ -72,9 +72,61 @@ pub fn checked_div_floor(a: i64, b: i64) -> Result<i64, RollError> {
     }
 }
 
+/// Computes the net success/failure delta (`-1`, `0`, or `+1`) for a single kept die value in `Pool` mode.
+#[inline]
+pub(crate) fn pool_die_delta(value: i64, cs: &[ComparePoint], cf: &[ComparePoint]) -> i8 {
+    let hit_cs = cs.iter().any(|cp| cp.matches(value));
+    let hit_cf = cf.iter().any(|cp| cp.matches(value));
+    i8::from(hit_cs) - i8::from(hit_cf)
+}
+
 /// Evaluates `expr` against a mutable [`RollRng`], recording all `u64` draws in `rng`.
 pub fn evaluate_with_rng(expr: &Expr, rng: &mut RollRng) -> Result<ExpressionOutcome, RollError> {
     evaluate_with_source(expr, rng)
+}
+
+pub(crate) struct EvalScratch {
+    dice: Vec<(i64, bool)>,
+    kept_indices: Vec<usize>,
+}
+
+impl EvalScratch {
+    pub(crate) fn new() -> Self {
+        Self {
+            dice: Vec::new(),
+            kept_indices: Vec::new(),
+        }
+    }
+}
+
+/// Allocation-reusing total evaluator used by Monte Carlo sampling (`§5.3`).
+///
+/// Consumes the exact same `DrawSource` sequence and executes the exact same
+/// stages, caps, and checked `i64` arithmetic as [`evaluate_with_source`],
+/// without formatting per-trial canonical strings or `DieTrace` histories.
+pub(crate) fn evaluate_total_with_source<S: DrawSource>(
+    expr: &Expr,
+    source: &mut S,
+    scratch: &mut EvalScratch,
+) -> Result<i64, RollError> {
+    match expr {
+        Expr::Number(v) => Ok(*v),
+        Expr::Dice(spec) => roll_dice_group_total(spec, source, scratch),
+        Expr::UnaryNeg(operand) => {
+            let val = evaluate_total_with_source(operand, source, scratch)?;
+            val.checked_neg().ok_or(RollError::ArithmeticOverflow)
+        }
+        Expr::Binary { op, left, right } => {
+            let lhs = evaluate_total_with_source(left, source, scratch)?;
+            let rhs = evaluate_total_with_source(right, source, scratch)?;
+            match op {
+                BinaryOp::Add => lhs.checked_add(rhs).ok_or(RollError::ArithmeticOverflow),
+                BinaryOp::Sub => lhs.checked_sub(rhs).ok_or(RollError::ArithmeticOverflow),
+                BinaryOp::Mul => lhs.checked_mul(rhs).ok_or(RollError::ArithmeticOverflow),
+                BinaryOp::DivFloor => checked_div_floor(lhs, rhs),
+            }
+        }
+    }
 }
 
 pub(crate) fn evaluate_with_source<S: DrawSource>(
@@ -377,7 +429,7 @@ fn roll_dice_group<S: DrawSource>(
                 if hit_cf {
                     die.critical = Some(CritKind::Failure);
                 }
-                let delta: i8 = i8::from(hit_cs) - i8::from(hit_cf);
+                let delta: i8 = pool_die_delta(die.final_value, cs, cf);
                 die.pool_delta = Some(delta);
                 total = total
                     .checked_add(i64::from(delta))
@@ -393,4 +445,184 @@ fn roll_dice_group<S: DrawSource>(
         total,
         is_pool,
     })
+}
+
+fn roll_dice_group_total<S: DrawSource>(
+    spec: &DiceSpec,
+    source: &mut S,
+    scratch: &mut EvalScratch,
+) -> Result<i64, RollError> {
+    let count = spec.count.get() as usize;
+    scratch.dice.clear();
+    scratch.dice.reserve(count);
+
+    for _ in 0..count {
+        let face = roll_single_die(spec.sides, source)?;
+        scratch.dice.push((face, true));
+    }
+
+    for &cp in &spec.reroll_unlimited {
+        for &mut (ref mut val, kept) in &mut scratch.dice {
+            if !kept {
+                continue;
+            }
+            let mut iterations: u32 = 0;
+            while cp.matches(*val) && iterations < MAX_REROLLS {
+                *val = roll_single_die(spec.sides, source)?;
+                iterations += 1;
+            }
+        }
+    }
+
+    for &cp in &spec.reroll_once {
+        for &mut (ref mut val, kept) in &mut scratch.dice {
+            if !kept {
+                continue;
+            }
+            if cp.matches(*val) {
+                *val = roll_single_die(spec.sides, source)?;
+            }
+        }
+    }
+
+    if let Some(clamp) = spec.clamp {
+        for &mut (ref mut val, kept) in &mut scratch.dice {
+            if !kept {
+                continue;
+            }
+            if let Some(lo) = clamp.min
+                && *val < lo
+            {
+                *val = lo;
+            }
+            if let Some(hi) = clamp.max
+                && *val > hi
+            {
+                *val = hi;
+            }
+        }
+    }
+
+    if let Some(rule) = spec.explode {
+        match rule.variant {
+            ExplosionVariant::Standard => {
+                let original_len = scratch.dice.len();
+                for i in 0..original_len {
+                    if !scratch.dice[i].1 {
+                        continue;
+                    }
+                    let mut current = scratch.dice[i].0;
+                    let mut chain_len: u32 = 0;
+                    while rule.threshold.matches(current) && chain_len < MAX_EXPLOSIONS {
+                        let raw_face = roll_single_die(spec.sides, source)?;
+                        scratch.dice.push((raw_face, true));
+                        current = raw_face;
+                        chain_len += 1;
+                    }
+                }
+            }
+            ExplosionVariant::Compound => {
+                for &mut (ref mut val, kept) in &mut scratch.dice {
+                    if !kept {
+                        continue;
+                    }
+                    let mut current = *val;
+                    let mut chain_len: u32 = 0;
+                    while rule.threshold.matches(current) && chain_len < MAX_EXPLOSIONS {
+                        let raw_face = roll_single_die(spec.sides, source)?;
+                        *val = val
+                            .checked_add(raw_face)
+                            .ok_or(RollError::ArithmeticOverflow)?;
+                        current = raw_face;
+                        chain_len += 1;
+                    }
+                }
+            }
+            ExplosionVariant::Penetrate => {
+                let original_len = scratch.dice.len();
+                for i in 0..original_len {
+                    if !scratch.dice[i].1 {
+                        continue;
+                    }
+                    let mut current = scratch.dice[i].0;
+                    let mut chain_len: u32 = 0;
+                    while rule.threshold.matches(current) && chain_len < MAX_EXPLOSIONS {
+                        let raw_face = roll_single_die(spec.sides, source)?;
+                        let pen_value = (raw_face - 1).max(1);
+                        scratch.dice.push((pen_value, true));
+                        current = raw_face;
+                        chain_len += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    for &kd in &spec.keep_drop {
+        scratch.kept_indices.clear();
+        scratch.kept_indices.extend(
+            scratch
+                .dice
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, &(_, kept))| kept.then_some(idx)),
+        );
+        scratch.kept_indices.sort_by_key(|&idx| scratch.dice[idx].0);
+
+        match kd {
+            KeepDropOp::KeepHighest(n) => {
+                let k = n as usize;
+                let drop_count = scratch.kept_indices.len().saturating_sub(k);
+                for &idx in &scratch.kept_indices[..drop_count] {
+                    scratch.dice[idx].1 = false;
+                }
+            }
+            KeepDropOp::KeepLowest(n) => {
+                let k = (n as usize).min(scratch.kept_indices.len());
+                for &idx in &scratch.kept_indices[k..] {
+                    scratch.dice[idx].1 = false;
+                }
+            }
+            KeepDropOp::DropHighest(n) => {
+                let drop_count = (n as usize).min(scratch.kept_indices.len());
+                let start = scratch.kept_indices.len() - drop_count;
+                for &idx in &scratch.kept_indices[start..] {
+                    scratch.dice[idx].1 = false;
+                }
+            }
+            KeepDropOp::DropLowest(n) => {
+                let drop_count = (n as usize).min(scratch.kept_indices.len());
+                for &idx in &scratch.kept_indices[..drop_count] {
+                    scratch.dice[idx].1 = false;
+                }
+            }
+        }
+    }
+
+    let mut total: i64 = 0;
+    match &spec.mode {
+        ResultMode::Sum { .. } => {
+            for &(val, kept) in &scratch.dice {
+                if !kept {
+                    continue;
+                }
+                total = total
+                    .checked_add(val)
+                    .ok_or(RollError::ArithmeticOverflow)?;
+            }
+        }
+        ResultMode::Pool { cs, cf } => {
+            for &(val, kept) in &scratch.dice {
+                if !kept {
+                    continue;
+                }
+                let delta = pool_die_delta(val, cs, cf);
+                total = total
+                    .checked_add(i64::from(delta))
+                    .ok_or(RollError::ArithmeticOverflow)?;
+            }
+        }
+    }
+
+    Ok(total)
 }

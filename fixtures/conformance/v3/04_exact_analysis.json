@@ -1,0 +1,6932 @@
+{
+  "schema_version": "roll.conformance.exact_analysis.v1",
+  "analyze_cases": [
+    {
+      "description": "standard 2d6 sum",
+      "expression": "2d6",
+      "canonical_expression": "2d6",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 11,
+      "stats": {
+        "min": "2",
+        "max": "12",
+        "mean": 7.0,
+        "median": "7",
+        "mode": "7",
+        "stddev": 2.41522945769824,
+        "percentiles": {
+          "10": "4",
+          "25": "5",
+          "50": "7",
+          "75": "9",
+          "90": "10",
+          "95": "11"
+        },
+        "entropy": 3.2744019192887706
+      },
+      "pmf": [
+        {
+          "outcome": "2",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "3",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "4",
+          "probability": 0.08333333333333333
+        },
+        {
+          "outcome": "5",
+          "probability": 0.1111111111111111
+        },
+        {
+          "outcome": "6",
+          "probability": 0.1388888888888889
+        },
+        {
+          "outcome": "7",
+          "probability": 0.16666666666666669
+        },
+        {
+          "outcome": "8",
+          "probability": 0.1388888888888889
+        },
+        {
+          "outcome": "9",
+          "probability": 0.1111111111111111
+        },
+        {
+          "outcome": "10",
+          "probability": 0.08333333333333333
+        },
+        {
+          "outcome": "11",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "12",
+          "probability": 0.027777777777777776
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "2",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "3",
+          "probability": 0.08333333333333333
+        },
+        {
+          "outcome": "4",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "5",
+          "probability": 0.2777777777777778
+        },
+        {
+          "outcome": "6",
+          "probability": 0.4166666666666667
+        },
+        {
+          "outcome": "7",
+          "probability": 0.5833333333333334
+        },
+        {
+          "outcome": "8",
+          "probability": 0.7222222222222223
+        },
+        {
+          "outcome": "9",
+          "probability": 0.8333333333333335
+        },
+        {
+          "outcome": "10",
+          "probability": 0.9166666666666669
+        },
+        {
+          "outcome": "11",
+          "probability": 0.9722222222222224
+        },
+        {
+          "outcome": "12",
+          "probability": 1.0000000000000002
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "2",
+          "probability": 1.0000000000000002
+        },
+        {
+          "outcome": "3",
+          "probability": 0.9722222222222224
+        },
+        {
+          "outcome": "4",
+          "probability": 0.9166666666666669
+        },
+        {
+          "outcome": "5",
+          "probability": 0.8333333333333336
+        },
+        {
+          "outcome": "6",
+          "probability": 0.7222222222222224
+        },
+        {
+          "outcome": "7",
+          "probability": 0.5833333333333335
+        },
+        {
+          "outcome": "8",
+          "probability": 0.41666666666666685
+        },
+        {
+          "outcome": "9",
+          "probability": 0.2777777777777779
+        },
+        {
+          "outcome": "10",
+          "probability": 0.16666666666666674
+        },
+        {
+          "outcome": "11",
+          "probability": 0.08333333333333337
+        },
+        {
+          "outcome": "12",
+          "probability": 0.02777777777777779
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "11",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "9",
+          "at_most": "5"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "7",
+          "at_most": "7"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "5",
+          "at_most": "9"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "3",
+          "at_most": "11"
+        }
+      ]
+    },
+    {
+      "description": "classic ability roll 4d6kh3",
+      "expression": "4d6kh3",
+      "canonical_expression": "4d6kh3",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 16,
+      "stats": {
+        "min": "3",
+        "max": "18",
+        "mean": 12.244598765432098,
+        "median": "12",
+        "mode": "13",
+        "stddev": 2.8468444453115005,
+        "percentiles": {
+          "10": "8",
+          "25": "10",
+          "50": "12",
+          "75": "14",
+          "90": "16",
+          "95": "17"
+        },
+        "entropy": 3.5271843121252893
+      },
+      "pmf": [
+        {
+          "outcome": "3",
+          "probability": 0.0007716049382716049
+        },
+        {
+          "outcome": "4",
+          "probability": 0.0030864197530864196
+        },
+        {
+          "outcome": "5",
+          "probability": 0.007716049382716049
+        },
+        {
+          "outcome": "6",
+          "probability": 0.016203703703703703
+        },
+        {
+          "outcome": "7",
+          "probability": 0.029320987654320986
+        },
+        {
+          "outcome": "8",
+          "probability": 0.047839506172839504
+        },
+        {
+          "outcome": "9",
+          "probability": 0.07021604938271604
+        },
+        {
+          "outcome": "10",
+          "probability": 0.09413580246913579
+        },
+        {
+          "outcome": "11",
+          "probability": 0.11419753086419752
+        },
+        {
+          "outcome": "12",
+          "probability": 0.12885802469135801
+        },
+        {
+          "outcome": "13",
+          "probability": 0.13271604938271603
+        },
+        {
+          "outcome": "14",
+          "probability": 0.12345679012345677
+        },
+        {
+          "outcome": "15",
+          "probability": 0.10108024691358022
+        },
+        {
+          "outcome": "16",
+          "probability": 0.07253086419753085
+        },
+        {
+          "outcome": "17",
+          "probability": 0.041666666666666664
+        },
+        {
+          "outcome": "18",
+          "probability": 0.0162037037037037
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "3",
+          "probability": 0.0007716049382716049
+        },
+        {
+          "outcome": "4",
+          "probability": 0.0038580246913580245
+        },
+        {
+          "outcome": "5",
+          "probability": 0.011574074074074073
+        },
+        {
+          "outcome": "6",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "7",
+          "probability": 0.05709876543209876
+        },
+        {
+          "outcome": "8",
+          "probability": 0.10493827160493827
+        },
+        {
+          "outcome": "9",
+          "probability": 0.17515432098765432
+        },
+        {
+          "outcome": "10",
+          "probability": 0.2692901234567901
+        },
+        {
+          "outcome": "11",
+          "probability": 0.38348765432098764
+        },
+        {
+          "outcome": "12",
+          "probability": 0.5123456790123456
+        },
+        {
+          "outcome": "13",
+          "probability": 0.6450617283950617
+        },
+        {
+          "outcome": "14",
+          "probability": 0.7685185185185185
+        },
+        {
+          "outcome": "15",
+          "probability": 0.8695987654320987
+        },
+        {
+          "outcome": "16",
+          "probability": 0.9421296296296295
+        },
+        {
+          "outcome": "17",
+          "probability": 0.9837962962962962
+        },
+        {
+          "outcome": "18",
+          "probability": 0.9999999999999999
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "3",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "4",
+          "probability": 0.9992283950617283
+        },
+        {
+          "outcome": "5",
+          "probability": 0.9961419753086419
+        },
+        {
+          "outcome": "6",
+          "probability": 0.9884259259259258
+        },
+        {
+          "outcome": "7",
+          "probability": 0.9722222222222221
+        },
+        {
+          "outcome": "8",
+          "probability": 0.9429012345679011
+        },
+        {
+          "outcome": "9",
+          "probability": 0.8950617283950616
+        },
+        {
+          "outcome": "10",
+          "probability": 0.8248456790123455
+        },
+        {
+          "outcome": "11",
+          "probability": 0.7307098765432098
+        },
+        {
+          "outcome": "12",
+          "probability": 0.6165123456790123
+        },
+        {
+          "outcome": "13",
+          "probability": 0.48765432098765427
+        },
+        {
+          "outcome": "14",
+          "probability": 0.3549382716049382
+        },
+        {
+          "outcome": "15",
+          "probability": 0.2314814814814814
+        },
+        {
+          "outcome": "16",
+          "probability": 0.1304012345679012
+        },
+        {
+          "outcome": "17",
+          "probability": 0.05787037037037035
+        },
+        {
+          "outcome": "18",
+          "probability": 0.01620370370370372
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "17",
+          "at_most": "7"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "14",
+          "at_most": "10"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "12",
+          "at_most": "12"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "10",
+          "at_most": "14"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "7",
+          "at_most": "17"
+        }
+      ]
+    },
+    {
+      "description": "combined reroll + standard explode 2d6r=1!",
+      "expression": "2d6r=1!",
+      "canonical_expression": "2d6r=1!>=6",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100,
+          "max_rerolls": 100
+        }
+      },
+      "support_len": 1211,
+      "stats": {
+        "min": "2",
+        "max": "1212",
+        "mean": 9.680000000000001,
+        "median": "8",
+        "mode": "7",
+        "stddev": 4.541013102821881,
+        "percentiles": {
+          "10": "5",
+          "25": "7",
+          "50": "8",
+          "75": "12",
+          "90": "16",
+          "95": "19"
+        },
+        "entropy": 3.88367734391885
+      },
+      "pmf": [],
+      "cdf_samples": [
+        {
+          "outcome": "2",
+          "probability": 6.507998175386866e-158
+        },
+        {
+          "outcome": "82",
+          "probability": 0.999999998970958
+        },
+        {
+          "outcome": "163",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "244",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "324",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "405",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "486",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "566",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "647",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "728",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "808",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "889",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "970",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "1050",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "1131",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "1212",
+          "probability": 0.9999999999999998
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "2",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "82",
+          "probability": 1.3904314366541826e-9
+        },
+        {
+          "outcome": "163",
+          "probability": 0.0
+        },
+        {
+          "outcome": "244",
+          "probability": 0.0
+        },
+        {
+          "outcome": "324",
+          "probability": 0.0
+        },
+        {
+          "outcome": "405",
+          "probability": 0.0
+        },
+        {
+          "outcome": "486",
+          "probability": 0.0
+        },
+        {
+          "outcome": "566",
+          "probability": 0.0
+        },
+        {
+          "outcome": "647",
+          "probability": 0.0
+        },
+        {
+          "outcome": "728",
+          "probability": 0.0
+        },
+        {
+          "outcome": "808",
+          "probability": 0.0
+        },
+        {
+          "outcome": "889",
+          "probability": 0.0
+        },
+        {
+          "outcome": "970",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1050",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1131",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1212",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "19",
+          "at_most": "5"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "12",
+          "at_most": "7"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "8",
+          "at_most": "8"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "7",
+          "at_most": "12"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "5",
+          "at_most": "19"
+        }
+      ]
+    },
+    {
+      "description": "combined reroll-once + clamp + explode 2d4ro=1min2!",
+      "expression": "2d4ro=1min2!",
+      "canonical_expression": "2d4ro=1min2!>=4",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 805,
+      "stats": {
+        "min": "4",
+        "max": "808",
+        "mean": 7.95833333333333,
+        "median": "7",
+        "mode": "5",
+        "stddev": 3.9280640906176663,
+        "percentiles": {
+          "10": "4",
+          "25": "5",
+          "50": "7",
+          "75": "10",
+          "90": "13",
+          "95": "16"
+        },
+        "entropy": 3.4957749824475224
+      },
+      "pmf": [],
+      "cdf_samples": [
+        {
+          "outcome": "4",
+          "probability": 0.140625
+        },
+        {
+          "outcome": "57",
+          "probability": 0.9999999150168151
+        },
+        {
+          "outcome": "111",
+          "probability": 0.9999999999999988
+        },
+        {
+          "outcome": "164",
+          "probability": 1.0
+        },
+        {
+          "outcome": "218",
+          "probability": 1.0
+        },
+        {
+          "outcome": "272",
+          "probability": 1.0
+        },
+        {
+          "outcome": "325",
+          "probability": 1.0
+        },
+        {
+          "outcome": "379",
+          "probability": 1.0
+        },
+        {
+          "outcome": "432",
+          "probability": 1.0
+        },
+        {
+          "outcome": "486",
+          "probability": 1.0
+        },
+        {
+          "outcome": "540",
+          "probability": 1.0
+        },
+        {
+          "outcome": "593",
+          "probability": 1.0
+        },
+        {
+          "outcome": "647",
+          "probability": 1.0
+        },
+        {
+          "outcome": "700",
+          "probability": 1.0
+        },
+        {
+          "outcome": "754",
+          "probability": 1.0
+        },
+        {
+          "outcome": "808",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "4",
+          "probability": 1.0
+        },
+        {
+          "outcome": "57",
+          "probability": 1.2631062418222427e-7
+        },
+        {
+          "outcome": "111",
+          "probability": 1.5543122344752192e-15
+        },
+        {
+          "outcome": "164",
+          "probability": 0.0
+        },
+        {
+          "outcome": "218",
+          "probability": 0.0
+        },
+        {
+          "outcome": "272",
+          "probability": 0.0
+        },
+        {
+          "outcome": "325",
+          "probability": 0.0
+        },
+        {
+          "outcome": "379",
+          "probability": 0.0
+        },
+        {
+          "outcome": "432",
+          "probability": 0.0
+        },
+        {
+          "outcome": "486",
+          "probability": 0.0
+        },
+        {
+          "outcome": "540",
+          "probability": 0.0
+        },
+        {
+          "outcome": "593",
+          "probability": 0.0
+        },
+        {
+          "outcome": "647",
+          "probability": 0.0
+        },
+        {
+          "outcome": "700",
+          "probability": 0.0
+        },
+        {
+          "outcome": "754",
+          "probability": 0.0
+        },
+        {
+          "outcome": "808",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "16",
+          "at_most": "4"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "10",
+          "at_most": "5"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "7",
+          "at_most": "7"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "5",
+          "at_most": "10"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "4",
+          "at_most": "16"
+        }
+      ]
+    },
+    {
+      "description": "combined capped reroll + keep-highest 3d4r=1kh2",
+      "expression": "3d4r=1kh2",
+      "canonical_expression": "3d4r=1kh2",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_rerolls": 100
+        }
+      },
+      "support_len": 7,
+      "stats": {
+        "min": "2",
+        "max": "8",
+        "mean": 6.666666666666666,
+        "median": "7",
+        "mode": "7",
+        "stddev": 1.0886621079036347,
+        "percentiles": {
+          "10": "5",
+          "25": "6",
+          "50": "7",
+          "75": "8",
+          "90": "8",
+          "95": "8"
+        },
+        "entropy": 2.066473375350478
+      },
+      "pmf": [
+        {
+          "outcome": "2",
+          "probability": 3.7654997892232564e-183
+        },
+        {
+          "outcome": "3",
+          "probability": 2.420369946780824e-122
+        },
+        {
+          "outcome": "4",
+          "probability": 0.037037037037037035
+        },
+        {
+          "outcome": "5",
+          "probability": 0.1111111111111111
+        },
+        {
+          "outcome": "6",
+          "probability": 0.25925925925925924
+        },
+        {
+          "outcome": "7",
+          "probability": 0.3333333333333333
+        },
+        {
+          "outcome": "8",
+          "probability": 0.25925925925925924
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "2",
+          "probability": 3.7654997892232564e-183
+        },
+        {
+          "outcome": "3",
+          "probability": 2.420369946780824e-122
+        },
+        {
+          "outcome": "4",
+          "probability": 0.037037037037037035
+        },
+        {
+          "outcome": "5",
+          "probability": 0.14814814814814814
+        },
+        {
+          "outcome": "6",
+          "probability": 0.4074074074074074
+        },
+        {
+          "outcome": "7",
+          "probability": 0.7407407407407407
+        },
+        {
+          "outcome": "8",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "2",
+          "probability": 1.0
+        },
+        {
+          "outcome": "3",
+          "probability": 1.0
+        },
+        {
+          "outcome": "4",
+          "probability": 1.0
+        },
+        {
+          "outcome": "5",
+          "probability": 0.962962962962963
+        },
+        {
+          "outcome": "6",
+          "probability": 0.8518518518518519
+        },
+        {
+          "outcome": "7",
+          "probability": 0.5925925925925926
+        },
+        {
+          "outcome": "8",
+          "probability": 0.2592592592592593
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "8",
+          "at_most": "5"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "8",
+          "at_most": "6"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "7",
+          "at_most": "7"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "6",
+          "at_most": "8"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "5",
+          "at_most": "8"
+        }
+      ]
+    },
+    {
+      "description": "capped binary explosion 1d2!",
+      "expression": "1d2!",
+      "canonical_expression": "1d2!>=2",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 102,
+      "stats": {
+        "min": "1",
+        "max": "202",
+        "mean": 2.999999999999999,
+        "median": "1",
+        "mode": "1",
+        "stddev": 2.82842712474619,
+        "percentiles": {
+          "10": "1",
+          "25": "1",
+          "50": "1",
+          "75": "3",
+          "90": "7",
+          "95": "9"
+        },
+        "entropy": 1.9999999999999998
+      },
+      "pmf": [
+        {
+          "outcome": "1",
+          "probability": 0.5
+        },
+        {
+          "outcome": "3",
+          "probability": 0.25
+        },
+        {
+          "outcome": "5",
+          "probability": 0.125
+        },
+        {
+          "outcome": "7",
+          "probability": 0.0625
+        },
+        {
+          "outcome": "9",
+          "probability": 0.03125
+        },
+        {
+          "outcome": "11",
+          "probability": 0.015625
+        },
+        {
+          "outcome": "13",
+          "probability": 0.0078125
+        },
+        {
+          "outcome": "15",
+          "probability": 0.00390625
+        },
+        {
+          "outcome": "17",
+          "probability": 0.001953125
+        },
+        {
+          "outcome": "19",
+          "probability": 0.0009765625
+        },
+        {
+          "outcome": "21",
+          "probability": 0.00048828125
+        },
+        {
+          "outcome": "23",
+          "probability": 0.000244140625
+        },
+        {
+          "outcome": "25",
+          "probability": 0.0001220703125
+        },
+        {
+          "outcome": "27",
+          "probability": 0.00006103515625
+        },
+        {
+          "outcome": "29",
+          "probability": 0.000030517578125
+        },
+        {
+          "outcome": "31",
+          "probability": 0.0000152587890625
+        },
+        {
+          "outcome": "33",
+          "probability": 7.62939453125e-6
+        },
+        {
+          "outcome": "35",
+          "probability": 3.814697265625e-6
+        },
+        {
+          "outcome": "37",
+          "probability": 1.9073486328125e-6
+        },
+        {
+          "outcome": "39",
+          "probability": 9.5367431640625e-7
+        },
+        {
+          "outcome": "41",
+          "probability": 4.76837158203125e-7
+        },
+        {
+          "outcome": "43",
+          "probability": 2.384185791015625e-7
+        },
+        {
+          "outcome": "45",
+          "probability": 1.1920928955078125e-7
+        },
+        {
+          "outcome": "47",
+          "probability": 5.960464477539063e-8
+        },
+        {
+          "outcome": "49",
+          "probability": 2.9802322387695312e-8
+        },
+        {
+          "outcome": "51",
+          "probability": 1.4901161193847656e-8
+        },
+        {
+          "outcome": "53",
+          "probability": 7.450580596923828e-9
+        },
+        {
+          "outcome": "55",
+          "probability": 3.725290298461914e-9
+        },
+        {
+          "outcome": "57",
+          "probability": 1.862645149230957e-9
+        },
+        {
+          "outcome": "59",
+          "probability": 9.313225746154785e-10
+        },
+        {
+          "outcome": "61",
+          "probability": 4.656612873077393e-10
+        },
+        {
+          "outcome": "63",
+          "probability": 2.3283064365386963e-10
+        },
+        {
+          "outcome": "65",
+          "probability": 1.1641532182693481e-10
+        },
+        {
+          "outcome": "67",
+          "probability": 5.820766091346741e-11
+        },
+        {
+          "outcome": "69",
+          "probability": 2.9103830456733704e-11
+        },
+        {
+          "outcome": "71",
+          "probability": 1.4551915228366852e-11
+        },
+        {
+          "outcome": "73",
+          "probability": 7.275957614183426e-12
+        },
+        {
+          "outcome": "75",
+          "probability": 3.637978807091713e-12
+        },
+        {
+          "outcome": "77",
+          "probability": 1.8189894035458565e-12
+        },
+        {
+          "outcome": "79",
+          "probability": 9.094947017729282e-13
+        },
+        {
+          "outcome": "81",
+          "probability": 4.547473508864641e-13
+        },
+        {
+          "outcome": "83",
+          "probability": 2.2737367544323206e-13
+        },
+        {
+          "outcome": "85",
+          "probability": 1.1368683772161603e-13
+        },
+        {
+          "outcome": "87",
+          "probability": 5.684341886080802e-14
+        },
+        {
+          "outcome": "89",
+          "probability": 2.842170943040401e-14
+        },
+        {
+          "outcome": "91",
+          "probability": 1.4210854715202004e-14
+        },
+        {
+          "outcome": "93",
+          "probability": 7.105427357601002e-15
+        },
+        {
+          "outcome": "95",
+          "probability": 3.552713678800501e-15
+        },
+        {
+          "outcome": "97",
+          "probability": 1.7763568394002505e-15
+        },
+        {
+          "outcome": "99",
+          "probability": 8.881784197001252e-16
+        },
+        {
+          "outcome": "101",
+          "probability": 4.440892098500626e-16
+        },
+        {
+          "outcome": "103",
+          "probability": 2.220446049250313e-16
+        },
+        {
+          "outcome": "105",
+          "probability": 1.1102230246251565e-16
+        },
+        {
+          "outcome": "107",
+          "probability": 5.551115123125783e-17
+        },
+        {
+          "outcome": "109",
+          "probability": 2.7755575615628914e-17
+        },
+        {
+          "outcome": "111",
+          "probability": 1.3877787807814457e-17
+        },
+        {
+          "outcome": "113",
+          "probability": 6.938893903907228e-18
+        },
+        {
+          "outcome": "115",
+          "probability": 3.469446951953614e-18
+        },
+        {
+          "outcome": "117",
+          "probability": 1.734723475976807e-18
+        },
+        {
+          "outcome": "119",
+          "probability": 8.673617379884035e-19
+        },
+        {
+          "outcome": "121",
+          "probability": 4.336808689942018e-19
+        },
+        {
+          "outcome": "123",
+          "probability": 2.168404344971009e-19
+        },
+        {
+          "outcome": "125",
+          "probability": 1.0842021724855044e-19
+        },
+        {
+          "outcome": "127",
+          "probability": 5.421010862427522e-20
+        },
+        {
+          "outcome": "129",
+          "probability": 2.710505431213761e-20
+        },
+        {
+          "outcome": "131",
+          "probability": 1.3552527156068805e-20
+        },
+        {
+          "outcome": "133",
+          "probability": 6.776263578034403e-21
+        },
+        {
+          "outcome": "135",
+          "probability": 3.3881317890172014e-21
+        },
+        {
+          "outcome": "137",
+          "probability": 1.6940658945086007e-21
+        },
+        {
+          "outcome": "139",
+          "probability": 8.470329472543003e-22
+        },
+        {
+          "outcome": "141",
+          "probability": 4.235164736271502e-22
+        },
+        {
+          "outcome": "143",
+          "probability": 2.117582368135751e-22
+        },
+        {
+          "outcome": "145",
+          "probability": 1.0587911840678754e-22
+        },
+        {
+          "outcome": "147",
+          "probability": 5.293955920339377e-23
+        },
+        {
+          "outcome": "149",
+          "probability": 2.6469779601696886e-23
+        },
+        {
+          "outcome": "151",
+          "probability": 1.3234889800848443e-23
+        },
+        {
+          "outcome": "153",
+          "probability": 6.617444900424222e-24
+        },
+        {
+          "outcome": "155",
+          "probability": 3.308722450212111e-24
+        },
+        {
+          "outcome": "157",
+          "probability": 1.6543612251060553e-24
+        },
+        {
+          "outcome": "159",
+          "probability": 8.271806125530277e-25
+        },
+        {
+          "outcome": "161",
+          "probability": 4.1359030627651384e-25
+        },
+        {
+          "outcome": "163",
+          "probability": 2.0679515313825692e-25
+        },
+        {
+          "outcome": "165",
+          "probability": 1.0339757656912846e-25
+        },
+        {
+          "outcome": "167",
+          "probability": 5.169878828456423e-26
+        },
+        {
+          "outcome": "169",
+          "probability": 2.5849394142282115e-26
+        },
+        {
+          "outcome": "171",
+          "probability": 1.2924697071141057e-26
+        },
+        {
+          "outcome": "173",
+          "probability": 6.462348535570529e-27
+        },
+        {
+          "outcome": "175",
+          "probability": 3.2311742677852644e-27
+        },
+        {
+          "outcome": "177",
+          "probability": 1.6155871338926322e-27
+        },
+        {
+          "outcome": "179",
+          "probability": 8.077935669463161e-28
+        },
+        {
+          "outcome": "181",
+          "probability": 4.0389678347315804e-28
+        },
+        {
+          "outcome": "183",
+          "probability": 2.0194839173657902e-28
+        },
+        {
+          "outcome": "185",
+          "probability": 1.0097419586828951e-28
+        },
+        {
+          "outcome": "187",
+          "probability": 5.048709793414476e-29
+        },
+        {
+          "outcome": "189",
+          "probability": 2.524354896707238e-29
+        },
+        {
+          "outcome": "191",
+          "probability": 1.262177448353619e-29
+        },
+        {
+          "outcome": "193",
+          "probability": 6.310887241768095e-30
+        },
+        {
+          "outcome": "195",
+          "probability": 3.1554436208840472e-30
+        },
+        {
+          "outcome": "197",
+          "probability": 1.5777218104420236e-30
+        },
+        {
+          "outcome": "199",
+          "probability": 7.888609052210118e-31
+        },
+        {
+          "outcome": "201",
+          "probability": 3.944304526105059e-31
+        },
+        {
+          "outcome": "202",
+          "probability": 3.944304526105059e-31
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.5
+        },
+        {
+          "outcome": "13",
+          "probability": 0.9921875
+        },
+        {
+          "outcome": "27",
+          "probability": 0.99993896484375
+        },
+        {
+          "outcome": "41",
+          "probability": 0.9999995231628418
+        },
+        {
+          "outcome": "53",
+          "probability": 0.9999999925494194
+        },
+        {
+          "outcome": "67",
+          "probability": 0.9999999999417923
+        },
+        {
+          "outcome": "81",
+          "probability": 0.9999999999995453
+        },
+        {
+          "outcome": "95",
+          "probability": 0.9999999999999964
+        },
+        {
+          "outcome": "107",
+          "probability": 1.0
+        },
+        {
+          "outcome": "121",
+          "probability": 1.0
+        },
+        {
+          "outcome": "135",
+          "probability": 1.0
+        },
+        {
+          "outcome": "149",
+          "probability": 1.0
+        },
+        {
+          "outcome": "161",
+          "probability": 1.0
+        },
+        {
+          "outcome": "175",
+          "probability": 1.0
+        },
+        {
+          "outcome": "189",
+          "probability": 1.0
+        },
+        {
+          "outcome": "202",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "1",
+          "probability": 1.0
+        },
+        {
+          "outcome": "13",
+          "probability": 0.015625
+        },
+        {
+          "outcome": "27",
+          "probability": 0.0001220703125
+        },
+        {
+          "outcome": "41",
+          "probability": 9.5367431640625e-7
+        },
+        {
+          "outcome": "53",
+          "probability": 1.4901161193847656e-8
+        },
+        {
+          "outcome": "67",
+          "probability": 1.1641532182693481e-10
+        },
+        {
+          "outcome": "81",
+          "probability": 9.094947017729282e-13
+        },
+        {
+          "outcome": "95",
+          "probability": 7.105427357601002e-15
+        },
+        {
+          "outcome": "107",
+          "probability": 1.1102230246251565e-16
+        },
+        {
+          "outcome": "121",
+          "probability": 0.0
+        },
+        {
+          "outcome": "135",
+          "probability": 0.0
+        },
+        {
+          "outcome": "149",
+          "probability": 0.0
+        },
+        {
+          "outcome": "161",
+          "probability": 0.0
+        },
+        {
+          "outcome": "175",
+          "probability": 0.0
+        },
+        {
+          "outcome": "189",
+          "probability": 0.0
+        },
+        {
+          "outcome": "202",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "9",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "5",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "3",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "1",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "1",
+          "at_most": "9"
+        }
+      ]
+    },
+    {
+      "description": "capped reroll residual 1d100r<=99",
+      "expression": "1d100r<=99",
+      "canonical_expression": "1d100r<=99",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_rerolls": 100
+        }
+      },
+      "support_len": 100,
+      "stats": {
+        "min": "1",
+        "max": "100",
+        "mean": 81.88139910697522,
+        "median": "100",
+        "mode": "100",
+        "stddev": 29.556445900174253,
+        "percentiles": {
+          "10": "28",
+          "25": "69",
+          "50": "100",
+          "75": "100",
+          "90": "100",
+          "95": "100"
+        },
+        "entropy": 3.346927878721709
+      },
+      "pmf": [
+        {
+          "outcome": "1",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "2",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "3",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "4",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "5",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "6",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "7",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "8",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "9",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "10",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "11",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "12",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "13",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "14",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "15",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "16",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "17",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "18",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "19",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "20",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "21",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "22",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "23",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "24",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "25",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "26",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "27",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "28",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "29",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "30",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "31",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "32",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "33",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "34",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "35",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "36",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "37",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "38",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "39",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "40",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "41",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "42",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "43",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "44",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "45",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "46",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "47",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "48",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "49",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "50",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "51",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "52",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "53",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "54",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "55",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "56",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "57",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "58",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "59",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "60",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "61",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "62",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "63",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "64",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "65",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "66",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "67",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "68",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "69",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "70",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "71",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "72",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "73",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "74",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "75",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "76",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "77",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "78",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "79",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "80",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "81",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "82",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "83",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "84",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "85",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "86",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "87",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "88",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "89",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "90",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "91",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "92",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "93",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "94",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "95",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "96",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "97",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "98",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "99",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "100",
+          "probability": 0.6376279821395038
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.003660323412732292
+        },
+        {
+          "outcome": "7",
+          "probability": 0.025622263889126046
+        },
+        {
+          "outcome": "14",
+          "probability": 0.05124452777825209
+        },
+        {
+          "outcome": "20",
+          "probability": 0.07320646825464583
+        },
+        {
+          "outcome": "27",
+          "probability": 0.09882873214377183
+        },
+        {
+          "outcome": "34",
+          "probability": 0.12445099603289783
+        },
+        {
+          "outcome": "40",
+          "probability": 0.14641293650929155
+        },
+        {
+          "outcome": "47",
+          "probability": 0.17203520039841755
+        },
+        {
+          "outcome": "53",
+          "probability": 0.19399714087481126
+        },
+        {
+          "outcome": "60",
+          "probability": 0.21961940476393726
+        },
+        {
+          "outcome": "67",
+          "probability": 0.24524166865306327
+        },
+        {
+          "outcome": "73",
+          "probability": 0.2672036091294571
+        },
+        {
+          "outcome": "80",
+          "probability": 0.2928258730185833
+        },
+        {
+          "outcome": "86",
+          "probability": 0.3147878134949772
+        },
+        {
+          "outcome": "93",
+          "probability": 0.3404100773841034
+        },
+        {
+          "outcome": "100",
+          "probability": 1.000000000000001
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "1",
+          "probability": 1.000000000000001
+        },
+        {
+          "outcome": "7",
+          "probability": 0.9780380595236073
+        },
+        {
+          "outcome": "14",
+          "probability": 0.9524157956344813
+        },
+        {
+          "outcome": "20",
+          "probability": 0.9304538551580875
+        },
+        {
+          "outcome": "27",
+          "probability": 0.9048315912689615
+        },
+        {
+          "outcome": "34",
+          "probability": 0.8792093273798356
+        },
+        {
+          "outcome": "40",
+          "probability": 0.8572473869034418
+        },
+        {
+          "outcome": "47",
+          "probability": 0.8316251230143159
+        },
+        {
+          "outcome": "53",
+          "probability": 0.8096631825379221
+        },
+        {
+          "outcome": "60",
+          "probability": 0.7840409186487961
+        },
+        {
+          "outcome": "67",
+          "probability": 0.7584186547596701
+        },
+        {
+          "outcome": "73",
+          "probability": 0.7364567142832763
+        },
+        {
+          "outcome": "80",
+          "probability": 0.7108344503941502
+        },
+        {
+          "outcome": "86",
+          "probability": 0.6888725099177562
+        },
+        {
+          "outcome": "93",
+          "probability": 0.66325024602863
+        },
+        {
+          "outcome": "100",
+          "probability": 0.6376279821395039
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "100",
+          "at_most": "14"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "100",
+          "at_most": "69"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "100",
+          "at_most": "100"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "69",
+          "at_most": "100"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "14",
+          "at_most": "100"
+        }
+      ]
+    },
+    {
+      "description": "underflowed reachable support 5d20r=1",
+      "expression": "5d20r=1",
+      "canonical_expression": "5d20r=1",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_rerolls": 100
+        }
+      },
+      "support_len": 96,
+      "stats": {
+        "min": "5",
+        "max": "100",
+        "mean": 55.00000000000002,
+        "median": "55",
+        "mode": "55",
+        "stddev": 12.247448713915894,
+        "percentiles": {
+          "10": "39",
+          "25": "47",
+          "50": "55",
+          "75": "63",
+          "90": "71",
+          "95": "75"
+        },
+        "entropy": 5.659093906686133
+      },
+      "pmf": [
+        {
+          "outcome": "5",
+          "probability": 0.0
+        },
+        {
+          "outcome": "6",
+          "probability": 0.0
+        },
+        {
+          "outcome": "7",
+          "probability": 0.0
+        },
+        {
+          "outcome": "8",
+          "probability": 2.2681933510210228e-266
+        },
+        {
+          "outcome": "9",
+          "probability": 1.5133035067660248e-136
+        },
+        {
+          "outcome": "10",
+          "probability": 4.038610734061927e-7
+        },
+        {
+          "outcome": "11",
+          "probability": 2.0193053670309633e-6
+        },
+        {
+          "outcome": "12",
+          "probability": 6.057916101092891e-6
+        },
+        {
+          "outcome": "13",
+          "probability": 0.000014135137569216746
+        },
+        {
+          "outcome": "14",
+          "probability": 0.000028270275138433492
+        },
+        {
+          "outcome": "15",
+          "probability": 0.00005088649524918029
+        },
+        {
+          "outcome": "16",
+          "probability": 0.00008481082541530048
+        },
+        {
+          "outcome": "17",
+          "probability": 0.0001332741542240436
+        },
+        {
+          "outcome": "18",
+          "probability": 0.0001999112313360654
+        },
+        {
+          "outcome": "19",
+          "probability": 0.0002887606674854278
+        },
+        {
+          "outcome": "20",
+          "probability": 0.00040426493447959894
+        },
+        {
+          "outcome": "21",
+          "probability": 0.0005512703651994531
+        },
+        {
+          "outcome": "22",
+          "probability": 0.0007350271535992709
+        },
+        {
+          "outcome": "23",
+          "probability": 0.0009611893547067388
+        },
+        {
+          "outcome": "24",
+          "probability": 0.00123581488462295
+        },
+        {
+          "outcome": "25",
+          "probability": 0.0015653655205224034
+        },
+        {
+          "outcome": "26",
+          "probability": 0.0019567069006530043
+        },
+        {
+          "outcome": "27",
+          "probability": 0.002417108524336064
+        },
+        {
+          "outcome": "28",
+          "probability": 0.0029542437519663005
+        },
+        {
+          "outcome": "29",
+          "probability": 0.003574170499644806
+        },
+        {
+          "outcome": "30",
+          "probability": 0.00428133123917905
+        },
+        {
+          "outcome": "31",
+          "probability": 0.005078552998082875
+        },
+        {
+          "outcome": "32",
+          "probability": 0.005967047359576499
+        },
+        {
+          "outcome": "33",
+          "probability": 0.006946410462586518
+        },
+        {
+          "outcome": "34",
+          "probability": 0.008014623001745897
+        },
+        {
+          "outcome": "35",
+          "probability": 0.009168050227393983
+        },
+        {
+          "outcome": "36",
+          "probability": 0.010401441945576496
+        },
+        {
+          "outcome": "37",
+          "probability": 0.01170793251804553
+        },
+        {
+          "outcome": "38",
+          "probability": 0.013079040862259556
+        },
+        {
+          "outcome": "39",
+          "probability": 0.014504670451383418
+        },
+        {
+          "outcome": "40",
+          "probability": 0.015973109314288334
+        },
+        {
+          "outcome": "41",
+          "probability": 0.017471030035551904
+        },
+        {
+          "outcome": "42",
+          "probability": 0.018983489755458095
+        },
+        {
+          "outcome": "43",
+          "probability": 0.020493930169997256
+        },
+        {
+          "outcome": "44",
+          "probability": 0.021984177530866105
+        },
+        {
+          "outcome": "45",
+          "probability": 0.023434442645467745
+        },
+        {
+          "outcome": "46",
+          "probability": 0.024823320876911643
+        },
+        {
+          "outcome": "47",
+          "probability": 0.026127792144013645
+        },
+        {
+          "outcome": "48",
+          "probability": 0.027327259532030038
+        },
+        {
+          "outcome": "49",
+          "probability": 0.02840354929265754
+        },
+        {
+          "outcome": "50",
+          "probability": 0.029340910844033313
+        },
+        {
+          "outcome": "51",
+          "probability": 0.030126016770734954
+        },
+        {
+          "outcome": "52",
+          "probability": 0.030747962823780492
+        },
+        {
+          "outcome": "53",
+          "probability": 0.031198267920628395
+        },
+        {
+          "outcome": "54",
+          "probability": 0.031470874145177574
+        },
+        {
+          "outcome": "55",
+          "probability": 0.031562146747767375
+        },
+        {
+          "outcome": "56",
+          "probability": 0.03147087414517757
+        },
+        {
+          "outcome": "57",
+          "probability": 0.03119826792062839
+        },
+        {
+          "outcome": "58",
+          "probability": 0.03074796282378049
+        },
+        {
+          "outcome": "59",
+          "probability": 0.030126016770734954
+        },
+        {
+          "outcome": "60",
+          "probability": 0.029340910844033313
+        },
+        {
+          "outcome": "61",
+          "probability": 0.02840354929265754
+        },
+        {
+          "outcome": "62",
+          "probability": 0.027327259532030038
+        },
+        {
+          "outcome": "63",
+          "probability": 0.02612779214401364
+        },
+        {
+          "outcome": "64",
+          "probability": 0.024823320876911643
+        },
+        {
+          "outcome": "65",
+          "probability": 0.023434442645467745
+        },
+        {
+          "outcome": "66",
+          "probability": 0.02198417753086611
+        },
+        {
+          "outcome": "67",
+          "probability": 0.020493930169997253
+        },
+        {
+          "outcome": "68",
+          "probability": 0.01898348975545809
+        },
+        {
+          "outcome": "69",
+          "probability": 0.017471030035551904
+        },
+        {
+          "outcome": "70",
+          "probability": 0.01597310931428833
+        },
+        {
+          "outcome": "71",
+          "probability": 0.014504670451383414
+        },
+        {
+          "outcome": "72",
+          "probability": 0.013079040862259554
+        },
+        {
+          "outcome": "73",
+          "probability": 0.011707932518045529
+        },
+        {
+          "outcome": "74",
+          "probability": 0.010401441945576493
+        },
+        {
+          "outcome": "75",
+          "probability": 0.00916805022739398
+        },
+        {
+          "outcome": "76",
+          "probability": 0.008014623001745895
+        },
+        {
+          "outcome": "77",
+          "probability": 0.006946410462586519
+        },
+        {
+          "outcome": "78",
+          "probability": 0.005967047359576499
+        },
+        {
+          "outcome": "79",
+          "probability": 0.005078552998082875
+        },
+        {
+          "outcome": "80",
+          "probability": 0.004281331239179051
+        },
+        {
+          "outcome": "81",
+          "probability": 0.003574170499644806
+        },
+        {
+          "outcome": "82",
+          "probability": 0.0029542437519663
+        },
+        {
+          "outcome": "83",
+          "probability": 0.002417108524336063
+        },
+        {
+          "outcome": "84",
+          "probability": 0.0019567069006530043
+        },
+        {
+          "outcome": "85",
+          "probability": 0.0015653655205224032
+        },
+        {
+          "outcome": "86",
+          "probability": 0.00123581488462295
+        },
+        {
+          "outcome": "87",
+          "probability": 0.0009611893547067388
+        },
+        {
+          "outcome": "88",
+          "probability": 0.0007350271535992709
+        },
+        {
+          "outcome": "89",
+          "probability": 0.0005512703651994531
+        },
+        {
+          "outcome": "90",
+          "probability": 0.00040426493447959894
+        },
+        {
+          "outcome": "91",
+          "probability": 0.00028876066748542787
+        },
+        {
+          "outcome": "92",
+          "probability": 0.00019991123133606537
+        },
+        {
+          "outcome": "93",
+          "probability": 0.0001332741542240436
+        },
+        {
+          "outcome": "94",
+          "probability": 0.00008481082541530049
+        },
+        {
+          "outcome": "95",
+          "probability": 0.000050886495249180275
+        },
+        {
+          "outcome": "96",
+          "probability": 0.00002827027513843349
+        },
+        {
+          "outcome": "97",
+          "probability": 0.000014135137569216746
+        },
+        {
+          "outcome": "98",
+          "probability": 6.057916101092891e-6
+        },
+        {
+          "outcome": "99",
+          "probability": 2.0193053670309633e-6
+        },
+        {
+          "outcome": "100",
+          "probability": 4.038610734061927e-7
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "5",
+          "probability": 0.0
+        },
+        {
+          "outcome": "11",
+          "probability": 2.423166440437156e-6
+        },
+        {
+          "outcome": "17",
+          "probability": 0.00031985797013770465
+        },
+        {
+          "outcome": "24",
+          "probability": 0.00469609656156721
+        },
+        {
+          "outcome": "30",
+          "probability": 0.021445022997868837
+        },
+        {
+          "outcome": "36",
+          "probability": 0.0670211489928311
+        },
+        {
+          "outcome": "43",
+          "probability": 0.1792343520998152
+        },
+        {
+          "outcome": "49",
+          "probability": 0.33133489412176187
+        },
+        {
+          "outcome": "55",
+          "probability": 0.515781073373884
+        },
+        {
+          "outcome": "62",
+          "probability": 0.7243959147029264
+        },
+        {
+          "outcome": "68",
+          "probability": 0.8602430678256409
+        },
+        {
+          "outcome": "74",
+          "probability": 0.9433802929527461
+        },
+        {
+          "outcome": "81",
+          "probability": 0.9864104787409558
+        },
+        {
+          "outcome": "87",
+          "probability": 0.9975009076777633
+        },
+        {
+          "outcome": "93",
+          "probability": 0.9998134161840873
+        },
+        {
+          "outcome": "100",
+          "probability": 1.0000000000000009
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "5",
+          "probability": 1.0000000000000009
+        },
+        {
+          "outcome": "11",
+          "probability": 0.9999995961389275
+        },
+        {
+          "outcome": "17",
+          "probability": 0.9998134161840873
+        },
+        {
+          "outcome": "24",
+          "probability": 0.9965397183230567
+        },
+        {
+          "outcome": "30",
+          "probability": 0.9828363082413111
+        },
+        {
+          "outcome": "36",
+          "probability": 0.9433802929527463
+        },
+        {
+          "outcome": "43",
+          "probability": 0.8412595780701829
+        },
+        {
+          "outcome": "49",
+          "probability": 0.6970686551708966
+        },
+        {
+          "outcome": "55",
+          "probability": 0.5157810733738842
+        },
+        {
+          "outcome": "62",
+          "probability": 0.30293134482910455
+        },
+        {
+          "outcome": "68",
+          "probability": 0.15874042192981808
+        },
+        {
+          "outcome": "74",
+          "probability": 0.06702114899283129
+        },
+        {
+          "outcome": "81",
+          "probability": 0.017163691758689925
+        },
+        {
+          "outcome": "87",
+          "probability": 0.0034602816769443434
+        },
+        {
+          "outcome": "93",
+          "probability": 0.00031985797013767137
+        },
+        {
+          "outcome": "100",
+          "probability": 4.038610733614334e-7
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "75",
+          "at_most": "35"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "63",
+          "at_most": "47"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "55",
+          "at_most": "55"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "47",
+          "at_most": "63"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "35",
+          "at_most": "75"
+        }
+      ]
+    },
+    {
+      "description": "every-face explosion hits MAX_EXPLOSIONS 1d6!>=1",
+      "expression": "1d6!>=1",
+      "canonical_expression": "1d6!>=1",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 506,
+      "stats": {
+        "min": "101",
+        "max": "606",
+        "mean": 353.4999999999981,
+        "median": "354",
+        "mode": "353",
+        "stddev": 17.163430115607184,
+        "percentiles": {
+          "10": "331",
+          "25": "342",
+          "50": "354",
+          "75": "365",
+          "90": "376",
+          "95": "382"
+        },
+        "entropy": 6.148356782542514
+      },
+      "pmf": [],
+      "cdf_samples": [
+        {
+          "outcome": "101",
+          "probability": 2.5510778458108306e-79
+        },
+        {
+          "outcome": "134",
+          "probability": 6.115121179098142e-48
+        },
+        {
+          "outcome": "168",
+          "probability": 1.288599458347218e-31
+        },
+        {
+          "outcome": "202",
+          "probability": 1.6428417772195382e-20
+        },
+        {
+          "outcome": "235",
+          "probability": 8.772817451856315e-13
+        },
+        {
+          "outcome": "269",
+          "probability": 3.6862988839602025e-7
+        },
+        {
+          "outcome": "303",
+          "probability": 0.0017383893593969678
+        },
+        {
+          "outcome": "336",
+          "probability": 0.16119260149424702
+        },
+        {
+          "outcome": "370",
+          "probability": 0.8388073985057468
+        },
+        {
+          "outcome": "404",
+          "probability": 0.9985638938390513
+        },
+        {
+          "outcome": "437",
+          "probability": 0.999999631370106
+        },
+        {
+          "outcome": "471",
+          "probability": 0.9999999999991169
+        },
+        {
+          "outcome": "505",
+          "probability": 0.9999999999999942
+        },
+        {
+          "outcome": "538",
+          "probability": 0.9999999999999942
+        },
+        {
+          "outcome": "572",
+          "probability": 0.9999999999999942
+        },
+        {
+          "outcome": "606",
+          "probability": 0.9999999999999942
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "101",
+          "probability": 0.9999999999999942
+        },
+        {
+          "outcome": "134",
+          "probability": 0.9999999999999942
+        },
+        {
+          "outcome": "168",
+          "probability": 0.9999999999999942
+        },
+        {
+          "outcome": "202",
+          "probability": 0.9999999999999942
+        },
+        {
+          "outcome": "235",
+          "probability": 0.999999999999439
+        },
+        {
+          "outcome": "269",
+          "probability": 0.9999997304731668
+        },
+        {
+          "outcome": "303",
+          "probability": 0.9985638938390513
+        },
+        {
+          "outcome": "336",
+          "probability": 0.8526445949625554
+        },
+        {
+          "outcome": "370",
+          "probability": 0.1758482323658752
+        },
+        {
+          "outcome": "404",
+          "probability": 0.0017383893593969635
+        },
+        {
+          "outcome": "437",
+          "probability": 5.022300166857008e-7
+        },
+        {
+          "outcome": "471",
+          "probability": 1.379674152701682e-12
+        },
+        {
+          "outcome": "505",
+          "probability": 0.0
+        },
+        {
+          "outcome": "538",
+          "probability": 0.0
+        },
+        {
+          "outcome": "572",
+          "probability": 0.0
+        },
+        {
+          "outcome": "606",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "382",
+          "at_most": "325"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "365",
+          "at_most": "342"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "354",
+          "at_most": "353"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "342",
+          "at_most": "365"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "325",
+          "at_most": "382"
+        }
+      ]
+    },
+    {
+      "description": "every-face reroll hits MAX_REROLLS uniformly 1d6r>=1",
+      "expression": "1d6r>=1",
+      "canonical_expression": "1d6r>=1",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_rerolls": 100
+        }
+      },
+      "support_len": 6,
+      "stats": {
+        "min": "1",
+        "max": "6",
+        "mean": 3.5,
+        "median": "3",
+        "mode": "1",
+        "stddev": 1.707825127659933,
+        "percentiles": {
+          "10": "1",
+          "25": "2",
+          "50": "3",
+          "75": "5",
+          "90": "6",
+          "95": "6"
+        },
+        "entropy": 2.584962500721156
+      },
+      "pmf": [
+        {
+          "outcome": "1",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "2",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "3",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "4",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "5",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "6",
+          "probability": 0.16666666666666666
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "2",
+          "probability": 0.3333333333333333
+        },
+        {
+          "outcome": "3",
+          "probability": 0.5
+        },
+        {
+          "outcome": "4",
+          "probability": 0.6666666666666666
+        },
+        {
+          "outcome": "5",
+          "probability": 0.8333333333333333
+        },
+        {
+          "outcome": "6",
+          "probability": 0.9999999999999999
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "2",
+          "probability": 0.8333333333333333
+        },
+        {
+          "outcome": "3",
+          "probability": 0.6666666666666665
+        },
+        {
+          "outcome": "4",
+          "probability": 0.4999999999999999
+        },
+        {
+          "outcome": "5",
+          "probability": 0.33333333333333326
+        },
+        {
+          "outcome": "6",
+          "probability": 0.16666666666666663
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "6",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "5",
+          "at_most": "2"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "4",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "2",
+          "at_most": "5"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "1",
+          "at_most": "6"
+        }
+      ]
+    },
+    {
+      "description": "unmatched reroll threshold reports no cap 1d6r=7",
+      "expression": "1d6r=7",
+      "canonical_expression": "1d6r=7",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 6,
+      "stats": {
+        "min": "1",
+        "max": "6",
+        "mean": 3.5,
+        "median": "3",
+        "mode": "1",
+        "stddev": 1.707825127659933,
+        "percentiles": {
+          "10": "1",
+          "25": "2",
+          "50": "3",
+          "75": "5",
+          "90": "6",
+          "95": "6"
+        },
+        "entropy": 2.584962500721156
+      },
+      "pmf": [
+        {
+          "outcome": "1",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "2",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "3",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "4",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "5",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "6",
+          "probability": 0.16666666666666666
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.16666666666666666
+        },
+        {
+          "outcome": "2",
+          "probability": 0.3333333333333333
+        },
+        {
+          "outcome": "3",
+          "probability": 0.5
+        },
+        {
+          "outcome": "4",
+          "probability": 0.6666666666666666
+        },
+        {
+          "outcome": "5",
+          "probability": 0.8333333333333333
+        },
+        {
+          "outcome": "6",
+          "probability": 0.9999999999999999
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "2",
+          "probability": 0.8333333333333333
+        },
+        {
+          "outcome": "3",
+          "probability": 0.6666666666666665
+        },
+        {
+          "outcome": "4",
+          "probability": 0.4999999999999999
+        },
+        {
+          "outcome": "5",
+          "probability": 0.33333333333333326
+        },
+        {
+          "outcome": "6",
+          "probability": 0.16666666666666663
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "6",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "5",
+          "at_most": "2"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "4",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "2",
+          "at_most": "5"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "1",
+          "at_most": "6"
+        }
+      ]
+    },
+    {
+      "description": "clamped depth-0 single explosion without cap 1d6min7!>=7",
+      "expression": "1d6min7!>=7",
+      "canonical_expression": "1d6min7!>=7",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 6,
+      "stats": {
+        "min": "8",
+        "max": "13",
+        "mean": 10.499999999999998,
+        "median": "10",
+        "mode": "8",
+        "stddev": 1.707825127659933,
+        "percentiles": {
+          "10": "8",
+          "25": "9",
+          "50": "10",
+          "75": "12",
+          "90": "13",
+          "95": "13"
+        },
+        "entropy": 2.584962500721156
+      },
+      "pmf": [
+        {
+          "outcome": "8",
+          "probability": 0.16666666666666663
+        },
+        {
+          "outcome": "9",
+          "probability": 0.16666666666666663
+        },
+        {
+          "outcome": "10",
+          "probability": 0.16666666666666663
+        },
+        {
+          "outcome": "11",
+          "probability": 0.16666666666666663
+        },
+        {
+          "outcome": "12",
+          "probability": 0.16666666666666663
+        },
+        {
+          "outcome": "13",
+          "probability": 0.16666666666666663
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "8",
+          "probability": 0.16666666666666663
+        },
+        {
+          "outcome": "9",
+          "probability": 0.33333333333333326
+        },
+        {
+          "outcome": "10",
+          "probability": 0.4999999999999999
+        },
+        {
+          "outcome": "11",
+          "probability": 0.6666666666666665
+        },
+        {
+          "outcome": "12",
+          "probability": 0.8333333333333331
+        },
+        {
+          "outcome": "13",
+          "probability": 0.9999999999999998
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "8",
+          "probability": 0.9999999999999998
+        },
+        {
+          "outcome": "9",
+          "probability": 0.8333333333333331
+        },
+        {
+          "outcome": "10",
+          "probability": 0.6666666666666665
+        },
+        {
+          "outcome": "11",
+          "probability": 0.4999999999999999
+        },
+        {
+          "outcome": "12",
+          "probability": 0.33333333333333326
+        },
+        {
+          "outcome": "13",
+          "probability": 0.16666666666666663
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "13",
+          "at_most": "8"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "12",
+          "at_most": "9"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "11",
+          "at_most": "10"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "9",
+          "at_most": "12"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "8",
+          "at_most": "13"
+        }
+      ]
+    },
+    {
+      "description": "penetrate explosion floor and raw-face threshold 1d2!p",
+      "expression": "1d2!p",
+      "canonical_expression": "1d2!p>=2",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 101,
+      "stats": {
+        "min": "1",
+        "max": "102",
+        "mean": 2.4999999999999996,
+        "median": "1",
+        "mode": "1",
+        "stddev": 1.8027756377319946,
+        "percentiles": {
+          "10": "1",
+          "25": "1",
+          "50": "1",
+          "75": "3",
+          "90": "5",
+          "95": "6"
+        },
+        "entropy": 1.9999999999999998
+      },
+      "pmf": [
+        {
+          "outcome": "1",
+          "probability": 0.5
+        },
+        {
+          "outcome": "3",
+          "probability": 0.25
+        },
+        {
+          "outcome": "4",
+          "probability": 0.125
+        },
+        {
+          "outcome": "5",
+          "probability": 0.0625
+        },
+        {
+          "outcome": "6",
+          "probability": 0.03125
+        },
+        {
+          "outcome": "7",
+          "probability": 0.015625
+        },
+        {
+          "outcome": "8",
+          "probability": 0.0078125
+        },
+        {
+          "outcome": "9",
+          "probability": 0.00390625
+        },
+        {
+          "outcome": "10",
+          "probability": 0.001953125
+        },
+        {
+          "outcome": "11",
+          "probability": 0.0009765625
+        },
+        {
+          "outcome": "12",
+          "probability": 0.00048828125
+        },
+        {
+          "outcome": "13",
+          "probability": 0.000244140625
+        },
+        {
+          "outcome": "14",
+          "probability": 0.0001220703125
+        },
+        {
+          "outcome": "15",
+          "probability": 0.00006103515625
+        },
+        {
+          "outcome": "16",
+          "probability": 0.000030517578125
+        },
+        {
+          "outcome": "17",
+          "probability": 0.0000152587890625
+        },
+        {
+          "outcome": "18",
+          "probability": 7.62939453125e-6
+        },
+        {
+          "outcome": "19",
+          "probability": 3.814697265625e-6
+        },
+        {
+          "outcome": "20",
+          "probability": 1.9073486328125e-6
+        },
+        {
+          "outcome": "21",
+          "probability": 9.5367431640625e-7
+        },
+        {
+          "outcome": "22",
+          "probability": 4.76837158203125e-7
+        },
+        {
+          "outcome": "23",
+          "probability": 2.384185791015625e-7
+        },
+        {
+          "outcome": "24",
+          "probability": 1.1920928955078125e-7
+        },
+        {
+          "outcome": "25",
+          "probability": 5.960464477539063e-8
+        },
+        {
+          "outcome": "26",
+          "probability": 2.9802322387695312e-8
+        },
+        {
+          "outcome": "27",
+          "probability": 1.4901161193847656e-8
+        },
+        {
+          "outcome": "28",
+          "probability": 7.450580596923828e-9
+        },
+        {
+          "outcome": "29",
+          "probability": 3.725290298461914e-9
+        },
+        {
+          "outcome": "30",
+          "probability": 1.862645149230957e-9
+        },
+        {
+          "outcome": "31",
+          "probability": 9.313225746154785e-10
+        },
+        {
+          "outcome": "32",
+          "probability": 4.656612873077393e-10
+        },
+        {
+          "outcome": "33",
+          "probability": 2.3283064365386963e-10
+        },
+        {
+          "outcome": "34",
+          "probability": 1.1641532182693481e-10
+        },
+        {
+          "outcome": "35",
+          "probability": 5.820766091346741e-11
+        },
+        {
+          "outcome": "36",
+          "probability": 2.9103830456733704e-11
+        },
+        {
+          "outcome": "37",
+          "probability": 1.4551915228366852e-11
+        },
+        {
+          "outcome": "38",
+          "probability": 7.275957614183426e-12
+        },
+        {
+          "outcome": "39",
+          "probability": 3.637978807091713e-12
+        },
+        {
+          "outcome": "40",
+          "probability": 1.8189894035458565e-12
+        },
+        {
+          "outcome": "41",
+          "probability": 9.094947017729282e-13
+        },
+        {
+          "outcome": "42",
+          "probability": 4.547473508864641e-13
+        },
+        {
+          "outcome": "43",
+          "probability": 2.2737367544323206e-13
+        },
+        {
+          "outcome": "44",
+          "probability": 1.1368683772161603e-13
+        },
+        {
+          "outcome": "45",
+          "probability": 5.684341886080802e-14
+        },
+        {
+          "outcome": "46",
+          "probability": 2.842170943040401e-14
+        },
+        {
+          "outcome": "47",
+          "probability": 1.4210854715202004e-14
+        },
+        {
+          "outcome": "48",
+          "probability": 7.105427357601002e-15
+        },
+        {
+          "outcome": "49",
+          "probability": 3.552713678800501e-15
+        },
+        {
+          "outcome": "50",
+          "probability": 1.7763568394002505e-15
+        },
+        {
+          "outcome": "51",
+          "probability": 8.881784197001252e-16
+        },
+        {
+          "outcome": "52",
+          "probability": 4.440892098500626e-16
+        },
+        {
+          "outcome": "53",
+          "probability": 2.220446049250313e-16
+        },
+        {
+          "outcome": "54",
+          "probability": 1.1102230246251565e-16
+        },
+        {
+          "outcome": "55",
+          "probability": 5.551115123125783e-17
+        },
+        {
+          "outcome": "56",
+          "probability": 2.7755575615628914e-17
+        },
+        {
+          "outcome": "57",
+          "probability": 1.3877787807814457e-17
+        },
+        {
+          "outcome": "58",
+          "probability": 6.938893903907228e-18
+        },
+        {
+          "outcome": "59",
+          "probability": 3.469446951953614e-18
+        },
+        {
+          "outcome": "60",
+          "probability": 1.734723475976807e-18
+        },
+        {
+          "outcome": "61",
+          "probability": 8.673617379884035e-19
+        },
+        {
+          "outcome": "62",
+          "probability": 4.336808689942018e-19
+        },
+        {
+          "outcome": "63",
+          "probability": 2.168404344971009e-19
+        },
+        {
+          "outcome": "64",
+          "probability": 1.0842021724855044e-19
+        },
+        {
+          "outcome": "65",
+          "probability": 5.421010862427522e-20
+        },
+        {
+          "outcome": "66",
+          "probability": 2.710505431213761e-20
+        },
+        {
+          "outcome": "67",
+          "probability": 1.3552527156068805e-20
+        },
+        {
+          "outcome": "68",
+          "probability": 6.776263578034403e-21
+        },
+        {
+          "outcome": "69",
+          "probability": 3.3881317890172014e-21
+        },
+        {
+          "outcome": "70",
+          "probability": 1.6940658945086007e-21
+        },
+        {
+          "outcome": "71",
+          "probability": 8.470329472543003e-22
+        },
+        {
+          "outcome": "72",
+          "probability": 4.235164736271502e-22
+        },
+        {
+          "outcome": "73",
+          "probability": 2.117582368135751e-22
+        },
+        {
+          "outcome": "74",
+          "probability": 1.0587911840678754e-22
+        },
+        {
+          "outcome": "75",
+          "probability": 5.293955920339377e-23
+        },
+        {
+          "outcome": "76",
+          "probability": 2.6469779601696886e-23
+        },
+        {
+          "outcome": "77",
+          "probability": 1.3234889800848443e-23
+        },
+        {
+          "outcome": "78",
+          "probability": 6.617444900424222e-24
+        },
+        {
+          "outcome": "79",
+          "probability": 3.308722450212111e-24
+        },
+        {
+          "outcome": "80",
+          "probability": 1.6543612251060553e-24
+        },
+        {
+          "outcome": "81",
+          "probability": 8.271806125530277e-25
+        },
+        {
+          "outcome": "82",
+          "probability": 4.1359030627651384e-25
+        },
+        {
+          "outcome": "83",
+          "probability": 2.0679515313825692e-25
+        },
+        {
+          "outcome": "84",
+          "probability": 1.0339757656912846e-25
+        },
+        {
+          "outcome": "85",
+          "probability": 5.169878828456423e-26
+        },
+        {
+          "outcome": "86",
+          "probability": 2.5849394142282115e-26
+        },
+        {
+          "outcome": "87",
+          "probability": 1.2924697071141057e-26
+        },
+        {
+          "outcome": "88",
+          "probability": 6.462348535570529e-27
+        },
+        {
+          "outcome": "89",
+          "probability": 3.2311742677852644e-27
+        },
+        {
+          "outcome": "90",
+          "probability": 1.6155871338926322e-27
+        },
+        {
+          "outcome": "91",
+          "probability": 8.077935669463161e-28
+        },
+        {
+          "outcome": "92",
+          "probability": 4.0389678347315804e-28
+        },
+        {
+          "outcome": "93",
+          "probability": 2.0194839173657902e-28
+        },
+        {
+          "outcome": "94",
+          "probability": 1.0097419586828951e-28
+        },
+        {
+          "outcome": "95",
+          "probability": 5.048709793414476e-29
+        },
+        {
+          "outcome": "96",
+          "probability": 2.524354896707238e-29
+        },
+        {
+          "outcome": "97",
+          "probability": 1.262177448353619e-29
+        },
+        {
+          "outcome": "98",
+          "probability": 6.310887241768095e-30
+        },
+        {
+          "outcome": "99",
+          "probability": 3.1554436208840472e-30
+        },
+        {
+          "outcome": "100",
+          "probability": 1.5777218104420236e-30
+        },
+        {
+          "outcome": "101",
+          "probability": 7.888609052210118e-31
+        },
+        {
+          "outcome": "102",
+          "probability": 7.888609052210118e-31
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.5
+        },
+        {
+          "outcome": "8",
+          "probability": 0.9921875
+        },
+        {
+          "outcome": "15",
+          "probability": 0.99993896484375
+        },
+        {
+          "outcome": "22",
+          "probability": 0.9999995231628418
+        },
+        {
+          "outcome": "28",
+          "probability": 0.9999999925494194
+        },
+        {
+          "outcome": "35",
+          "probability": 0.9999999999417923
+        },
+        {
+          "outcome": "42",
+          "probability": 0.9999999999995453
+        },
+        {
+          "outcome": "48",
+          "probability": 0.9999999999999929
+        },
+        {
+          "outcome": "55",
+          "probability": 1.0
+        },
+        {
+          "outcome": "62",
+          "probability": 1.0
+        },
+        {
+          "outcome": "68",
+          "probability": 1.0
+        },
+        {
+          "outcome": "75",
+          "probability": 1.0
+        },
+        {
+          "outcome": "82",
+          "probability": 1.0
+        },
+        {
+          "outcome": "88",
+          "probability": 1.0
+        },
+        {
+          "outcome": "95",
+          "probability": 1.0
+        },
+        {
+          "outcome": "102",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "1",
+          "probability": 1.0
+        },
+        {
+          "outcome": "8",
+          "probability": 0.015625
+        },
+        {
+          "outcome": "15",
+          "probability": 0.0001220703125
+        },
+        {
+          "outcome": "22",
+          "probability": 9.5367431640625e-7
+        },
+        {
+          "outcome": "28",
+          "probability": 1.4901161193847656e-8
+        },
+        {
+          "outcome": "35",
+          "probability": 1.1641532182693481e-10
+        },
+        {
+          "outcome": "42",
+          "probability": 9.094947017729282e-13
+        },
+        {
+          "outcome": "48",
+          "probability": 1.4210854715202004e-14
+        },
+        {
+          "outcome": "55",
+          "probability": 1.1102230246251565e-16
+        },
+        {
+          "outcome": "62",
+          "probability": 0.0
+        },
+        {
+          "outcome": "68",
+          "probability": 0.0
+        },
+        {
+          "outcome": "75",
+          "probability": 0.0
+        },
+        {
+          "outcome": "82",
+          "probability": 0.0
+        },
+        {
+          "outcome": "88",
+          "probability": 0.0
+        },
+        {
+          "outcome": "95",
+          "probability": 0.0
+        },
+        {
+          "outcome": "102",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "6",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "4",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "3",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "1",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "1",
+          "at_most": "6"
+        }
+      ]
+    },
+    {
+      "description": "order-statistic DP wide keep-highest 10d20kh3",
+      "expression": "10d20kh3",
+      "canonical_expression": "10d20kh3",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 58,
+      "stats": {
+        "min": "3",
+        "max": "60",
+        "mean": 50.54924149064457,
+        "median": "51",
+        "mode": "54",
+        "stddev": 5.687521816557874,
+        "percentiles": {
+          "10": "43",
+          "25": "47",
+          "50": "51",
+          "75": "55",
+          "90": "57",
+          "95": "58"
+        },
+        "entropy": 4.43623946489287
+      },
+      "pmf": [
+        {
+          "outcome": "3",
+          "probability": 9.765625000000012e-14
+        },
+        {
+          "outcome": "4",
+          "probability": 9.76562500000001e-13
+        },
+        {
+          "outcome": "5",
+          "probability": 5.371093750000006e-12
+        },
+        {
+          "outcome": "6",
+          "probability": 1.042968750000001e-10
+        },
+        {
+          "outcome": "7",
+          "probability": 5.043945312500005e-10
+        },
+        {
+          "outcome": "8",
+          "probability": 1.6293945312500016e-9
+        },
+        {
+          "outcome": "9",
+          "probability": 6.7958984375000056e-9
+        },
+        {
+          "outcome": "10",
+          "probability": 2.0351074218750016e-8
+        },
+        {
+          "outcome": "11",
+          "probability": 4.918359375000004e-8
+        },
+        {
+          "outcome": "12",
+          "probability": 1.2659541015625008e-7
+        },
+        {
+          "outcome": "13",
+          "probability": 2.8596191406250024e-7
+        },
+        {
+          "outcome": "14",
+          "probability": 5.739619140625004e-7
+        },
+        {
+          "outcome": "15",
+          "probability": 1.1692362304687509e-6
+        },
+        {
+          "outcome": "16",
+          "probability": 2.2253105468750016e-6
+        },
+        {
+          "outcome": "17",
+          "probability": 3.941924316406253e-6
+        },
+        {
+          "outcome": "18",
+          "probability": 6.985801367187506e-6
+        },
+        {
+          "outcome": "19",
+          "probability": 0.000011876075683593759
+        },
+        {
+          "outcome": "20",
+          "probability": 0.00001925720068359376
+        },
+        {
+          "outcome": "21",
+          "probability": 0.00003109627421875002
+        },
+        {
+          "outcome": "22",
+          "probability": 0.00004882352001953129
+        },
+        {
+          "outcome": "23",
+          "probability": 0.00007415711718750005
+        },
+        {
+          "outcome": "24",
+          "probability": 0.00011202141552734383
+        },
+        {
+          "outcome": "25",
+          "probability": 0.0001658207900390626
+        },
+        {
+          "outcome": "26",
+          "probability": 0.00023954654003906266
+        },
+        {
+          "outcome": "27",
+          "probability": 0.00034410450751953147
+        },
+        {
+          "outcome": "28",
+          "probability": 0.0004867384746093754
+        },
+        {
+          "outcome": "29",
+          "probability": 0.0006756718569335943
+        },
+        {
+          "outcome": "30",
+          "probability": 0.0009328117464843757
+        },
+        {
+          "outcome": "31",
+          "probability": 0.0012716666870117195
+        },
+        {
+          "outcome": "32",
+          "probability": 0.0017076865844726573
+        },
+        {
+          "outcome": "33",
+          "probability": 0.002279579054296877
+        },
+        {
+          "outcome": "34",
+          "probability": 0.0030111109750976584
+        },
+        {
+          "outcome": "35",
+          "probability": 0.003923551457031253
+        },
+        {
+          "outcome": "36",
+          "probability": 0.005083866947558596
+        },
+        {
+          "outcome": "37",
+          "probability": 0.006517384788085941
+        },
+        {
+          "outcome": "38",
+          "probability": 0.008259496788085944
+        },
+        {
+          "outcome": "39",
+          "probability": 0.010389506211425786
+        },
+        {
+          "outcome": "40",
+          "probability": 0.012950996564453133
+        },
+        {
+          "outcome": "41",
+          "probability": 0.01593752853076173
+        },
+        {
+          "outcome": "42",
+          "probability": 0.01948744741718751
+        },
+        {
+          "outcome": "43",
+          "probability": 0.023553348574218765
+        },
+        {
+          "outcome": "44",
+          "probability": 0.028154737221679705
+        },
+        {
+          "outcome": "45",
+          "probability": 0.033307787655664084
+        },
+        {
+          "outcome": "46",
+          "probability": 0.03900529298583987
+        },
+        {
+          "outcome": "47",
+          "probability": 0.04495260412255862
+        },
+        {
+          "outcome": "48",
+          "probability": 0.05130880150839848
+        },
+        {
+          "outcome": "49",
+          "probability": 0.05756148433496097
+        },
+        {
+          "outcome": "50",
+          "probability": 0.06353877808496099
+        },
+        {
+          "outcome": "51",
+          "probability": 0.06875376654667974
+        },
+        {
+          "outcome": "52",
+          "probability": 0.07297606498876959
+        },
+        {
+          "outcome": "53",
+          "probability": 0.07500673499658209
+        },
+        {
+          "outcome": "54",
+          "probability": 0.07514312961425787
+        },
+        {
+          "outcome": "55",
+          "probability": 0.0719344833583985
+        },
+        {
+          "outcome": "56",
+          "probability": 0.06553707747460942
+        },
+        {
+          "outcome": "57",
+          "probability": 0.055246263696484416
+        },
+        {
+          "outcome": "58",
+          "probability": 0.042331715170410185
+        },
+        {
+          "outcome": "59",
+          "probability": 0.026207237395019553
+        },
+        {
+          "outcome": "60",
+          "probability": 0.011503557379296883
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "3",
+          "probability": 9.765625000000012e-14
+        },
+        {
+          "outcome": "6",
+          "probability": 1.107421875000001e-10
+        },
+        {
+          "outcome": "10",
+          "probability": 2.9391503906250023e-8
+        },
+        {
+          "outcome": "14",
+          "probability": 1.0650943359375008e-6
+        },
+        {
+          "outcome": "18",
+          "probability": 0.000015387366796875012
+        },
+        {
+          "outcome": "22",
+          "probability": 0.00012644043740234385
+        },
+        {
+          "outcome": "25",
+          "probability": 0.00047843976015625033
+        },
+        {
+          "outcome": "29",
+          "probability": 0.002224501139257814
+        },
+        {
+          "outcome": "33",
+          "probability": 0.008416245211523442
+        },
+        {
+          "outcome": "37",
+          "probability": 0.026952159379296892
+        },
+        {
+          "outcome": "41",
+          "probability": 0.07448968747402349
+        },
+        {
+          "outcome": "44",
+          "probability": 0.14568522068710948
+        },
+        {
+          "outcome": "48",
+          "probability": 0.3142597069595705
+        },
+        {
+          "outcome": "52",
+          "probability": 0.5770898009149419
+        },
+        {
+          "outcome": "56",
+          "probability": 0.8647112263587897
+        },
+        {
+          "outcome": "60",
+          "probability": 1.0000000000000009
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "3",
+          "probability": 1.0000000000000009
+        },
+        {
+          "outcome": "6",
+          "probability": 0.9999999999935556
+        },
+        {
+          "outcome": "10",
+          "probability": 0.9999999909595712
+        },
+        {
+          "outcome": "14",
+          "probability": 0.999999508867579
+        },
+        {
+          "outcome": "18",
+          "probability": 0.9999915984345712
+        },
+        {
+          "outcome": "22",
+          "probability": 0.999922383082618
+        },
+        {
+          "outcome": "25",
+          "probability": 0.9996873810298837
+        },
+        {
+          "outcome": "29",
+          "probability": 0.9984511707176766
+        },
+        {
+          "outcome": "33",
+          "probability": 0.9938633338427744
+        },
+        {
+          "outcome": "37",
+          "probability": 0.97956522540879
+        },
+        {
+          "outcome": "41",
+          "probability": 0.9414478410567392
+        },
+        {
+          "outcome": "44",
+          "probability": 0.8824695165345711
+        },
+        {
+          "outcome": "48",
+          "probability": 0.7370490945488288
+        },
+        {
+          "outcome": "52",
+          "probability": 0.49588626407382863
+        },
+        {
+          "outcome": "56",
+          "probability": 0.20082585111582063
+        },
+        {
+          "outcome": "60",
+          "probability": 0.01150355737929698
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "58",
+          "at_most": "40"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "55",
+          "at_most": "47"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "51",
+          "at_most": "51"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "47",
+          "at_most": "55"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "40",
+          "at_most": "58"
+        }
+      ]
+    },
+    {
+      "description": "order-statistic DP chained drop-lowest/highest 6d6dl1dh1",
+      "expression": "6d6dl1dh1",
+      "canonical_expression": "6d6dl1dh1",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 21,
+      "stats": {
+        "min": "4",
+        "max": "24",
+        "mean": 13.999999999999996,
+        "median": "14",
+        "mode": "14",
+        "stddev": 3.4453590482260936,
+        "percentiles": {
+          "10": "9",
+          "25": "12",
+          "50": "14",
+          "75": "16",
+          "90": "19",
+          "95": "20"
+        },
+        "entropy": 3.824823097638325
+      },
+      "pmf": [
+        {
+          "outcome": "4",
+          "probability": 0.0006644375857338819
+        },
+        {
+          "outcome": "5",
+          "probability": 0.0028935185185185175
+        },
+        {
+          "outcome": "6",
+          "probability": 0.00782321673525377
+        },
+        {
+          "outcome": "7",
+          "probability": 0.016075102880658432
+        },
+        {
+          "outcome": "8",
+          "probability": 0.02842078189300411
+        },
+        {
+          "outcome": "9",
+          "probability": 0.04436728395061727
+        },
+        {
+          "outcome": "10",
+          "probability": 0.06258573388203016
+        },
+        {
+          "outcome": "11",
+          "probability": 0.08037551440329217
+        },
+        {
+          "outcome": "12",
+          "probability": 0.0957218792866941
+        },
+        {
+          "outcome": "13",
+          "probability": 0.10609567901234565
+        },
+        {
+          "outcome": "14",
+          "probability": 0.10995370370370369
+        },
+        {
+          "outcome": "15",
+          "probability": 0.10609567901234566
+        },
+        {
+          "outcome": "16",
+          "probability": 0.0957218792866941
+        },
+        {
+          "outcome": "17",
+          "probability": 0.08037551440329216
+        },
+        {
+          "outcome": "18",
+          "probability": 0.06258573388203016
+        },
+        {
+          "outcome": "19",
+          "probability": 0.04436728395061728
+        },
+        {
+          "outcome": "20",
+          "probability": 0.028420781893004107
+        },
+        {
+          "outcome": "21",
+          "probability": 0.016075102880658432
+        },
+        {
+          "outcome": "22",
+          "probability": 0.00782321673525377
+        },
+        {
+          "outcome": "23",
+          "probability": 0.002893518518518518
+        },
+        {
+          "outcome": "24",
+          "probability": 0.0006644375857338819
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "4",
+          "probability": 0.0006644375857338819
+        },
+        {
+          "outcome": "5",
+          "probability": 0.0035579561042523994
+        },
+        {
+          "outcome": "6",
+          "probability": 0.01138117283950617
+        },
+        {
+          "outcome": "8",
+          "probability": 0.05587705761316872
+        },
+        {
+          "outcome": "9",
+          "probability": 0.10024434156378599
+        },
+        {
+          "outcome": "10",
+          "probability": 0.16283007544581615
+        },
+        {
+          "outcome": "12",
+          "probability": 0.3389274691358024
+        },
+        {
+          "outcome": "13",
+          "probability": 0.44502314814814803
+        },
+        {
+          "outcome": "14",
+          "probability": 0.5549768518518517
+        },
+        {
+          "outcome": "16",
+          "probability": 0.7567944101508914
+        },
+        {
+          "outcome": "17",
+          "probability": 0.8371699245541836
+        },
+        {
+          "outcome": "18",
+          "probability": 0.8997556584362137
+        },
+        {
+          "outcome": "20",
+          "probability": 0.9725437242798352
+        },
+        {
+          "outcome": "21",
+          "probability": 0.9886188271604935
+        },
+        {
+          "outcome": "22",
+          "probability": 0.9964420438957473
+        },
+        {
+          "outcome": "24",
+          "probability": 0.9999999999999997
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "4",
+          "probability": 0.9999999999999997
+        },
+        {
+          "outcome": "5",
+          "probability": 0.9993355624142658
+        },
+        {
+          "outcome": "6",
+          "probability": 0.9964420438957473
+        },
+        {
+          "outcome": "8",
+          "probability": 0.972543724279835
+        },
+        {
+          "outcome": "9",
+          "probability": 0.9441229423868309
+        },
+        {
+          "outcome": "10",
+          "probability": 0.8997556584362136
+        },
+        {
+          "outcome": "12",
+          "probability": 0.7567944101508913
+        },
+        {
+          "outcome": "13",
+          "probability": 0.6610725308641973
+        },
+        {
+          "outcome": "14",
+          "probability": 0.5549768518518516
+        },
+        {
+          "outcome": "16",
+          "probability": 0.3389274691358023
+        },
+        {
+          "outcome": "17",
+          "probability": 0.24320558984910823
+        },
+        {
+          "outcome": "18",
+          "probability": 0.16283007544581607
+        },
+        {
+          "outcome": "20",
+          "probability": 0.055877057613168635
+        },
+        {
+          "outcome": "21",
+          "probability": 0.027456275720164514
+        },
+        {
+          "outcome": "22",
+          "probability": 0.011381172839506126
+        },
+        {
+          "outcome": "24",
+          "probability": 0.000664437585733868
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "20",
+          "at_most": "8"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "16",
+          "at_most": "12"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "14",
+          "at_most": "14"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "12",
+          "at_most": "16"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "8",
+          "at_most": "20"
+        }
+      ]
+    },
+    {
+      "description": "compounding explosion + keep-highest 4d6!!kh3",
+      "expression": "4d6!!kh3",
+      "canonical_expression": "4d6!!>=6kh3",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 1816,
+      "stats": {
+        "min": "3",
+        "max": "1818",
+        "mean": 15.04324324324324,
+        "median": "14",
+        "mode": "11",
+        "stddev": 6.110610755965001,
+        "percentiles": {
+          "10": "8",
+          "25": "11",
+          "50": "14",
+          "75": "18",
+          "90": "23",
+          "95": "27"
+        },
+        "entropy": 4.509958990898575
+      },
+      "pmf": [],
+      "cdf_samples": [
+        {
+          "outcome": "3",
+          "probability": 0.0007716049382716049
+        },
+        {
+          "outcome": "124",
+          "probability": 0.9999999999996628
+        },
+        {
+          "outcome": "245",
+          "probability": 1.0
+        },
+        {
+          "outcome": "366",
+          "probability": 1.0
+        },
+        {
+          "outcome": "487",
+          "probability": 1.0
+        },
+        {
+          "outcome": "608",
+          "probability": 1.0
+        },
+        {
+          "outcome": "729",
+          "probability": 1.0
+        },
+        {
+          "outcome": "850",
+          "probability": 1.0
+        },
+        {
+          "outcome": "971",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1092",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1213",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1334",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1455",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1576",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1697",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1818",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "3",
+          "probability": 1.0
+        },
+        {
+          "outcome": "124",
+          "probability": 4.3520742565306136e-13
+        },
+        {
+          "outcome": "245",
+          "probability": 0.0
+        },
+        {
+          "outcome": "366",
+          "probability": 0.0
+        },
+        {
+          "outcome": "487",
+          "probability": 0.0
+        },
+        {
+          "outcome": "608",
+          "probability": 0.0
+        },
+        {
+          "outcome": "729",
+          "probability": 0.0
+        },
+        {
+          "outcome": "850",
+          "probability": 0.0
+        },
+        {
+          "outcome": "971",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1092",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1213",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1334",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1455",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1576",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1697",
+          "probability": 0.0
+        },
+        {
+          "outcome": "1818",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "27",
+          "at_most": "7"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "18",
+          "at_most": "11"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "14",
+          "at_most": "14"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "11",
+          "at_most": "18"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "7",
+          "at_most": "27"
+        }
+      ]
+    },
+    {
+      "description": "empty rank interval keep-zero 4d6kh0",
+      "expression": "4d6kh0",
+      "canonical_expression": "4d6kh0",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 1,
+      "stats": {
+        "min": "0",
+        "max": "0",
+        "mean": 0.0,
+        "median": "0",
+        "mode": "0",
+        "stddev": 0.0,
+        "percentiles": {
+          "10": "0",
+          "25": "0",
+          "50": "0",
+          "75": "0",
+          "90": "0",
+          "95": "0"
+        },
+        "entropy": 0.0
+      },
+      "pmf": [
+        {
+          "outcome": "0",
+          "probability": 1.0
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "0",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "0",
+          "probability": 1.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "0",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "0",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "0",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "0",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "0",
+          "at_most": "0"
+        }
+      ]
+    },
+    {
+      "description": "exploding pool success count 8d6!cs>=5",
+      "expression": "8d6!cs>=5",
+      "canonical_expression": "8d6!>=6cs>=5",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 809,
+      "stats": {
+        "min": "0",
+        "max": "808",
+        "mean": 3.1999999999999993,
+        "median": "3",
+        "mode": "3",
+        "stddev": 1.7888543819998315,
+        "percentiles": {
+          "10": "1",
+          "25": "2",
+          "50": "3",
+          "75": "4",
+          "90": "6",
+          "95": "6"
+        },
+        "entropy": 2.833472311051432
+      },
+      "pmf": [],
+      "cdf_samples": [
+        {
+          "outcome": "0",
+          "probability": 0.039018442310623375
+        },
+        {
+          "outcome": "53",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "107",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "161",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "215",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "269",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "323",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "377",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "430",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "484",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "538",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "592",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "646",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "700",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "754",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "808",
+          "probability": 0.9999999999999999
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "0",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "53",
+          "probability": 0.0
+        },
+        {
+          "outcome": "107",
+          "probability": 0.0
+        },
+        {
+          "outcome": "161",
+          "probability": 0.0
+        },
+        {
+          "outcome": "215",
+          "probability": 0.0
+        },
+        {
+          "outcome": "269",
+          "probability": 0.0
+        },
+        {
+          "outcome": "323",
+          "probability": 0.0
+        },
+        {
+          "outcome": "377",
+          "probability": 0.0
+        },
+        {
+          "outcome": "430",
+          "probability": 0.0
+        },
+        {
+          "outcome": "484",
+          "probability": 0.0
+        },
+        {
+          "outcome": "538",
+          "probability": 0.0
+        },
+        {
+          "outcome": "592",
+          "probability": 0.0
+        },
+        {
+          "outcome": "646",
+          "probability": 0.0
+        },
+        {
+          "outcome": "700",
+          "probability": 0.0
+        },
+        {
+          "outcome": "754",
+          "probability": 0.0
+        },
+        {
+          "outcome": "808",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "6",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "4",
+          "at_most": "2"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "3",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "2",
+          "at_most": "4"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "1",
+          "at_most": "6"
+        }
+      ]
+    },
+    {
+      "description": "penetrating pool success count 8d6!pcs>=5",
+      "expression": "8d6!pcs>=5",
+      "canonical_expression": "8d6!p>=6cs>=5",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 809,
+      "stats": {
+        "min": "0",
+        "max": "808",
+        "mean": 2.933333333333334,
+        "median": "3",
+        "mode": "3",
+        "stddev": 1.5804359454839603,
+        "percentiles": {
+          "10": "1",
+          "25": "2",
+          "50": "3",
+          "75": "4",
+          "90": "5",
+          "95": "6"
+        },
+        "entropy": 2.667620210704556
+      },
+      "pmf": [],
+      "cdf_samples": [
+        {
+          "outcome": "0",
+          "probability": 0.039018442310623375
+        },
+        {
+          "outcome": "53",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "107",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "161",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "215",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "269",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "323",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "377",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "430",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "484",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "538",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "592",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "646",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "700",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "754",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "808",
+          "probability": 1.0000000000000004
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "0",
+          "probability": 1.0000000000000004
+        },
+        {
+          "outcome": "53",
+          "probability": 0.0
+        },
+        {
+          "outcome": "107",
+          "probability": 0.0
+        },
+        {
+          "outcome": "161",
+          "probability": 0.0
+        },
+        {
+          "outcome": "215",
+          "probability": 0.0
+        },
+        {
+          "outcome": "269",
+          "probability": 0.0
+        },
+        {
+          "outcome": "323",
+          "probability": 0.0
+        },
+        {
+          "outcome": "377",
+          "probability": 0.0
+        },
+        {
+          "outcome": "430",
+          "probability": 0.0
+        },
+        {
+          "outcome": "484",
+          "probability": 0.0
+        },
+        {
+          "outcome": "538",
+          "probability": 0.0
+        },
+        {
+          "outcome": "592",
+          "probability": 0.0
+        },
+        {
+          "outcome": "646",
+          "probability": 0.0
+        },
+        {
+          "outcome": "700",
+          "probability": 0.0
+        },
+        {
+          "outcome": "754",
+          "probability": 0.0
+        },
+        {
+          "outcome": "808",
+          "probability": 0.0
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "6",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "4",
+          "at_most": "2"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "3",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "2",
+          "at_most": "4"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "1",
+          "at_most": "6"
+        }
+      ]
+    },
+    {
+      "description": "compounding pool success count 4d6!!cs>=10",
+      "expression": "4d6!!cs>=10",
+      "canonical_expression": "4d6!!>=6cs>=10",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 5,
+      "stats": {
+        "min": "0",
+        "max": "4",
+        "mean": 0.3333333333333336,
+        "median": "0",
+        "mode": "0",
+        "stddev": 0.5527707983925668,
+        "percentiles": {
+          "10": "0",
+          "25": "0",
+          "50": "0",
+          "75": "1",
+          "90": "1",
+          "95": "1"
+        },
+        "entropy": 1.047016881561586
+      },
+      "pmf": [
+        {
+          "outcome": "0",
+          "probability": 0.7060667438271603
+        },
+        {
+          "outcome": "1",
+          "probability": 0.2567515432098767
+        },
+        {
+          "outcome": "2",
+          "probability": 0.035011574074074125
+        },
+        {
+          "outcome": "3",
+          "probability": 0.0021219135802469187
+        },
+        {
+          "outcome": "4",
+          "probability": 0.00004822530864197546
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "0",
+          "probability": 0.7060667438271603
+        },
+        {
+          "outcome": "1",
+          "probability": 0.962818287037037
+        },
+        {
+          "outcome": "2",
+          "probability": 0.9978298611111112
+        },
+        {
+          "outcome": "3",
+          "probability": 0.9999517746913581
+        },
+        {
+          "outcome": "4",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "0",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1",
+          "probability": 0.2939332561728397
+        },
+        {
+          "outcome": "2",
+          "probability": 0.03718171296296302
+        },
+        {
+          "outcome": "3",
+          "probability": 0.0021701388888888395
+        },
+        {
+          "outcome": "4",
+          "probability": 0.000048225308641902664
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "1",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "1",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "0",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "0",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "0",
+          "at_most": "1"
+        }
+      ]
+    },
+    {
+      "description": "pool critical failure subtraction 10d6cf<=1",
+      "expression": "10d6cf<=1",
+      "canonical_expression": "10d6cf<=1",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 11,
+      "stats": {
+        "min": "-10",
+        "max": "0",
+        "mean": -1.6666666666666652,
+        "median": "-2",
+        "mode": "-1",
+        "stddev": 1.1785113019775788,
+        "percentiles": {
+          "10": "-3",
+          "25": "-2",
+          "50": "-2",
+          "75": "-1",
+          "90": "0",
+          "95": "0"
+        },
+        "entropy": 2.2187081139126965
+      },
+      "pmf": [
+        {
+          "outcome": "-10",
+          "probability": 1.6538171687920198e-8
+        },
+        {
+          "outcome": "-9",
+          "probability": 8.269085843960098e-7
+        },
+        {
+          "outcome": "-8",
+          "probability": 0.00001860544314891022
+        },
+        {
+          "outcome": "-7",
+          "probability": 0.0002480725753188029
+        },
+        {
+          "outcome": "-6",
+          "probability": 0.0021706350340395257
+        },
+        {
+          "outcome": "-5",
+          "probability": 0.013023810204237155
+        },
+        {
+          "outcome": "-4",
+          "probability": 0.054265875850988125
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.15504535957425178
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.29071004920172205
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.32301116577969113
+        },
+        {
+          "outcome": "0",
+          "probability": 0.16150558288984557
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "-10",
+          "probability": 1.6538171687920198e-8
+        },
+        {
+          "outcome": "-9",
+          "probability": 8.4344675608393e-7
+        },
+        {
+          "outcome": "-8",
+          "probability": 0.00001944888990499415
+        },
+        {
+          "outcome": "-7",
+          "probability": 0.00026752146522379704
+        },
+        {
+          "outcome": "-6",
+          "probability": 0.002438156499263323
+        },
+        {
+          "outcome": "-5",
+          "probability": 0.015461966703500477
+        },
+        {
+          "outcome": "-4",
+          "probability": 0.0697278425544886
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.22477320212874038
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.5154832513304625
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.8384944171101536
+        },
+        {
+          "outcome": "0",
+          "probability": 0.9999999999999991
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "-10",
+          "probability": 0.9999999999999991
+        },
+        {
+          "outcome": "-9",
+          "probability": 0.9999999834618274
+        },
+        {
+          "outcome": "-8",
+          "probability": 0.999999156553243
+        },
+        {
+          "outcome": "-7",
+          "probability": 0.9999805511100941
+        },
+        {
+          "outcome": "-6",
+          "probability": 0.9997324785347753
+        },
+        {
+          "outcome": "-5",
+          "probability": 0.9975618435007357
+        },
+        {
+          "outcome": "-4",
+          "probability": 0.9845380332964986
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.9302721574455105
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.7752267978712587
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.48451674866953665
+        },
+        {
+          "outcome": "0",
+          "probability": 0.1615055828898455
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "0",
+          "at_most": "-4"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "-1",
+          "at_most": "-2"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "-2",
+          "at_most": "-2"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "-2",
+          "at_most": "-1"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "-4",
+          "at_most": "0"
+        }
+      ]
+    },
+    {
+      "description": "Fate reroll 4dFr=-1",
+      "expression": "4dFr=-1",
+      "canonical_expression": "4dFr=-1",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_rerolls": 100
+        }
+      },
+      "support_len": 9,
+      "stats": {
+        "min": "-4",
+        "max": "4",
+        "mean": 2.0,
+        "median": "2",
+        "mode": "2",
+        "stddev": 1.0,
+        "percentiles": {
+          "10": "1",
+          "25": "1",
+          "50": "2",
+          "75": "3",
+          "90": "3",
+          "95": "4"
+        },
+        "entropy": 2.0306390622295662
+      },
+      "pmf": [
+        {
+          "outcome": "-4",
+          "probability": 1.7498994443874635e-193
+        },
+        {
+          "outcome": "-3",
+          "probability": 5.4111530230724224e-145
+        },
+        {
+          "outcome": "-2",
+          "probability": 6.274769915998349e-97
+        },
+        {
+          "outcome": "-1",
+          "probability": 3.2338753624710474e-49
+        },
+        {
+          "outcome": "0",
+          "probability": 0.0625
+        },
+        {
+          "outcome": "1",
+          "probability": 0.25
+        },
+        {
+          "outcome": "2",
+          "probability": 0.375
+        },
+        {
+          "outcome": "3",
+          "probability": 0.25
+        },
+        {
+          "outcome": "4",
+          "probability": 0.0625
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "-4",
+          "probability": 1.7498994443874635e-193
+        },
+        {
+          "outcome": "-3",
+          "probability": 5.4111530230724224e-145
+        },
+        {
+          "outcome": "-2",
+          "probability": 6.274769915998349e-97
+        },
+        {
+          "outcome": "-1",
+          "probability": 3.2338753624710474e-49
+        },
+        {
+          "outcome": "0",
+          "probability": 0.0625
+        },
+        {
+          "outcome": "1",
+          "probability": 0.3125
+        },
+        {
+          "outcome": "2",
+          "probability": 0.6875
+        },
+        {
+          "outcome": "3",
+          "probability": 0.9375
+        },
+        {
+          "outcome": "4",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "-4",
+          "probability": 1.0
+        },
+        {
+          "outcome": "-3",
+          "probability": 1.0
+        },
+        {
+          "outcome": "-2",
+          "probability": 1.0
+        },
+        {
+          "outcome": "-1",
+          "probability": 1.0
+        },
+        {
+          "outcome": "0",
+          "probability": 1.0
+        },
+        {
+          "outcome": "1",
+          "probability": 0.9375
+        },
+        {
+          "outcome": "2",
+          "probability": 0.6875
+        },
+        {
+          "outcome": "3",
+          "probability": 0.3125
+        },
+        {
+          "outcome": "4",
+          "probability": 0.0625
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "4",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "3",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "2",
+          "at_most": "2"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "1",
+          "at_most": "3"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "0",
+          "at_most": "4"
+        }
+      ]
+    },
+    {
+      "description": "exact non-constant multiplication (1d6)*(1d6)",
+      "expression": "(1d6)*(1d6)",
+      "canonical_expression": "1d6*1d6",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 18,
+      "stats": {
+        "min": "1",
+        "max": "36",
+        "mean": 12.25,
+        "median": "10",
+        "mode": "6",
+        "stddev": 8.942330668107603,
+        "percentiles": {
+          "10": "3",
+          "25": "5",
+          "50": "10",
+          "75": "18",
+          "90": "25",
+          "95": "30"
+        },
+        "entropy": 4.037844793048882
+      },
+      "pmf": [
+        {
+          "outcome": "1",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "2",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "3",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "4",
+          "probability": 0.08333333333333333
+        },
+        {
+          "outcome": "5",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "6",
+          "probability": 0.1111111111111111
+        },
+        {
+          "outcome": "8",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "9",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "10",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "12",
+          "probability": 0.1111111111111111
+        },
+        {
+          "outcome": "15",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "16",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "18",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "20",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "24",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "25",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "30",
+          "probability": 0.05555555555555555
+        },
+        {
+          "outcome": "36",
+          "probability": 0.027777777777777776
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "1",
+          "probability": 0.027777777777777776
+        },
+        {
+          "outcome": "2",
+          "probability": 0.08333333333333333
+        },
+        {
+          "outcome": "3",
+          "probability": 0.1388888888888889
+        },
+        {
+          "outcome": "4",
+          "probability": 0.2222222222222222
+        },
+        {
+          "outcome": "5",
+          "probability": 0.2777777777777778
+        },
+        {
+          "outcome": "6",
+          "probability": 0.3888888888888889
+        },
+        {
+          "outcome": "8",
+          "probability": 0.4444444444444444
+        },
+        {
+          "outcome": "9",
+          "probability": 0.4722222222222222
+        },
+        {
+          "outcome": "12",
+          "probability": 0.6388888888888888
+        },
+        {
+          "outcome": "15",
+          "probability": 0.6944444444444444
+        },
+        {
+          "outcome": "16",
+          "probability": 0.7222222222222222
+        },
+        {
+          "outcome": "18",
+          "probability": 0.7777777777777778
+        },
+        {
+          "outcome": "20",
+          "probability": 0.8333333333333334
+        },
+        {
+          "outcome": "24",
+          "probability": 0.888888888888889
+        },
+        {
+          "outcome": "25",
+          "probability": 0.9166666666666667
+        },
+        {
+          "outcome": "36",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "1",
+          "probability": 1.0
+        },
+        {
+          "outcome": "2",
+          "probability": 0.9722222222222222
+        },
+        {
+          "outcome": "3",
+          "probability": 0.9166666666666666
+        },
+        {
+          "outcome": "4",
+          "probability": 0.8611111111111112
+        },
+        {
+          "outcome": "5",
+          "probability": 0.7777777777777778
+        },
+        {
+          "outcome": "6",
+          "probability": 0.7222222222222222
+        },
+        {
+          "outcome": "8",
+          "probability": 0.6111111111111112
+        },
+        {
+          "outcome": "9",
+          "probability": 0.5555555555555556
+        },
+        {
+          "outcome": "12",
+          "probability": 0.4722222222222222
+        },
+        {
+          "outcome": "15",
+          "probability": 0.36111111111111116
+        },
+        {
+          "outcome": "16",
+          "probability": 0.3055555555555556
+        },
+        {
+          "outcome": "18",
+          "probability": 0.2777777777777778
+        },
+        {
+          "outcome": "20",
+          "probability": 0.2222222222222222
+        },
+        {
+          "outcome": "24",
+          "probability": 0.16666666666666663
+        },
+        {
+          "outcome": "25",
+          "probability": 0.11111111111111105
+        },
+        {
+          "outcome": "36",
+          "probability": 0.02777777777777768
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "30",
+          "at_most": "2"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "18",
+          "at_most": "5"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "10",
+          "at_most": "10"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "5",
+          "at_most": "18"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "2",
+          "at_most": "30"
+        }
+      ]
+    },
+    {
+      "description": "exact floor division over non-zero support 1d6/(1d2!-22)",
+      "expression": "1d6/(1d2!-22)",
+      "canonical_expression": "1d6/(1d2!>=2-22)",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100
+        }
+      },
+      "support_len": 13,
+      "stats": {
+        "min": "-6",
+        "max": "6",
+        "mean": -1.0005696614583335,
+        "median": "-1",
+        "mode": "-1",
+        "stddev": 0.1076863741302626,
+        "percentiles": {
+          "10": "-1",
+          "25": "-1",
+          "50": "-1",
+          "75": "-1",
+          "90": "-1",
+          "95": "-1"
+        },
+        "entropy": 0.022584808013019278
+      },
+      "pmf": [
+        {
+          "outcome": "-6",
+          "probability": 0.00008138020833333333
+        },
+        {
+          "outcome": "-5",
+          "probability": 0.00008138020833333333
+        },
+        {
+          "outcome": "-4",
+          "probability": 0.00008138020833333333
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.00008138020833333333
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.0008951822916666666
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.9982910156250001
+        },
+        {
+          "outcome": "0",
+          "probability": 0.0001424153645833333
+        },
+        {
+          "outcome": "1",
+          "probability": 0.0001220703125
+        },
+        {
+          "outcome": "2",
+          "probability": 0.00006103515625
+        },
+        {
+          "outcome": "3",
+          "probability": 0.000040690104166666664
+        },
+        {
+          "outcome": "4",
+          "probability": 0.000040690104166666664
+        },
+        {
+          "outcome": "5",
+          "probability": 0.000040690104166666664
+        },
+        {
+          "outcome": "6",
+          "probability": 0.000040690104166666664
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "-6",
+          "probability": 0.00008138020833333333
+        },
+        {
+          "outcome": "-5",
+          "probability": 0.00016276041666666666
+        },
+        {
+          "outcome": "-4",
+          "probability": 0.000244140625
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.0003255208333333333
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.001220703125
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.9995117187500001
+        },
+        {
+          "outcome": "0",
+          "probability": 0.9996541341145835
+        },
+        {
+          "outcome": "1",
+          "probability": 0.9997762044270835
+        },
+        {
+          "outcome": "2",
+          "probability": 0.9998372395833335
+        },
+        {
+          "outcome": "3",
+          "probability": 0.9998779296875001
+        },
+        {
+          "outcome": "4",
+          "probability": 0.9999186197916667
+        },
+        {
+          "outcome": "5",
+          "probability": 0.9999593098958334
+        },
+        {
+          "outcome": "6",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "-6",
+          "probability": 1.0
+        },
+        {
+          "outcome": "-5",
+          "probability": 0.9999186197916666
+        },
+        {
+          "outcome": "-4",
+          "probability": 0.9998372395833334
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.999755859375
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.9996744791666666
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.998779296875
+        },
+        {
+          "outcome": "0",
+          "probability": 0.000488281249999889
+        },
+        {
+          "outcome": "1",
+          "probability": 0.00034586588541651864
+        },
+        {
+          "outcome": "2",
+          "probability": 0.00022379557291651864
+        },
+        {
+          "outcome": "3",
+          "probability": 0.00016276041666651864
+        },
+        {
+          "outcome": "4",
+          "probability": 0.00012207031249988898
+        },
+        {
+          "outcome": "5",
+          "probability": 0.00008138020833325932
+        },
+        {
+          "outcome": "6",
+          "probability": 0.00004069010416662966
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "-1",
+          "at_most": "-1"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "-1",
+          "at_most": "-1"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "-1",
+          "at_most": "-1"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "-1",
+          "at_most": "-1"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "-1",
+          "at_most": "-1"
+        }
+      ]
+    },
+    {
+      "description": "D&D ability modifier floor division (4d6kh3-10)/2",
+      "expression": "(4d6kh3-10)/2",
+      "canonical_expression": "(4d6kh3-10)/2",
+      "method": {
+        "kind": "exact"
+      },
+      "support_len": 9,
+      "stats": {
+        "min": "-4",
+        "max": "4",
+        "mean": 0.8734567901234566,
+        "median": "1",
+        "mode": "1",
+        "stddev": 1.4469121318410143,
+        "percentiles": {
+          "10": "-1",
+          "25": "0",
+          "50": "1",
+          "75": "2",
+          "90": "3",
+          "95": "3"
+        },
+        "entropy": 2.5606224529325994
+      },
+      "pmf": [
+        {
+          "outcome": "-4",
+          "probability": 0.0007716049382716049
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.010802469135802469
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.045524691358024685
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.11805555555555555
+        },
+        {
+          "outcome": "0",
+          "probability": 0.20833333333333331
+        },
+        {
+          "outcome": "1",
+          "probability": 0.26157407407407407
+        },
+        {
+          "outcome": "2",
+          "probability": 0.22453703703703698
+        },
+        {
+          "outcome": "3",
+          "probability": 0.11419753086419751
+        },
+        {
+          "outcome": "4",
+          "probability": 0.0162037037037037
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "-4",
+          "probability": 0.0007716049382716049
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.011574074074074073
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.057098765432098755
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.17515432098765432
+        },
+        {
+          "outcome": "0",
+          "probability": 0.38348765432098764
+        },
+        {
+          "outcome": "1",
+          "probability": 0.6450617283950617
+        },
+        {
+          "outcome": "2",
+          "probability": 0.8695987654320987
+        },
+        {
+          "outcome": "3",
+          "probability": 0.9837962962962962
+        },
+        {
+          "outcome": "4",
+          "probability": 0.9999999999999999
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "-4",
+          "probability": 0.9999999999999999
+        },
+        {
+          "outcome": "-3",
+          "probability": 0.9992283950617283
+        },
+        {
+          "outcome": "-2",
+          "probability": 0.9884259259259258
+        },
+        {
+          "outcome": "-1",
+          "probability": 0.9429012345679011
+        },
+        {
+          "outcome": "0",
+          "probability": 0.8248456790123455
+        },
+        {
+          "outcome": "1",
+          "probability": 0.6165123456790123
+        },
+        {
+          "outcome": "2",
+          "probability": 0.3549382716049382
+        },
+        {
+          "outcome": "3",
+          "probability": 0.1304012345679012
+        },
+        {
+          "outcome": "4",
+          "probability": 0.01620370370370372
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "3",
+          "at_most": "-2"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "2",
+          "at_most": "0"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "1",
+          "at_most": "1"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "0",
+          "at_most": "2"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "-2",
+          "at_most": "3"
+        }
+      ]
+    },
+    {
+      "description": "Monte Carlo fallback for standard explode + keep-highest 4d6!kh3",
+      "expression": "4d6!kh3",
+      "canonical_expression": "4d6!>=6kh3",
+      "method": {
+        "kind": "monte_carlo",
+        "samples": 100000
+      },
+      "support_len": 16,
+      "stats": {
+        "min": "3",
+        "max": "18",
+        "mean": 12.834270000000002,
+        "median": "13",
+        "mode": "14",
+        "stddev": 3.1919153446011066,
+        "percentiles": {
+          "10": "8",
+          "25": "11",
+          "50": "13",
+          "75": "15",
+          "90": "17",
+          "95": "18"
+        },
+        "entropy": 3.633568767087139
+      },
+      "pmf": [
+        {
+          "outcome": "3",
+          "probability": 0.0007000000000000001
+        },
+        {
+          "outcome": "4",
+          "probability": 0.0029700000000000004
+        },
+        {
+          "outcome": "5",
+          "probability": 0.00783
+        },
+        {
+          "outcome": "6",
+          "probability": 0.0161
+        },
+        {
+          "outcome": "7",
+          "probability": 0.02917
+        },
+        {
+          "outcome": "8",
+          "probability": 0.0456
+        },
+        {
+          "outcome": "9",
+          "probability": 0.06305000000000001
+        },
+        {
+          "outcome": "10",
+          "probability": 0.08066000000000001
+        },
+        {
+          "outcome": "11",
+          "probability": 0.09301000000000001
+        },
+        {
+          "outcome": "12",
+          "probability": 0.10470000000000002
+        },
+        {
+          "outcome": "13",
+          "probability": 0.10709
+        },
+        {
+          "outcome": "14",
+          "probability": 0.10861000000000001
+        },
+        {
+          "outcome": "15",
+          "probability": 0.10360000000000001
+        },
+        {
+          "outcome": "16",
+          "probability": 0.09487000000000001
+        },
+        {
+          "outcome": "17",
+          "probability": 0.07936
+        },
+        {
+          "outcome": "18",
+          "probability": 0.06268
+        }
+      ],
+      "cdf_samples": [
+        {
+          "outcome": "3",
+          "probability": 0.0007000000000000001
+        },
+        {
+          "outcome": "4",
+          "probability": 0.0036700000000000005
+        },
+        {
+          "outcome": "5",
+          "probability": 0.0115
+        },
+        {
+          "outcome": "6",
+          "probability": 0.0276
+        },
+        {
+          "outcome": "7",
+          "probability": 0.05677
+        },
+        {
+          "outcome": "8",
+          "probability": 0.10237
+        },
+        {
+          "outcome": "9",
+          "probability": 0.16542
+        },
+        {
+          "outcome": "10",
+          "probability": 0.24608000000000002
+        },
+        {
+          "outcome": "11",
+          "probability": 0.33909
+        },
+        {
+          "outcome": "12",
+          "probability": 0.44379
+        },
+        {
+          "outcome": "13",
+          "probability": 0.55088
+        },
+        {
+          "outcome": "14",
+          "probability": 0.65949
+        },
+        {
+          "outcome": "15",
+          "probability": 0.76309
+        },
+        {
+          "outcome": "16",
+          "probability": 0.8579600000000001
+        },
+        {
+          "outcome": "17",
+          "probability": 0.93732
+        },
+        {
+          "outcome": "18",
+          "probability": 1.0
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "3",
+          "probability": 1.0
+        },
+        {
+          "outcome": "4",
+          "probability": 0.9993
+        },
+        {
+          "outcome": "5",
+          "probability": 0.99633
+        },
+        {
+          "outcome": "6",
+          "probability": 0.9885
+        },
+        {
+          "outcome": "7",
+          "probability": 0.9724
+        },
+        {
+          "outcome": "8",
+          "probability": 0.94323
+        },
+        {
+          "outcome": "9",
+          "probability": 0.89763
+        },
+        {
+          "outcome": "10",
+          "probability": 0.83458
+        },
+        {
+          "outcome": "11",
+          "probability": 0.7539199999999999
+        },
+        {
+          "outcome": "12",
+          "probability": 0.66091
+        },
+        {
+          "outcome": "13",
+          "probability": 0.55621
+        },
+        {
+          "outcome": "14",
+          "probability": 0.44911999999999996
+        },
+        {
+          "outcome": "15",
+          "probability": 0.34051
+        },
+        {
+          "outcome": "16",
+          "probability": 0.23690999999999995
+        },
+        {
+          "outcome": "17",
+          "probability": 0.14203999999999994
+        },
+        {
+          "outcome": "18",
+          "probability": 0.06267999999999996
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "18",
+          "at_most": "7"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "15",
+          "at_most": "11"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "13",
+          "at_most": "13"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "11",
+          "at_most": "15"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "7",
+          "at_most": "18"
+        }
+      ]
+    },
+    {
+      "description": "Monte Carlo fallback when support product exceeds MAX_EXACT_STATES 12d1000",
+      "expression": "12d1000",
+      "canonical_expression": "12d1000",
+      "method": {
+        "kind": "monte_carlo",
+        "samples": 100000
+      },
+      "support_len": 5705,
+      "stats": {
+        "min": "2096",
+        "max": "9999",
+        "mean": 6008.011440000035,
+        "median": "6006",
+        "mode": "5722",
+        "stddev": 1001.097754252365,
+        "percentiles": {
+          "10": "4715",
+          "25": "5327",
+          "50": "6006",
+          "75": "6688",
+          "90": "7298",
+          "95": "7661"
+        },
+        "entropy": 11.963988912084906
+      },
+      "pmf": [],
+      "cdf_samples": [
+        {
+          "outcome": "2096",
+          "probability": 0.00001
+        },
+        {
+          "outcome": "3518",
+          "probability": 0.005559999999999991
+        },
+        {
+          "outcome": "3926",
+          "probability": 0.017829999999999947
+        },
+        {
+          "outcome": "4307",
+          "probability": 0.044449999999999885
+        },
+        {
+          "outcome": "4688",
+          "probability": 0.09511999999999987
+        },
+        {
+          "outcome": "5068",
+          "probability": 0.17552999999999988
+        },
+        {
+          "outcome": "5448",
+          "probability": 0.29052
+        },
+        {
+          "outcome": "5828",
+          "probability": 0.4295700000000001
+        },
+        {
+          "outcome": "6209",
+          "probability": 0.5800500000000013
+        },
+        {
+          "outcome": "6589",
+          "probability": 0.7178800000000017
+        },
+        {
+          "outcome": "6969",
+          "probability": 0.8303700000000012
+        },
+        {
+          "outcome": "7349",
+          "probability": 0.9088400000000015
+        },
+        {
+          "outcome": "7730",
+          "probability": 0.9566600000000028
+        },
+        {
+          "outcome": "8110",
+          "probability": 0.9819200000000016
+        },
+        {
+          "outcome": "8516",
+          "probability": 0.9943499999999995
+        },
+        {
+          "outcome": "9999",
+          "probability": 0.9999999999999893
+        }
+      ],
+      "survival_samples": [
+        {
+          "outcome": "2096",
+          "probability": 0.9999999999999893
+        },
+        {
+          "outcome": "3518",
+          "probability": 0.9944599999999894
+        },
+        {
+          "outcome": "3926",
+          "probability": 0.9822199999999894
+        },
+        {
+          "outcome": "4307",
+          "probability": 0.9556399999999895
+        },
+        {
+          "outcome": "4688",
+          "probability": 0.9050599999999894
+        },
+        {
+          "outcome": "5068",
+          "probability": 0.8246899999999895
+        },
+        {
+          "outcome": "5448",
+          "probability": 0.7098199999999893
+        },
+        {
+          "outcome": "5828",
+          "probability": 0.5709099999999891
+        },
+        {
+          "outcome": "6209",
+          "probability": 0.42031999999998804
+        },
+        {
+          "outcome": "6589",
+          "probability": 0.2824099999999876
+        },
+        {
+          "outcome": "6969",
+          "probability": 0.1699399999999882
+        },
+        {
+          "outcome": "7349",
+          "probability": 0.09130999999998779
+        },
+        {
+          "outcome": "7730",
+          "probability": 0.043409999999986515
+        },
+        {
+          "outcome": "8110",
+          "probability": 0.01813999999998772
+        },
+        {
+          "outcome": "8516",
+          "probability": 0.00566999999998985
+        },
+        {
+          "outcome": "9999",
+          "probability": 9.99999999995449e-6
+        }
+      ],
+      "target_queries": [
+        {
+          "probability": 0.05,
+          "at_least": "7661",
+          "at_most": "4362"
+        },
+        {
+          "probability": 0.25,
+          "at_least": "6688",
+          "at_most": "5327"
+        },
+        {
+          "probability": 0.5,
+          "at_least": "6006",
+          "at_most": "6006"
+        },
+        {
+          "probability": 0.75,
+          "at_least": "5327",
+          "at_most": "6688"
+        },
+        {
+          "probability": 0.95,
+          "at_least": "4362",
+          "at_most": "7661"
+        }
+      ]
+    }
+  ],
+  "compare_cases": [
+    {
+      "description": "exact margin convolution 4d6kh3 vs 3d6+2",
+      "left_expression": "4d6kh3",
+      "right_expression": "3d6+2",
+      "method": {
+        "kind": "exact"
+      },
+      "p_left_greater": 0.4349494170096021,
+      "p_equal": 0.09476451760402377,
+      "p_right_greater": 0.470286065386374,
+      "mean_margin": -0.255401234567902,
+      "has_exact_margin": true,
+      "margin_support_len": 31
+    },
+    {
+      "description": "exact margin with merged caps 2d6r=1! vs 3d6",
+      "left_expression": "2d6r=1!",
+      "right_expression": "3d6",
+      "method": {
+        "kind": "exact",
+        "caps": {
+          "max_explosions": 100,
+          "max_rerolls": 100
+        }
+      },
+      "p_left_greater": 0.3460596707818926,
+      "p_equal": 0.07170781893004112,
+      "p_right_greater": 0.5822325102880657,
+      "mean_margin": -0.8200000000000003,
+      "has_exact_margin": true,
+      "margin_support_len": 1226
+    },
+    {
+      "description": "symmetric two-pointer fallback without margin 100d100 vs 100d100",
+      "left_expression": "100d100",
+      "right_expression": "100d100",
+      "method": {
+        "kind": "exact"
+      },
+      "p_left_greater": 0.49951173974080987,
+      "p_equal": 0.0009765205184003554,
+      "p_right_greater": 0.49951173974080987,
+      "mean_margin": 0.0,
+      "has_exact_margin": false,
+      "margin_support_len": null
+    },
+    {
+      "description": "Monte Carlo comparison 4d6!kh3 vs 3d6",
+      "left_expression": "4d6!kh3",
+      "right_expression": "3d6",
+      "method": {
+        "kind": "monte_carlo",
+        "samples": 100000
+      },
+      "p_left_greater": 0.664632777777778,
+      "p_equal": 0.07536851851851854,
+      "p_right_greater": 0.25999870370370376,
+      "mean_margin": 2.33427,
+      "has_exact_margin": true,
+      "margin_support_len": 31
+    }
+  ],
+  "error_cases": [
+    {
+      "description": "literal division by zero 1d6/0",
+      "expression": "1d6/0",
+      "expected_error_kind": "division_by_zero"
+    },
+    {
+      "description": "reachable zero in simple divisor 1d6/(1d2-1)",
+      "expression": "1d6/(1d2-1)",
+      "expected_error_kind": "division_by_zero"
+    },
+    {
+      "description": "§5.4 case 1 capped reroll residual zero 1d6/(1d100r<=99-50)",
+      "expression": "1d6/(1d100r<=99-50)",
+      "expected_error_kind": "division_by_zero"
+    },
+    {
+      "description": "§5.4 underflowed f64 zero probability 1d6/(5d20r=1-5)",
+      "expression": "1d6/(5d20r=1-5)",
+      "expected_error_kind": "division_by_zero"
+    },
+    {
+      "description": "§5.4 case 2 divisor checked before oversized dividend 500d1000/(5d20-5)",
+      "expression": "500d1000/(5d20-5)",
+      "expected_error_kind": "division_by_zero"
+    },
+    {
+      "description": "§5.4 branch isolation across oversized sibling (1d6/(5d20-5))+500d1000",
+      "expression": "(1d6/(5d20-5))+500d1000",
+      "expected_error_kind": "division_by_zero"
+    },
+    {
+      "description": "§5.4 case 4 Monte Carlo divisor hits zero 1d6/(4d6!kh3-12)",
+      "expression": "1d6/(4d6!kh3-12)",
+      "expected_error_kind": "division_by_zero"
+    },
+    {
+      "description": "single-group analysis budget exceeded 1001d6",
+      "expression": "1001d6",
+      "expected_error_kind": "analysis_budget_exceeded"
+    },
+    {
+      "description": "multi-group analysis budget exceeded 600d6+401d6",
+      "expression": "600d6+401d6",
+      "expected_error_kind": "analysis_budget_exceeded"
+    },
+    {
+      "description": "unary negation overflow in analyzer -(-9223372036854775808)",
+      "expression": "-(-9223372036854775808)",
+      "expected_error_kind": "arithmetic_overflow"
+    },
+    {
+      "description": "shift addition overflow in analyzer 9223372036854775807+1d6",
+      "expression": "9223372036854775807+1d6",
+      "expected_error_kind": "arithmetic_overflow"
+    },
+    {
+      "description": "i64::MIN / -1 floor division overflow in analyzer (-9223372036854775808)/-1",
+      "expression": "(-9223372036854775808)/-1",
+      "expected_error_kind": "arithmetic_overflow"
+    }
+  ]
+}

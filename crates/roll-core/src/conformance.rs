@@ -14,6 +14,7 @@ use rand_core::{Rng, SeedableRng};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
+use crate::analyze::{AnalysisMethod, DistributionStats, TargetDirection, analyze, compare};
 use crate::ast::Expr;
 use crate::canonical_json::{cmp_utf16_code_units, to_canonical_json};
 use crate::codec::{encode_hex_lower, encode_u64_hex};
@@ -26,7 +27,7 @@ use crate::receipt::{
 };
 use crate::rng::{RollAddress, RollRng, SeedMaterial, derive_roll_key, lemire_sample_from_tape};
 
-/// In-memory deterministic conformance fixture bundle (`01`..`03` + `MANIFEST.sha256`).
+/// In-memory deterministic conformance fixture bundle (`01`..`04` + `MANIFEST.sha256`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConformanceBundle {
     /// Map from relative filename (`01_kdf_and_rng.json`, etc.) to exact UTF-8 file bytes.
@@ -149,7 +150,75 @@ struct TamperedReceiptCase {
     expected_error_code: &'static str,
 }
 
-/// Builds the complete deterministic Build 1 conformance suite in memory.
+#[derive(serde::Serialize)]
+struct ExactAnalysisFile {
+    schema_version: &'static str,
+    analyze_cases: Vec<AnalyzeFixtureCase>,
+    compare_cases: Vec<CompareFixtureCase>,
+    error_cases: Vec<AnalyzeErrorFixtureCase>,
+}
+
+#[derive(serde::Serialize)]
+struct PmfEntryFixture {
+    outcome: String,
+    probability: f64,
+}
+
+#[derive(serde::Serialize)]
+struct StatsFixture {
+    min: String,
+    max: String,
+    mean: f64,
+    median: String,
+    mode: String,
+    stddev: f64,
+    percentiles: BTreeMap<String, String>,
+    entropy: f64,
+}
+
+#[derive(serde::Serialize)]
+struct TargetQueryFixture {
+    probability: f64,
+    at_least: String,
+    at_most: String,
+}
+
+#[derive(serde::Serialize)]
+struct AnalyzeFixtureCase {
+    description: &'static str,
+    expression: &'static str,
+    canonical_expression: String,
+    method: AnalysisMethod,
+    support_len: usize,
+    stats: StatsFixture,
+    pmf: Vec<PmfEntryFixture>,
+    cdf_samples: Vec<PmfEntryFixture>,
+    survival_samples: Vec<PmfEntryFixture>,
+    target_queries: Vec<TargetQueryFixture>,
+}
+
+#[derive(serde::Serialize)]
+struct CompareFixtureCase {
+    description: &'static str,
+    left_expression: &'static str,
+    right_expression: &'static str,
+    method: AnalysisMethod,
+    p_left_greater: f64,
+    p_equal: f64,
+    p_right_greater: f64,
+    mean_margin: f64,
+    has_exact_margin: bool,
+    margin_support_len: Option<usize>,
+}
+
+#[derive(serde::Serialize)]
+struct AnalyzeErrorFixtureCase {
+    description: &'static str,
+    expression: &'static str,
+    expected_error_kind: &'static str,
+}
+
+/// Builds the complete deterministic conformance suite in memory (`01`..`04` + `MANIFEST.sha256`).
 pub fn build_conformance_suite() -> ConformanceBundle {
     let mut files = BTreeMap::new();
 
@@ -164,6 +233,10 @@ pub fn build_conformance_suite() -> ConformanceBundle {
     let file03 = build_03_rolls_and_receipts();
     let json03 = serialize_fixture_json(&file03);
     files.insert(String::from("03_rolls_and_receipts.json"), json03);
+
+    let file04 = build_04_exact_analysis();
+    let json04 = serialize_fixture_json(&file04);
+    files.insert(String::from("04_exact_analysis.json"), json04);
 
     let mut manifest = String::new();
     for (name, contents) in &files {
@@ -614,8 +687,13 @@ fn build_02_grammar_and_ast() -> GrammarAndAstFile {
     let accept_inputs: Vec<String> = [
         "42",
         "-2",
+        "-9223372036854775808",
+        "-(2)",
+        "-(-9223372036854775808)",
         "2d6",
+        "2D6",
         "d20",
+        "D20",
         "d%",
         "4dF",
         "4df",
@@ -628,7 +706,9 @@ fn build_02_grammar_and_ast() -> GrammarAndAstFile {
         "-(2*3)",
         "4d6kh3",
         "4d6kh",
+        "4d6kl",
         "4d6kl2",
+        "4d6dh",
         "4d6dh1",
         "4d6dl",
         "4d6kh0",
@@ -730,6 +810,10 @@ fn build_02_grammar_and_ast() -> GrammarAndAstFile {
             "literal exceeding i64::MAX",
             String::from("9223372036854775808"),
         ),
+        (
+            "literal below i64::MIN",
+            String::from("-9223372036854775809"),
+        ),
     ];
 
     let mut reject_cases = Vec::with_capacity(reject_inputs.len());
@@ -777,6 +861,14 @@ fn build_02_grammar_and_ast() -> GrammarAndAstFile {
         (
             "i64::MIN divided by -1 overflow",
             "(-9223372036854775807-1)/-1",
+        ),
+        (
+            "literal i64::MIN evaluates to i64::MIN",
+            "-9223372036854775808",
+        ),
+        (
+            "unary negation of literal i64::MIN overflows",
+            "-(-9223372036854775808)",
         ),
     ];
 
@@ -1230,5 +1322,311 @@ fn verify_error_code(err: &ReceiptVerifyError) -> &'static str {
         ReceiptVerifyError::UnconsumedDraws { .. } => "unconsumed_draws",
         ReceiptVerifyError::ExecutionError { .. } => "execution_error",
         ReceiptVerifyError::ResultMismatch => "result_mismatch",
+    }
+}
+
+fn format_stats_fixture(stats: &DistributionStats) -> StatsFixture {
+    let mut percentiles = BTreeMap::new();
+    for (&k, &v) in &stats.percentiles {
+        percentiles.insert(k.to_string(), v.to_string());
+    }
+    StatsFixture {
+        min: stats.min.to_string(),
+        max: stats.max.to_string(),
+        mean: stats.mean,
+        median: stats.median.to_string(),
+        mode: stats.mode.to_string(),
+        stddev: stats.stddev,
+        percentiles,
+        entropy: stats.entropy,
+    }
+}
+
+fn sample_curve_anchors(curve: &[(i64, f64)], max_points: usize) -> Vec<PmfEntryFixture> {
+    if curve.len() <= max_points {
+        return curve
+            .iter()
+            .map(|&(v, p)| PmfEntryFixture {
+                outcome: v.to_string(),
+                probability: p,
+            })
+            .collect();
+    }
+    let last = curve.len() - 1;
+    let mut indices = Vec::with_capacity(max_points);
+    for step in 0..max_points {
+        let idx = (step * last) / (max_points - 1);
+        if indices.last().copied() != Some(idx) {
+            indices.push(idx);
+        }
+    }
+    if indices.last().copied() != Some(last) {
+        indices.push(last);
+    }
+    indices
+        .into_iter()
+        .map(|idx| {
+            let (v, p) = curve[idx];
+            PmfEntryFixture {
+                outcome: v.to_string(),
+                probability: p,
+            }
+        })
+        .collect()
+}
+
+fn classify_analyze_error(err: &RollError) -> &'static str {
+    match err {
+        RollError::DivisionByZero => "division_by_zero",
+        RollError::AnalysisBudgetExceeded { .. } => "analysis_budget_exceeded",
+        RollError::ArithmeticOverflow => "arithmetic_overflow",
+        RollError::InvalidProbability { .. } => "invalid_probability",
+        _ => "other",
+    }
+}
+
+fn build_04_exact_analysis() -> ExactAnalysisFile {
+    const ANALYZE_INPUTS: &[(&str, &str)] = &[
+        ("standard 2d6 sum", "2d6"),
+        ("classic ability roll 4d6kh3", "4d6kh3"),
+        ("combined reroll + standard explode 2d6r=1!", "2d6r=1!"),
+        (
+            "combined reroll-once + clamp + explode 2d4ro=1min2!",
+            "2d4ro=1min2!",
+        ),
+        (
+            "combined capped reroll + keep-highest 3d4r=1kh2",
+            "3d4r=1kh2",
+        ),
+        ("capped binary explosion 1d2!", "1d2!"),
+        ("capped reroll residual 1d100r<=99", "1d100r<=99"),
+        ("underflowed reachable support 5d20r=1", "5d20r=1"),
+        (
+            "every-face explosion hits MAX_EXPLOSIONS 1d6!>=1",
+            "1d6!>=1",
+        ),
+        (
+            "every-face reroll hits MAX_REROLLS uniformly 1d6r>=1",
+            "1d6r>=1",
+        ),
+        ("unmatched reroll threshold reports no cap 1d6r=7", "1d6r=7"),
+        (
+            "clamped depth-0 single explosion without cap 1d6min7!>=7",
+            "1d6min7!>=7",
+        ),
+        (
+            "penetrate explosion floor and raw-face threshold 1d2!p",
+            "1d2!p",
+        ),
+        ("order-statistic DP wide keep-highest 10d20kh3", "10d20kh3"),
+        (
+            "order-statistic DP chained drop-lowest/highest 6d6dl1dh1",
+            "6d6dl1dh1",
+        ),
+        ("compounding explosion + keep-highest 4d6!!kh3", "4d6!!kh3"),
+        ("empty rank interval keep-zero 4d6kh0", "4d6kh0"),
+        ("exploding pool success count 8d6!cs>=5", "8d6!cs>=5"),
+        ("penetrating pool success count 8d6!pcs>=5", "8d6!pcs>=5"),
+        ("compounding pool success count 4d6!!cs>=10", "4d6!!cs>=10"),
+        ("pool critical failure subtraction 10d6cf<=1", "10d6cf<=1"),
+        ("Fate reroll 4dFr=-1", "4dFr=-1"),
+        (
+            "exact non-constant multiplication (1d6)*(1d6)",
+            "(1d6)*(1d6)",
+        ),
+        (
+            "exact floor division over non-zero support 1d6/(1d2!-22)",
+            "1d6/(1d2!-22)",
+        ),
+        (
+            "D&D ability modifier floor division (4d6kh3-10)/2",
+            "(4d6kh3-10)/2",
+        ),
+        (
+            "Monte Carlo fallback for standard explode + keep-highest 4d6!kh3",
+            "4d6!kh3",
+        ),
+        (
+            "Monte Carlo fallback when support product exceeds MAX_EXACT_STATES 12d1000",
+            "12d1000",
+        ),
+    ];
+
+    const QUERY_PROBS: [f64; 5] = [0.05, 0.25, 0.5, 0.75, 0.95];
+
+    let mut analyze_cases = Vec::with_capacity(ANALYZE_INPUTS.len());
+    for &(description, expression) in ANALYZE_INPUTS {
+        let ast = parse(expression).expect("valid analyze fixture expression");
+        let canonical_expression = ast.to_canonical_string();
+        let report = analyze(&ast).expect("analyze fixture succeeds");
+        let support_len = report.distribution.len();
+        let pmf = if support_len <= 200 {
+            report
+                .distribution
+                .entries()
+                .iter()
+                .map(|&(v, p)| PmfEntryFixture {
+                    outcome: v.to_string(),
+                    probability: p,
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let cdf_samples = sample_curve_anchors(&report.distribution.cdf(), 16);
+        let survival_samples = sample_curve_anchors(&report.distribution.survival(), 16);
+        let mut target_queries = Vec::with_capacity(QUERY_PROBS.len());
+        for &probability in &QUERY_PROBS {
+            let at_least = report
+                .distribution
+                .target_for_probability(probability, TargetDirection::AtLeast)
+                .expect("valid query probability");
+            let at_most = report
+                .distribution
+                .target_for_probability(probability, TargetDirection::AtMost)
+                .expect("valid query probability");
+            target_queries.push(TargetQueryFixture {
+                probability,
+                at_least: at_least.to_string(),
+                at_most: at_most.to_string(),
+            });
+        }
+
+        analyze_cases.push(AnalyzeFixtureCase {
+            description,
+            expression,
+            canonical_expression,
+            method: report.method,
+            support_len,
+            stats: format_stats_fixture(&report.stats),
+            pmf,
+            cdf_samples,
+            survival_samples,
+            target_queries,
+        });
+    }
+
+    const COMPARE_INPUTS: &[(&str, &str, &str)] = &[
+        (
+            "exact margin convolution 4d6kh3 vs 3d6+2",
+            "4d6kh3",
+            "3d6+2",
+        ),
+        (
+            "exact margin with merged caps 2d6r=1! vs 3d6",
+            "2d6r=1!",
+            "3d6",
+        ),
+        (
+            "symmetric two-pointer fallback without margin 100d100 vs 100d100",
+            "100d100",
+            "100d100",
+        ),
+        ("Monte Carlo comparison 4d6!kh3 vs 3d6", "4d6!kh3", "3d6"),
+    ];
+
+    let mut compare_cases = Vec::with_capacity(COMPARE_INPUTS.len());
+    for &(description, left_expression, right_expression) in COMPARE_INPUTS {
+        let left_ast = parse(left_expression).expect("valid left compare fixture");
+        let right_ast = parse(right_expression).expect("valid right compare fixture");
+        let cmp = compare(&left_ast, &right_ast).expect("compare fixture succeeds");
+        compare_cases.push(CompareFixtureCase {
+            description,
+            left_expression,
+            right_expression,
+            method: cmp.method,
+            p_left_greater: cmp.p_left_greater,
+            p_equal: cmp.p_equal,
+            p_right_greater: cmp.p_right_greater,
+            mean_margin: cmp.mean_margin,
+            has_exact_margin: cmp.margin.is_some(),
+            margin_support_len: cmp.margin.as_ref().map(crate::analyze::Distribution::len),
+        });
+    }
+
+    const ERROR_INPUTS: &[(&str, &str, &str)] = &[
+        (
+            "literal division by zero 1d6/0",
+            "1d6/0",
+            "division_by_zero",
+        ),
+        (
+            "reachable zero in simple divisor 1d6/(1d2-1)",
+            "1d6/(1d2-1)",
+            "division_by_zero",
+        ),
+        (
+            "§5.4 case 1 capped reroll residual zero 1d6/(1d100r<=99-50)",
+            "1d6/(1d100r<=99-50)",
+            "division_by_zero",
+        ),
+        (
+            "§5.4 underflowed f64 zero probability 1d6/(5d20r=1-5)",
+            "1d6/(5d20r=1-5)",
+            "division_by_zero",
+        ),
+        (
+            "§5.4 case 2 divisor checked before oversized dividend 500d1000/(5d20-5)",
+            "500d1000/(5d20-5)",
+            "division_by_zero",
+        ),
+        (
+            "§5.4 branch isolation across oversized sibling (1d6/(5d20-5))+500d1000",
+            "(1d6/(5d20-5))+500d1000",
+            "division_by_zero",
+        ),
+        (
+            "§5.4 case 4 Monte Carlo divisor hits zero 1d6/(4d6!kh3-12)",
+            "1d6/(4d6!kh3-12)",
+            "division_by_zero",
+        ),
+        (
+            "single-group analysis budget exceeded 1001d6",
+            "1001d6",
+            "analysis_budget_exceeded",
+        ),
+        (
+            "multi-group analysis budget exceeded 600d6+401d6",
+            "600d6+401d6",
+            "analysis_budget_exceeded",
+        ),
+        (
+            "unary negation overflow in analyzer -(-9223372036854775808)",
+            "-(-9223372036854775808)",
+            "arithmetic_overflow",
+        ),
+        (
+            "shift addition overflow in analyzer 9223372036854775807+1d6",
+            "9223372036854775807+1d6",
+            "arithmetic_overflow",
+        ),
+        (
+            "i64::MIN / -1 floor division overflow in analyzer (-9223372036854775808)/-1",
+            "(-9223372036854775808)/-1",
+            "arithmetic_overflow",
+        ),
+    ];
+
+    let mut error_cases = Vec::with_capacity(ERROR_INPUTS.len());
+    for &(description, expression, expected_error_kind) in ERROR_INPUTS {
+        let ast = parse(expression).expect("error fixture expression parses");
+        let err = analyze(&ast).expect_err("error fixture must fail in analyze");
+        let actual_kind = classify_analyze_error(&err);
+        assert_eq!(
+            actual_kind, expected_error_kind,
+            "unexpected error kind for {expression}: {err}"
+        );
+        error_cases.push(AnalyzeErrorFixtureCase {
+            description,
+            expression,
+            expected_error_kind: actual_kind,
+        });
+    }
+
+    ExactAnalysisFile {
+        schema_version: "roll.conformance.exact_analysis.v1",
+        analyze_cases,
+        compare_cases,
+        error_cases,
     }
 }

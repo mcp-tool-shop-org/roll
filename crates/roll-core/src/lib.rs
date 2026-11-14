@@ -2,26 +2,34 @@
 //!
 //! `roll-core` is the single normative source of truth for Roll 3.0 addressing,
 //! `ChaCha12Rng` key derivation, 64-bit Lemire range mapping, canonical JSON
-//! receipts, and dice expression parsing/evaluation. The `@mcptoolshop/roll`
-//! npm package is shipped as a pure TypeScript port verified against
-//! `roll-core`-generated conformance fixtures for zero install friction and
-//! synchronous use everywhere.
+//! receipts, dice expression parsing/evaluation, and exact probability distribution
+//! analysis. The `@mcptoolshop/roll` npm package is shipped as a pure TypeScript
+//! port verified against `roll-core`-generated conformance fixtures for zero
+//! install friction and synchronous use everywhere.
 
 #![forbid(unsafe_code)]
 #![no_std]
 
 extern crate alloc;
 
+pub mod analyze;
 pub mod ast;
 pub mod canonical_json;
 pub mod codec;
 pub mod conformance;
 pub mod error;
 pub mod eval;
+pub mod math;
 pub mod parser;
 pub mod receipt;
 pub mod rng;
 
+pub use analyze::{
+    AnalysisMethod, AnalysisReport, ComparisonReport, DEFAULT_MONTE_CARLO_SAMPLES, Distribution,
+    DistributionStats, MAX_ANALYZE_DICE, MAX_EXACT_STATES, MONTE_CARLO_DEFAULT_SEED, ModelledCaps,
+    PrefixOracleResult, TargetDirection, analyze, compare, compute_stats, lemire_witness_word,
+    monte_carlo_distribution, reduce_keep_drop_interval, run_prefix_tape_oracle,
+};
 pub use ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
     ExplosionVariant, Expr, KeepDropOp, MAX_DICE_PER_GROUP, MAX_DIE_SIDES, MAX_EXPLOSIONS,

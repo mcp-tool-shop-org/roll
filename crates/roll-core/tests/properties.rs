@@ -4,10 +4,12 @@ use core::num::{NonZeroU32, NonZeroU64};
 use proptest::prelude::*;
 use proptest::test_runner::FileFailurePersistence;
 use roll_core::{
-    BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
-    ExplosionVariant, Expr, KeepDropOp, ReceiptVerifyError, ResultMode, RollAddress, RollError,
-    RollRng, SeedMaterial, SortOrder, compute_receipt_sha256, evaluate_addressed,
-    lemire_sample_from_tape, parse, to_canonical_receipt_json, verify_receipt, verify_receipt_json,
+    AnalysisMethod, BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec,
+    ExplosionRule, ExplosionVariant, Expr, KeepDropOp, ReceiptVerifyError, ResultMode, RollAddress,
+    RollError, RollRng, SeedMaterial, SortOrder, TargetDirection, analyze, compute_receipt_sha256,
+    evaluate_addressed, lemire_sample_from_tape,
+    math::{log2_f64, sqrt_f64},
+    parse, to_canonical_receipt_json, verify_receipt, verify_receipt_json,
 };
 
 fn proptest_cfg() -> ProptestConfig {
@@ -146,7 +148,15 @@ fn arb_dice_spec(max_count: u32) -> impl Strategy<Value = DiceSpec> {
 
 fn arb_roundtrip_expr() -> impl Strategy<Value = Expr> {
     let leaf = prop_oneof![
-        (0i64..=i64::MAX).prop_map(Expr::Number),
+        prop_oneof![
+            Just(i64::MIN),
+            Just(i64::MAX),
+            Just(-1i64),
+            Just(0i64),
+            Just(1i64),
+            any::<i64>(),
+        ]
+        .prop_map(Expr::Number),
         arb_dice_spec(50).prop_map(Expr::Dice),
     ];
     leaf.prop_recursive(4, 16, 2, |inner| {
@@ -352,4 +362,215 @@ proptest! {
         prop_assert!(t_val < span.get());
         prop_assert!((1..=3).contains(&consumed));
     }
+
+    #[test]
+    fn prop_pmf_conservation_and_query_identities(expr in arb_exact_analyzable_expr()) {
+        let report = analyze(&expr).expect("bounded exact expression analyzes cleanly");
+        let is_exact = matches!(report.method, AnalysisMethod::Exact { .. });
+        prop_assert!(is_exact, "expected Exact method, got {:?}", report.method);
+
+        let entries = report.distribution.entries();
+        prop_assert!(!entries.is_empty());
+
+        let mut prev_v: Option<i64> = None;
+        let mut total_mass = 0.0_f64;
+        for &(v, p) in entries {
+            if let Some(prev) = prev_v {
+                prop_assert!(v > prev, "support keys must be strictly ascending: {} <= {}", v, prev);
+            }
+            prev_v = Some(v);
+            prop_assert!(p >= 0.0 && p.is_finite(), "invalid probability {} at {}", p, v);
+            total_mass += p;
+        }
+        prop_assert!(
+            (total_mass - 1.0).abs() <= 1e-12,
+            "PMF mass drifted from 1.0: {}",
+            total_mass
+        );
+
+        let min_v = report.stats.min;
+        let max_v = report.stats.max;
+        let mid_v = min_v + (max_v - min_v) / 2;
+        for x in [min_v.saturating_sub(1), min_v, mid_v, max_v, max_v.saturating_add(1)] {
+            if let Some(x_plus_1) = x.checked_add(1) {
+                let sum_split =
+                    report.distribution.prob_at_most(x) + report.distribution.prob_at_least(x_plus_1);
+                prop_assert!(
+                    (sum_split - total_mass).abs() <= 1e-12,
+                    "CDF + survival split mismatch at {}: {}",
+                    x,
+                    sum_split
+                );
+            }
+            if let Some(min_minus_1) = min_v.checked_sub(1)
+                && x >= min_v
+            {
+                let range_p = report.distribution.prob_in_range(min_v, x);
+                let cdf_diff =
+                    report.distribution.prob_at_most(x) - report.distribution.prob_at_most(min_minus_1);
+                prop_assert!(
+                    (range_p - cdf_diff).abs() <= 1e-12,
+                    "prob_in_range mismatch: {} vs {}",
+                    range_p,
+                    cdf_diff
+                );
+            }
+        }
+
+        for q in [0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0.99] {
+            let t_ge = report
+                .distribution
+                .target_for_probability(q, TargetDirection::AtLeast)
+                .unwrap();
+            prop_assert!(report.distribution.is_reachable(t_ge));
+            prop_assert!(report.distribution.prob_at_least(t_ge) >= q - 1e-12);
+            let idx_ge = entries.binary_search_by_key(&t_ge, |&(v, _)| v).unwrap();
+            if idx_ge + 1 < entries.len() {
+                let next_v = entries[idx_ge + 1].0;
+                prop_assert!(report.distribution.prob_at_least(next_v) < q + 1e-12);
+            }
+
+            let t_le = report
+                .distribution
+                .target_for_probability(q, TargetDirection::AtMost)
+                .unwrap();
+            prop_assert!(report.distribution.is_reachable(t_le));
+            prop_assert!(report.distribution.prob_at_most(t_le) >= q - 1e-12);
+            let idx_le = entries.binary_search_by_key(&t_le, |&(v, _)| v).unwrap();
+            if idx_le > 0 {
+                let prev = entries[idx_le - 1].0;
+                prop_assert!(report.distribution.prob_at_most(prev) < q + 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn prop_no_std_math_matches_ieee_reference(raw_bits in any::<u64>()) {
+        // Construct positive finite `f64` values across subnormals and normal exponents.
+        let positive_bits = raw_bits & 0x7fff_ffff_ffff_ffff;
+        let x = f64::from_bits(positive_bits);
+        if x.is_finite() {
+            // `sqrt_f64` is 0.0-ULP exact across every non-negative finite `f64` (including subnormals and +0.0).
+            prop_assert_eq!(sqrt_f64(x).to_bits(), x.sqrt().to_bits());
+            if x > 0.0 {
+                let actual = log2_f64(x);
+                let expected = x.log2();
+                let tol = 2e-15 * expected.abs().max(1.0);
+                prop_assert!(
+                    (actual - expected).abs() <= tol,
+                    "log2_f64 mismatch at {:e}: actual={}, expected={}",
+                    x,
+                    actual,
+                    expected
+                );
+            }
+        }
+    }
+}
+
+fn arb_exact_analyzable_expr() -> impl Strategy<Value = Expr> {
+    let exact_dice = (
+        1u32..=5u32,
+        prop_oneof![
+            (2u32..=12u32).prop_map(|n| DiceSides::Standard(NonZeroU32::new(n).unwrap())),
+            Just(DiceSides::Percentile),
+            Just(DiceSides::Fate),
+        ],
+        prop::collection::vec(
+            (arb_compare_op(), -2i64..=12i64).prop_map(|(op, value)| ComparePoint { op, value }),
+            0..=1,
+        ),
+        prop::collection::vec(
+            (arb_compare_op(), -2i64..=12i64).prop_map(|(op, value)| ComparePoint { op, value }),
+            0..=1,
+        ),
+        arb_clamp(),
+        prop::option::of((
+            prop_oneof![
+                Just(ExplosionVariant::Standard),
+                Just(ExplosionVariant::Compound),
+                Just(ExplosionVariant::Penetrate),
+            ],
+            (arb_compare_op(), 2i64..=12i64).prop_map(|(op, value)| ComparePoint { op, value }),
+        )),
+        prop::collection::vec(arb_keep_drop(), 0..=2),
+        arb_result_mode(),
+        arb_sort(),
+    )
+        .prop_map(
+            |(
+                c,
+                sides,
+                reroll_unlimited,
+                reroll_once,
+                clamp,
+                explode_opt,
+                keep_drop,
+                mode,
+                sort,
+            )| {
+                // Avoid Standard/Penetrate + non-empty keep_drop (`4d6!kh3` is the §5.1 MC case)
+                // and cap Percentile explosions with keep_drop so state space stays compact.
+                let explode = if sides == DiceSides::Fate || sides == DiceSides::Percentile {
+                    None
+                } else {
+                    match explode_opt {
+                        Some((variant, threshold))
+                            if !keep_drop.is_empty() && variant != ExplosionVariant::Compound =>
+                        {
+                            Some(ExplosionRule {
+                                variant: ExplosionVariant::Compound,
+                                threshold,
+                            })
+                        }
+                        Some((variant, threshold)) => Some(ExplosionRule { variant, threshold }),
+                        None => None,
+                    }
+                };
+                let effective_count = if sides == DiceSides::Percentile && !keep_drop.is_empty() {
+                    c.min(3)
+                } else {
+                    c
+                };
+                Expr::Dice(DiceSpec {
+                    count: NonZeroU32::new(effective_count).unwrap(),
+                    sides,
+                    reroll_unlimited,
+                    reroll_once,
+                    clamp,
+                    explode,
+                    keep_drop,
+                    mode,
+                    sort,
+                })
+            },
+        );
+
+    let leaf = prop_oneof![(-20i64..=20i64).prop_map(Expr::Number), exact_dice];
+    leaf.prop_recursive(2, 5, 2, |inner| {
+        prop_oneof![
+            inner.clone().prop_map(|e| Expr::UnaryNeg(Box::new(e))),
+            (
+                prop_oneof![
+                    Just(BinaryOp::Add),
+                    Just(BinaryOp::Sub),
+                    Just(BinaryOp::Mul),
+                ],
+                inner.clone(),
+                inner.clone(),
+            )
+                .prop_map(|(op, left, right)| Expr::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                }),
+            (inner, prop_oneof![-6i64..=-1i64, 1i64..=6i64],).prop_map(|(left, div)| {
+                Expr::Binary {
+                    op: BinaryOp::DivFloor,
+                    left: Box::new(left),
+                    right: Box::new(Expr::Number(div)),
+                }
+            }),
+        ]
+    })
 }
