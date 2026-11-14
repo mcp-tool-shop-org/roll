@@ -8,6 +8,10 @@ on:
       - 'tsconfig.json'
       - 'src/**'
       - 'tests/**'
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'fixtures/**'
       - '.github/workflows/**'
       - 'atlas/**'
       - 'site/package.json'
@@ -139,6 +143,57 @@ jobs:
           report_type: test_results
           disable_search: true
           files: ./junit.xml
+
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-wasip1, wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Install wasmtime and cargo-audit
+        run: |
+          BIN_DIR="$RUNNER_TEMP/rust-ci-bin"
+          mkdir -p "$BIN_DIR"
+          curl -fsSL -o "$RUNNER_TEMP/wasmtime.tar.xz" \
+            "https://github.com/bytecodealliance/wasmtime/releases/download/v50.0.1/wasmtime-v50.0.1-x86_64-linux.tar.xz"
+          echo "685466455dd42a14774a86c36c8f2e45cbb9bd6d92a850139315df60a75498a5  $RUNNER_TEMP/wasmtime.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/wasmtime.tar.xz" --strip-components=1 -C "$BIN_DIR" wasmtime-v50.0.1-x86_64-linux/wasmtime
+
+          curl -fsSL -o "$RUNNER_TEMP/cargo-audit.tgz" \
+            "https://github.com/rustsec/rustsec/releases/download/cargo-audit/v0.23.0/cargo-audit-x86_64-unknown-linux-musl-v0.23.0.tgz"
+          echo "4f01c74ed84b2dffd0b1d37012a62cdf2a92c96e25bdf8eec7fcc0d4d3eb7811  $RUNNER_TEMP/cargo-audit.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/cargo-audit.tgz" --strip-components=1 -C "$BIN_DIR" cargo-audit-x86_64-unknown-linux-musl-v0.23.0/cargo-audit
+
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          "$BIN_DIR/wasmtime" --version
+          "$BIN_DIR/cargo-audit" --version
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Check roll-core no_std + alloc
+        run: cargo check -p roll-core --no-default-features --target wasm32-unknown-unknown
+      - name: Test (native)
+        run: cargo test --workspace < /dev/null
+      - name: Test (wasm32-wasip1)
+        env:
+          CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime run --dir=.
+        run: cargo test --workspace --target wasm32-wasip1 < /dev/null
+      - name: Regenerate conformance fixtures and check for drift
+        run: |
+          cargo run -p roll-cli -- fixtures --out fixtures/conformance/v3/ < /dev/null
+          git diff --exit-code -- fixtures/conformance/v3/
+          test -z "$(git status --porcelain -- fixtures/conformance/v3/)"
+      - name: Audit Cargo.lock
+        run: cargo audit < /dev/null
 
   # Publishing is handled by release.yml on tag push, via OIDC trusted
   # publishing (no NPM_TOKEN). Keep CI test-only.

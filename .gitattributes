@@ -1,0 +1,6 @@
+# Enforce LF line endings on conformance fixtures and Rust workspace sources
+# so SHA-256 digests are byte-identical across Windows and Linux checkouts.
+fixtures/** text eol=lf
+crates/** text eol=lf
+Cargo.toml text eol=lf
+Cargo.lock text eol=lf

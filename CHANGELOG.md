@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Roll 3.0 reference core (`crates/roll-core`) and conformance fixture generator (`crates/roll-cli`)** — introduces the `no_std` + `alloc`, `#![forbid(unsafe_code)]` Rust 2024 workspace (`MSRV 1.88`) implementing deterministic `ChaCha12Rng` streams keyed via length-prefixed SHA-256 `RollAddress` derivation (`roll.v3.seed_kdf\x00\x01`, `rules_version: "roll.v3"`), 64-bit Lemire unbiased range sampling, RFC 8785 JCS canonical receipts (`schema_version: "roll.receipt.v1"`) with `verify_receipt`, and the v3 modal scannerless dice grammar and checked `i64` evaluator (floor division toward -∞, parse-time `min <= max` and 10,000-dice AST budget, and unambiguous modifier parsing for `1d20cscf`, `4d6khsa`, and `2d6rsa`). `roll-cli fixtures --out fixtures/conformance/v3/` generates the byte-reproducible v3 conformance suite (`MANIFEST.sha256` verified identically on native and `wasm32-wasip1`); the npm package remains a pure TypeScript port for zero install friction and synchronous use everywhere, verified against these fixtures in a follow-up PR.
+
 ### Fixed
 
 - **Stacked-explosion cost guards across `analyze()`, Monte Carlo, and `roll()`** — `estimateAstAnalyzeRolls` accounts for stacked explosion modifiers (`101^k` per-sample roll amplification across `explode` / `compound` / `penetrate`) and rerolls in the `analyze()` input-dice guard, `monteCarloDistribution` enforces both the static per-sample roll cap and a live RNG-draw budget (`samples × 1,000`), `stageExplode` caps per-group bonus rolls at `MAX_EXPLOSION_ROLLS = 10_000` (throwing `ParseError` when exceeded), and CLI `--times` / MCP `roll_dice` use the explosion-aware roll estimate so crafted expressions like `2d3!<=4!!>=1` or `1d6!>=1!>=1!>=1` fail fast instead of stalling.

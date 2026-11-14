@@ -1,0 +1,5826 @@
+{
+  "schema_version": "roll.conformance.kdf_rng.v1",
+  "chacha12_zero_seed_words": [
+    "53f955076a9af49b",
+    "d583265f12ce1f81",
+    "1474e049bbc32904",
+    "5f15ae2ea589007e",
+    "c0e37ad279f86405",
+    "798cfaac3428e82c",
+    "1969dea02c9f623a",
+    "be2613412fe80b61",
+    "fe743e204188d50b",
+    "3d17e08c3371fc86",
+    "cccbbd19b7eb28c6",
+    "b489c04c21851515",
+    "11f14ca1cd8d2542",
+    "43c88c1b97b802c6",
+    "c0515190ca461ee9",
+    "1693e617b0a64427"
+  ],
+  "kdf_vectors": [
+    {
+      "index": 0,
+      "description": "int64_zero_cli",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "0"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "34456a5d46471fd1e1474429db47ef5a7789696de599cd64828f81a11c593652",
+      "first_words_hex": [
+        "71710bb704f0a175",
+        "a582f8711633a0bc",
+        "2d50d7069d57eb53",
+        "1c50edee41bb38e5"
+      ]
+    },
+    {
+      "index": 1,
+      "description": "int64_minus_one",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "27b416b7b5dc71a1d83c1ba86e2fc29b9360c6784ac7e9d4c4da3bb9766b7d90",
+      "first_words_hex": [
+        "905d6f84aecf94f7",
+        "7a3207f88b5d417d",
+        "a3cdd58a4154308f",
+        "d90b246a64de648a"
+      ]
+    },
+    {
+      "index": 2,
+      "description": "int64_min",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-9223372036854775808"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "8bfd14a3dc444527a7eebd5d0a30e1cc30e45a32ff2df21fb41ddb6bfa6537e0",
+      "first_words_hex": [
+        "463c5ea3aff85b8b",
+        "f0a773d9249554fc",
+        "3283724e5c5ec7e6",
+        "5062fa0b670ae37e"
+      ]
+    },
+    {
+      "index": 3,
+      "description": "int64_max",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "9223372036854775807"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "66ab3d3edba037f7c6d2eb2f8e0277a861ba8422c78a9225212ca0e8b685eef7",
+      "first_words_hex": [
+        "b0219eb8ab539cc4",
+        "01bd9a4ccabf6c03",
+        "6ae4f5ce3a4c955a",
+        "38ee858dbef3b632"
+      ]
+    },
+    {
+      "index": 4,
+      "description": "int64_one_low32_anchor",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f6285c828bb3306f199ee059fabe45b9653186aa0169f42a3bdb29f37a342e52",
+      "first_words_hex": [
+        "43189c047f5acc8a",
+        "67f6b6e2b0dfbc8f",
+        "9f2f05843b26a075",
+        "9cc1c3f7ab9c073b"
+      ]
+    },
+    {
+      "index": 5,
+      "description": "int64_2pow32_plus_one_no_truncation",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4294967297"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "063e676c33bd854bdf08800f2bbeeb1467027bf772928c4add9e6a1c5fd1c5cb",
+      "first_words_hex": [
+        "2c129272c5f05bf9",
+        "44774139b660ac3e",
+        "6423a14ce0e4f74f",
+        "82e77dd21e189ef5"
+      ]
+    },
+    {
+      "index": 6,
+      "description": "int64_js_max_safe_integer",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "9007199254740991"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "72a6068e9977aff2af7551ad199b2ec5805155466d78cefca12d543bb3a08e79",
+      "first_words_hex": [
+        "32ca88a83e557535",
+        "444ed9968310b685",
+        "de4030aaebe9eaa3",
+        "0ba1304606e05d4d"
+      ]
+    },
+    {
+      "index": 7,
+      "description": "int64_js_max_safe_plus_one",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "9007199254740992"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a9e46bb532c0b8ce36b742199b11cb805b060d88309b61e90b96592728768bc8",
+      "first_words_hex": [
+        "08973c4d24e5e1ad",
+        "f9909f10ca17e3d5",
+        "7425ad42d89e0acf",
+        "9b1f0077c8a24e6b"
+      ]
+    },
+    {
+      "index": 8,
+      "description": "int64_js_max_safe_plus_two",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "9007199254740993"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "373ad751695db39c744105a1ba77358c64b64fac032f0243074db944e06e92d7",
+      "first_words_hex": [
+        "ddbf5c776f7347e1",
+        "c56639800ba41690",
+        "9ce2044b5fd48544",
+        "3a883a2747e5f986"
+      ]
+    },
+    {
+      "index": 9,
+      "description": "bytes32_all_zero",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "turn": "0",
+        "domain": "drand",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e77c08e626a2ee1eb41483926f5af288801a1cede32585560b45b65b431cc4a3",
+      "first_words_hex": [
+        "fa59f53bc6c0dd7d",
+        "de10c83d580dcecb",
+        "4f348e6d7b4c6b77",
+        "92072d363eac6157"
+      ]
+    },
+    {
+      "index": 10,
+      "description": "bytes32_all_ff",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "turn": "18446744073709551615",
+        "domain": "drand",
+        "entity_id": "",
+        "roll_index": "18446744073709551615",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0f3d8ab31c66d6a62640a31a9cdc82be35fdd0623bfda9fabb3d8a4c02e9efe4",
+      "first_words_hex": [
+        "45ec2723411002be",
+        "65eddbf861955c30",
+        "dc9293d6aaa0fa96",
+        "ea493889536839de"
+      ]
+    },
+    {
+      "index": 11,
+      "description": "prefix_collision_pair_a",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7"
+        },
+        "turn": "1",
+        "domain": "ab",
+        "entity_id": "c",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "d5dd66122f94f046e2faca4777715f5ba188ffd023e59ddc189458e79b8363a0",
+      "first_words_hex": [
+        "6576afd660b50ca9",
+        "474f4975b25e925c",
+        "5bbf970b4a15d9bc",
+        "a98ea3024db8260b"
+      ]
+    },
+    {
+      "index": 12,
+      "description": "prefix_collision_pair_b",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7"
+        },
+        "turn": "1",
+        "domain": "a",
+        "entity_id": "bc",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "3c6e0115048916a47e7a2e4c40b27687781438027a8d56581ebef9b553155ada",
+      "first_words_hex": [
+        "2c4065f15b63a4bd",
+        "23a558063d29b927",
+        "d76cd55089d08195",
+        "21035564272076e8"
+      ]
+    },
+    {
+      "index": 13,
+      "description": "domain_min_1_byte",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "42"
+        },
+        "turn": "1",
+        "domain": "x",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "136df2ffa6f30ce40008ae4e6f0ea7cc28fe498c4619d468d780150be1ef3b47",
+      "first_words_hex": [
+        "01b29bacda3e371a",
+        "36f415f8a7b51121",
+        "03b3023fe5d77bed",
+        "833948579e310ba4"
+      ]
+    },
+    {
+      "index": 14,
+      "description": "domain_max_128_bytes",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "42"
+        },
+        "turn": "1",
+        "domain": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "466a7c0c1e6449c4111ce37bf28a87f2f8ccc8e5087d6f4af809ab66506c5950",
+      "first_words_hex": [
+        "c7cedd0daf5ddeae",
+        "cd46fbb5c5eeba68",
+        "ddb808f9d565e870",
+        "3026f6020757a16c"
+      ]
+    },
+    {
+      "index": 15,
+      "description": "entity_max_256_bytes_ascii",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "42"
+        },
+        "turn": "1",
+        "domain": "road",
+        "entity_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "5d1bd62396cd1bbc373ea1d50135b2b3350d456b52c34bc85ce62926df4432f6",
+      "first_words_hex": [
+        "979f28fed810bc76",
+        "ccf5bdd01bfc21e6",
+        "fa47b1d82108c991",
+        "1d45a00c7a19071e"
+      ]
+    },
+    {
+      "index": 16,
+      "description": "entity_utf8_emoji_and_cjk",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "42"
+        },
+        "turn": "4",
+        "domain": "road_event",
+        "entity_id": "caravan:🎲-北方商隊-04",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "358d25037b4f3246c35413123ebfa69beba4a1a1a2f1f65fbcf4210b19d60173",
+      "first_words_hex": [
+        "e4c7fd0dcbdadc83",
+        "1c4624c769790048",
+        "edc1fbfa7c436414",
+        "e66c0e1eba7a794f"
+      ]
+    },
+    {
+      "index": 17,
+      "description": "entity_max_256_bytes_utf8_4byte",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "42"
+        },
+        "turn": "1",
+        "domain": "road",
+        "entity_id": "🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "270090bea59c5744cca485ef70c2b749c5f3e3317e4270108d40b6186872a1c6",
+      "first_words_hex": [
+        "61d23bab26f2ca6d",
+        "e3653c96ba979aee",
+        "fe00b29597b76e09",
+        "b6d9a4cc80e17427"
+      ]
+    },
+    {
+      "index": 18,
+      "description": "rules_version_min_1_byte",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "42"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "3"
+      },
+      "derived_key_hex": "12c438ff01f782668018ba634923f2e97e359c7ae6841443d0bc31ea619e2158",
+      "first_words_hex": [
+        "219606593d48164f",
+        "880e60d61df87f85",
+        "12aa3a0d8139aa5c",
+        "38eb7c8ff8ae7f9e"
+      ]
+    },
+    {
+      "index": 19,
+      "description": "rules_version_max_64_bytes",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "42"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      },
+      "derived_key_hex": "b62ed6a15a9e182ded952249cbf0763a957bd9768d0c27f07114470debae153a",
+      "first_words_hex": [
+        "021bfa8b99e99b96",
+        "786213a5e345f739",
+        "1efca29101de9f4d",
+        "94711a9776bf9547"
+      ]
+    },
+    {
+      "index": 20,
+      "description": "grid_vector_020",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4924203712561870416"
+        },
+        "turn": "20000060",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "3db9419d3cb751045716b63d5c2afe4bd662430f871ea1fb6723a962be09f7b7",
+      "first_words_hex": [
+        "4674754bbcedd59b",
+        "4448d31edcf2fa9e",
+        "262621f0b219e45c",
+        "fb8b2f961aca1a85"
+      ]
+    },
+    {
+      "index": 21,
+      "description": "grid_vector_021",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "34d843e1cf86d2ec55d6fe1b5ccac93db62fcff2b52e4a17fdd45c25f86bf056"
+        },
+        "turn": "21000063",
+        "domain": "market_shock",
+        "entity_id": "unit:21:route-4",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "37ccae96ae05ec04381a081ce56617847b7e7471b961f330e04f292afb35573e",
+      "first_words_hex": [
+        "fd4d3315b1dfa660",
+        "c10b1e8afdaf2704",
+        "9f877d188e98a05e",
+        "d041b151653b61bf"
+      ]
+    },
+    {
+      "index": 22,
+      "description": "grid_vector_022",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "5651422360407673512"
+        },
+        "turn": "22000066",
+        "domain": "cli",
+        "entity_id": "unit:22:route-5",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "568226e579651cfc7871d2d86e4839b6f4c9b3d94a34d67160e6cc262edd959e",
+      "first_words_hex": [
+        "a6ecbd5e693f7ec5",
+        "46b0b8dfd85cd24b",
+        "08e65dff5d3a9991",
+        "dbbd680bf8f81df3"
+      ]
+    },
+    {
+      "index": 23,
+      "description": "grid_vector_023",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1715863360037669668"
+        },
+        "turn": "23000069",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:23:route-6",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "695ee90b82d40b3912780f32b240f17e3248f769e0c9d994bfe880f7004d6d9b",
+      "first_words_hex": [
+        "0818b5621a6f5e49",
+        "4fdd60dcc7df50b2",
+        "f96e007e8a58ef60",
+        "749698c2b8a17de3"
+      ]
+    },
+    {
+      "index": 24,
+      "description": "grid_vector_024",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "cfcedd860528146a262149c001e5e1dd77f103d5d8e794e91447f74c853075b6"
+        },
+        "turn": "24000072",
+        "domain": "road_event",
+        "entity_id": "unit:24:route-7",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f074e7a955f928695475912c9e3cc0152dc5186c34ded2feb399fd58949c9d6b",
+      "first_words_hex": [
+        "f7fd50c456af57d0",
+        "28d95d36afb8109d",
+        "6cd0c20fcbaf445d",
+        "92fc3f7575eb09d0"
+      ]
+    },
+    {
+      "index": 25,
+      "description": "grid_vector_025",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6155254640702338020"
+        },
+        "turn": "25000075",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "75ee9030e168fa90f2367383fc9ed9a440da6271222f89dd742969661e47d551",
+      "first_words_hex": [
+        "b99d0311f83d57a0",
+        "e1c645cc9ee0d754",
+        "b28c0bad4616dbb5",
+        "43b53fcbc077182b"
+      ]
+    },
+    {
+      "index": 26,
+      "description": "grid_vector_026",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "8355930432637209752"
+        },
+        "turn": "26000078",
+        "domain": "cli",
+        "entity_id": "unit:26:route-9",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "bf7e7b694301dc198ac89bf8423de371c060f700ea76302f57c9afd85ae1dfbe",
+      "first_words_hex": [
+        "622bc0dbababb87d",
+        "b93e09c6c75594b3",
+        "aa655b68ba9ee47f",
+        "8f760e8c37b05cb6"
+      ]
+    },
+    {
+      "index": 27,
+      "description": "grid_vector_027",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "813b73b9c259142816df7741edc6e99a33c1733ac148888ccc94bc0ce1f01d63"
+        },
+        "turn": "27000081",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:27:route-10",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f8ca7ca62614d75d077168cb7d788c098a8cea98f0e4787ec8f0556949ee3a13",
+      "first_words_hex": [
+        "33d727d5da5f1170",
+        "c611fb33ad003ea7",
+        "9de4cde44ceb8bca",
+        "b106160b61163121"
+      ]
+    },
+    {
+      "index": 28,
+      "description": "grid_vector_028",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "484812431897202064"
+        },
+        "turn": "28000084",
+        "domain": "road_event",
+        "entity_id": "unit:28:route-11",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e61cab3dcb43043f640ef418951a3366c6ede191c30ba01cb600ada4656a8c46",
+      "first_words_hex": [
+        "42205c44463937ae",
+        "d4c5662cd170dacc",
+        "5277d95df50c3370",
+        "ea64f2e7656c7cb1"
+      ]
+    },
+    {
+      "index": 29,
+      "description": "grid_vector_029",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3450746568472801780"
+        },
+        "turn": "29000087",
+        "domain": "market_shock",
+        "entity_id": "unit:29:route-12",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "03d0e158f1d9f585978fec174e3d08fe1770aff35034850ea4efa3dc6d7be09b",
+      "first_words_hex": [
+        "889ab1b8b0ee8da5",
+        "a8e26a92e105668a",
+        "e88569d92a60ef6e",
+        "ff2f07abab2e26e0"
+      ]
+    },
+    {
+      "index": 30,
+      "description": "grid_vector_030",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "d8afff45cbc083a84ad90692434bca18d60a9827d109a283ad237888687b9820"
+        },
+        "turn": "30000090",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0727302459e878218c46923567688bfdcdf90b0091139d16ab021c352a06d10c",
+      "first_words_hex": [
+        "b5d568f58e568cfe",
+        "cadf9962e246c4cd",
+        "e73c47614d4f0e1f",
+        "ae3a52b1fa298a70"
+      ]
+    },
+    {
+      "index": 31,
+      "description": "grid_vector_031",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7124879504496742148"
+        },
+        "turn": "31000093",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:31:route-14",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "9f28753aecfcb46c591f7fd2ad1c870566d5fd12e75d03d0849aeec7992104a9",
+      "first_words_hex": [
+        "9cd502aefda77fa2",
+        "f3dbf68df2d25882",
+        "4c82a0c32a57586e",
+        "7cc574c99f613963"
+      ]
+    },
+    {
+      "index": 32,
+      "description": "grid_vector_032",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3189320504126738304"
+        },
+        "turn": "32000096",
+        "domain": "road_event",
+        "entity_id": "unit:32:route-15",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e901a415fd66b75e552986960d1190b279d49e504ed7336b1376b6703d0beaf4",
+      "first_words_hex": [
+        "f1dd8ee31df9cf93",
+        "76e7d594f1ed1db4",
+        "fda7122108677572",
+        "921042c24eb3cfcd"
+      ]
+    },
+    {
+      "index": 33,
+      "description": "grid_vector_033",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "74f93f4437f16e63f48f319b8c3d430badafaa9e79e5c8904eabc585c45c3bfa"
+        },
+        "turn": "33000099",
+        "domain": "market_shock",
+        "entity_id": "unit:33:route-16",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "27a50e260e0cfd6b9433fb203959d6a98a9e020b0ef5bc84cabfc97116e5ff0c",
+      "first_words_hex": [
+        "f2a5397d53af841a",
+        "af16e982fa90c111",
+        "0d0d2db38547f120",
+        "6567df70b6b12871"
+      ]
+    },
+    {
+      "index": 34,
+      "description": "grid_vector_034",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4681797496613269384"
+        },
+        "turn": "34000102",
+        "domain": "cli",
+        "entity_id": "unit:34:route-0",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "19c9864d4c0160c99f7bb89412be41be0b2877cbfacd914d9fa4c3cbb8c1c320",
+      "first_words_hex": [
+        "8d43accfcd808ee4",
+        "affb681eaed983e0",
+        "3ef99db27f898ad9",
+        "470bdcf863fd87f1"
+      ]
+    },
+    {
+      "index": 35,
+      "description": "grid_vector_035",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-8617356496983273228"
+        },
+        "turn": "35000105",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "9549b5a395f2c033d6d8a84b5ba6991ece0a0120be506e88120a767aeaaaf016",
+      "first_words_hex": [
+        "8c1e9294667977eb",
+        "518a2160822211e7",
+        "e4569c1bcd428e31",
+        "14f8c30a3358ef60"
+      ]
+    },
+    {
+      "index": 36,
+      "description": "grid_vector_036",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "f21f4ad82348bc1950a7803ad7bcad32ec54c4337b3a32e344e32aa30ec88ccf"
+        },
+        "turn": "36000108",
+        "domain": "road_event",
+        "entity_id": "unit:36:route-2",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "92926ba84431bbe0cf7c52c68c745248bb072b7c72136d703f15b80b3f82a29c",
+      "first_words_hex": [
+        "061ea58cba97bf7e",
+        "4b4b360aa23e5681",
+        "76713f86cde03fc1",
+        "338f6c901dfb9ffc"
+      ]
+    },
+    {
+      "index": 37,
+      "description": "grid_vector_037",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1958269575986270700"
+        },
+        "turn": "37000111",
+        "domain": "market_shock",
+        "entity_id": "unit:37:route-3",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e78a2c77842901a382d78e9f6b70bbb49c261ae6818b943c04a19ea00d8c0a2a",
+      "first_words_hex": [
+        "39cc6d02a4851c61",
+        "13b41123efca4f57",
+        "a3d76ceb5d35207f",
+        "c1d383f287741879"
+      ]
+    },
+    {
+      "index": 38,
+      "description": "grid_vector_038",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1977289424383733144"
+        },
+        "turn": "38000114",
+        "domain": "cli",
+        "entity_id": "unit:38:route-4",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "92e0093820b70a05343649d3d44e1a1dd92e1473f77319ad26c6d9654d501b36",
+      "first_words_hex": [
+        "59b4c9c7158bb069",
+        "7fdf5edd48047802",
+        "1fd3e76566b7f249",
+        "bce702324da60d8a"
+      ]
+    },
+    {
+      "index": 39,
+      "description": "grid_vector_039",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "c6ea0cdc0a765ad3b56ee7be1530a15101904ef94f57f4536905db8933b638ff"
+        },
+        "turn": "39000117",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:39:route-5",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "31962dd064ca2cca03617f117e61a468a3fcf590a06a452badd8d6dd1e0d3fb4",
+      "first_words_hex": [
+        "6b3cb7ef9f5bf938",
+        "6c20524ebb1d3d49",
+        "94f0eb935a831ba8",
+        "86fa12f9289e3854"
+      ]
+    },
+    {
+      "index": 40,
+      "description": "grid_vector_040",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "8598336648585810784"
+        },
+        "turn": "40000120",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "9f060e2c90da033031a255bc0c5d7c3b319d24e06af51eeb8cc7cb1f2aca8cdc",
+      "first_words_hex": [
+        "1636fdba59abbf26",
+        "d8e3ac48cb87528b",
+        "04926c60600bbedf",
+        "643b617b02562118"
+      ]
+    },
+    {
+      "index": 41,
+      "description": "grid_vector_041",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4662777648215806940"
+        },
+        "turn": "41000123",
+        "domain": "market_shock",
+        "entity_id": "unit:41:route-7",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "235d49766fb111beee8b6849ecc216d1574dcbeb5af6210d08bc91bad28437d2",
+      "first_words_hex": [
+        "ed8ca314593ea32f",
+        "008d729f7a41bed7",
+        "496e070f37d39a4d",
+        "bb8468ee9f62e0ef"
+      ]
+    },
+    {
+      "index": 42,
+      "description": "grid_vector_042",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "7dd583b5593b58b600d3156e320c153e8e0462fbdc3d561421d06b2c55b16cfd"
+        },
+        "turn": "42000126",
+        "domain": "cli",
+        "entity_id": "unit:42:route-8",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0d5f9b04e1c203d17db9bd4cecf7be00a3fc7352d7aee4c2bfd8bdb3614c0538",
+      "first_words_hex": [
+        "7926c39dbd1f2c21",
+        "c30246b83a1af03b",
+        "70635f60d26e6f43",
+        "dcfd5b78f010ee8b"
+      ]
+    },
+    {
+      "index": 43,
+      "description": "grid_vector_043",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3208340352524200748"
+        },
+        "turn": "43000129",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:43:route-9",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "967a5ecbf25bec3f59c407fc2fef6b3655c967cc6fbc36406792ce41205000ac",
+      "first_words_hex": [
+        "002ec7acc6734733",
+        "d05e6a98707a0294",
+        "3645f785eaaf2f20",
+        "caf3bae450559a98"
+      ]
+    },
+    {
+      "index": 44,
+      "description": "grid_vector_044",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7143899352894204592"
+        },
+        "turn": "44000132",
+        "domain": "road_event",
+        "entity_id": "unit:44:route-10",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "5e68b51f48ec3f654d99727832b6cad6d319975a1ee6be315a1dc99ee5a29644",
+      "first_words_hex": [
+        "906d61deaf6019c4",
+        "d23561798006cd45",
+        "e4a34cf98f76978e",
+        "7205c5472564a40c"
+      ]
+    },
+    {
+      "index": 45,
+      "description": "grid_vector_045",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "32179900e8edf1a829df740f5ad6f292f322a9bd2e3aa7a9ec81e969a1456936"
+        },
+        "turn": "45000135",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c1dfdeb2d160fc043dde1dd78fe6b6fd6b74c0ccc5e47c453d544206097cfd67",
+      "first_words_hex": [
+        "164cb159e311d156",
+        "b00ab5ee90538d78",
+        "7e10961bbec4cbcd",
+        "93bf53c8bc78d1b2"
+      ]
+    },
+    {
+      "index": 46,
+      "description": "grid_vector_046",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3431726720075339336"
+        },
+        "turn": "46000138",
+        "domain": "cli",
+        "entity_id": "unit:46:route-12",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "29670f5311f599d8922430b5071dcd7fdb50dc90c01323fa02b2365034057ca6",
+      "first_words_hex": [
+        "ae96d32a0092d135",
+        "2280cdb14c68d360",
+        "80ac4e9db419f983",
+        "3d55c5345325981c"
+      ]
+    },
+    {
+      "index": 47,
+      "description": "grid_vector_047",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-503832280294664508"
+        },
+        "turn": "47000141",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:47:route-13",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "752517bc03f44286c6b03633d49778b30d3e2834e2b9e3009853cdb96b64679f",
+      "first_words_hex": [
+        "578e0bcb836d5feb",
+        "c661ee53c7be14f1",
+        "7ab9675780408b8d",
+        "d0e5b6fb1d281e7e"
+      ]
+    },
+    {
+      "index": 48,
+      "description": "grid_vector_048",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "e7e9ead44db621c3d97f66f880f784d60890ab0a571ee33ba3abf0d3f49a519a"
+        },
+        "turn": "48000144",
+        "domain": "road_event",
+        "entity_id": "unit:48:route-14",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "35af012d46d4f755bf25fc78ddaeb65f4a7be93b5a4443d1c999e476d68d4c9f",
+      "first_words_hex": [
+        "44a43707eee09cc4",
+        "354c74ef89a5a00d",
+        "8eea97d14dca7d26",
+        "6ece00c7e9a5beda"
+      ]
+    },
+    {
+      "index": 49,
+      "description": "grid_vector_049",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-8374950281034672196"
+        },
+        "turn": "49000147",
+        "domain": "market_shock",
+        "entity_id": "unit:49:route-15",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "20603da110d5172e01617c5e6ac81b3755bf90315713b825ca6dd21eabc34b4a",
+      "first_words_hex": [
+        "3c3d2999f20bff6b",
+        "cdc0659ec7a78b60",
+        "870df300ff234c3b",
+        "8afb53a585ed6541"
+      ]
+    },
+    {
+      "index": 50,
+      "description": "grid_vector_050",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6136234792304875576"
+        },
+        "turn": "50000150",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "41d21cd51396a8fba2b3aaf66399173c0072a587463dc505a6aecb07fb387637",
+      "first_words_hex": [
+        "e93a4e47daab0b47",
+        "0ccbd289a430323d",
+        "c942621adbfe8edd",
+        "f018db80f8439bc8"
+      ]
+    },
+    {
+      "index": 51,
+      "description": "grid_vector_051",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "31092e1192488b9f47a7aef2b8b620f2fb8b4550d879e9c65c1d6c151071a12c"
+        },
+        "turn": "51000153",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:51:route-0",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "2efc7c43beafd45c5aef77a400f1e5fca3f2c6398662cea9177d3b43093bed84",
+      "first_words_hex": [
+        "9f0575e4843cf7d6",
+        "d32bd5408f1d4b1d",
+        "e386f502f772b0fe",
+        "d47fe09dfeb48e37"
+      ]
+    },
+    {
+      "index": 52,
+      "description": "grid_vector_052",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1734883208435132112"
+        },
+        "turn": "52000156",
+        "domain": "road_event",
+        "entity_id": "unit:52:route-1",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "8f35e8502687d77f977a0eff4847e824b79e60424194d985536c4bcf69adfd30",
+      "first_words_hex": [
+        "dd9639885e33cd1e",
+        "bf01d43ec7d2d503",
+        "3831776483e23946",
+        "77dd3b37288e2592"
+      ]
+    },
+    {
+      "index": 53,
+      "description": "grid_vector_053",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-5670442208805135956"
+        },
+        "turn": "53000159",
+        "domain": "market_shock",
+        "entity_id": "unit:53:route-2",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "9d2ee2e5c8ea68fafec8151565ca0f4c682987940d730481c47370ee272ff1d0",
+      "first_words_hex": [
+        "c45ec13c827d5cd2",
+        "81d085cc52109176",
+        "317100d38f987c17",
+        "1ce74cc4960aa862"
+      ]
+    },
+    {
+      "index": 54,
+      "description": "grid_vector_054",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "f753f979d7ae0eea39d7ef8dfc0371eeb5b72a920efa94bdb5e70f8e419c0c23"
+        },
+        "turn": "54000162",
+        "domain": "cli",
+        "entity_id": "unit:54:route-3",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "2fde1e98138f2f2a5a0388658aa86a468dcac659a5644d0e4ef8125a35bdf328",
+      "first_words_hex": [
+        "843055fde7ceff2a",
+        "7c2ed66b0bc93602",
+        "26ce0638cdd35771",
+        "7d4e84f50fa92e90"
+      ]
+    },
+    {
+      "index": 55,
+      "description": "grid_vector_055",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4905183864164407972"
+        },
+        "turn": "55000165",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0da4c2f20b47aebe0a1b8b109e591a783773753c90972897974192d33fd9e913",
+      "first_words_hex": [
+        "ab555b396774da06",
+        "8e5ca0507b697f86",
+        "2f491bdc70af00c2",
+        "8eb0c99ed842c0ad"
+      ]
+    },
+    {
+      "index": 56,
+      "description": "grid_vector_056",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "969624863794404128"
+        },
+        "turn": "56000168",
+        "domain": "road_event",
+        "entity_id": "unit:56:route-5",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f0ee398e8b43b373387972898bfb75d26be981965b253f58ec45d78b5d01c900",
+      "first_words_hex": [
+        "81492aef19edc462",
+        "4ae328e663da307e",
+        "6775237b0d273d0b",
+        "bf8a2e906dc33cf6"
+      ]
+    },
+    {
+      "index": 57,
+      "description": "grid_vector_057",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "0f322cce235d93bcbd1c6cc04c67bbf4f746de47ba5d05f28405d8dce97c7641"
+        },
+        "turn": "57000171",
+        "domain": "market_shock",
+        "entity_id": "unit:57:route-6",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "97782f5a76fae3e7822f4710183beca83c67401a263e9b6d7e1aff6a4deb0913",
+      "first_words_hex": [
+        "9c11d064d00e1853",
+        "3d429dde9ff0fd04",
+        "0bd678a2e38f7034",
+        "ba178c5d8f6dd030"
+      ]
+    },
+    {
+      "index": 58,
+      "description": "grid_vector_058",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6901493136945603560"
+        },
+        "turn": "58000174",
+        "domain": "cli",
+        "entity_id": "unit:58:route-7",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "32f6adbc02b5149a3904a11f92a4928a7da6f87353235bc80ac8d4d694b43480",
+      "first_words_hex": [
+        "cec4ba42072fb7a2",
+        "6a21a3b6a1380d81",
+        "9aec66c703d89714",
+        "7009b5845cad5690"
+      ]
+    },
+    {
+      "index": 59,
+      "description": "grid_vector_059",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7609691936393944212"
+        },
+        "turn": "59000177",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:59:route-8",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "74755713592e34de6be196cacc3e410f1c91d720078ff3d03eec00bb205fee77",
+      "first_words_hex": [
+        "fa6a64d322c390df",
+        "98ecb79aa696050f",
+        "1ef9a1d945c26ec5",
+        "6f6b692637e38f7c"
+      ]
+    },
+    {
+      "index": 60,
+      "description": "grid_vector_060",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "79ab90562c61b3ef92af6f6a023eb32adc7455296b5862ca156459b44faba406"
+        },
+        "turn": "60000180",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e8f2fdae26527accafe1d693257ade0bf6339940fc234726571294229cb73217",
+      "first_words_hex": [
+        "d171e1f596c3f8dc",
+        "5288d165ebaf41d4",
+        "1abbbbddc2785498",
+        "a112f30124e5a14e"
+      ]
+    },
+    {
+      "index": 61,
+      "description": "grid_vector_061",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-261426064346063476"
+        },
+        "turn": "61000183",
+        "domain": "market_shock",
+        "entity_id": "unit:61:route-10",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c3ad144e76445675913ca82dc76dd47ee750c3d7f743eb71005fdd8acdc754fb",
+      "first_words_hex": [
+        "97d9b510033dcd05",
+        "a637241bf021b4a6",
+        "acf6bfba3578ea73",
+        "9e233cbd4174abf6"
+      ]
+    },
+    {
+      "index": 62,
+      "description": "grid_vector_062",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4196985064716067320"
+        },
+        "turn": "62000186",
+        "domain": "cli",
+        "entity_id": "unit:62:route-11",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "84a9b6b2bb671d80d7692aac5d9fc730ff5b0584b9627d3f4f309f672231d147",
+      "first_words_hex": [
+        "334bc5d7ce93a3f9",
+        "26c4d51e62a2107b",
+        "4007b80040481462",
+        "4cb1520050aaece4"
+      ]
+    },
+    {
+      "index": 63,
+      "description": "grid_vector_063",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "73cdfece4a134bfb2fd89a44ed70f00ada4d8adc524d63b0b5a545bba6ba1de5"
+        },
+        "turn": "63000189",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:63:route-12",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "00ff6dee8cfcb3835a1923b724269d7f3cbe357f053afbddc597aef9f23ad142",
+      "first_words_hex": [
+        "4986a37a0f0c06dd",
+        "cb53710fc4a05bed",
+        "4036be873804208b",
+        "6970a25de47c0a88"
+      ]
+    },
+    {
+      "index": 64,
+      "description": "grid_vector_064",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6378641008253476608"
+        },
+        "turn": "64000192",
+        "domain": "road_event",
+        "entity_id": "unit:64:route-13",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "054bff67e08416f05adb73f5b950dac51137a625dd06d563a4331661df717438",
+      "first_words_hex": [
+        "87e9da027002af92",
+        "e2dfad5a3172510a",
+        "0bd37a291ced7906",
+        "53a55ceb5536876f"
+      ]
+    },
+    {
+      "index": 65,
+      "description": "grid_vector_065",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "2443082007883472764"
+        },
+        "turn": "65000195",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "91a271c14c08f921c5eb2e800c1d4f0e55e49d86f3949f4f724748f2b2b742a3",
+      "first_words_hex": [
+        "7cce1e1f57e1336c",
+        "856e33418da8d19f",
+        "459aac9ff5078db6",
+        "0b4510b7f92c7f49"
+      ]
+    },
+    {
+      "index": 66,
+      "description": "grid_vector_066",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "e0d4cc059d5292783a4d3a2af3ad7b4478a4c5edaf650714da39e356960a9335"
+        },
+        "turn": "66000198",
+        "domain": "cli",
+        "entity_id": "unit:66:route-15",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c402439990ac7d1c5440cb942cbf2dab0bb5582d5c6e08c2910973c569a0dd53",
+      "first_words_hex": [
+        "97877c289eeaebb6",
+        "ebdf3ec47454dcb1",
+        "28d207a66b526ac6",
+        "01e4d8ba7c6f5883"
+      ]
+    },
+    {
+      "index": 67,
+      "description": "grid_vector_067",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-5428035992856534924"
+        },
+        "turn": "67000201",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:67:route-16",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "ca2d452a63dcc2a6b4d5cebb668993d5495a8ecbf31affafe6646bd98a391a3a",
+      "first_words_hex": [
+        "45e44c0e05577513",
+        "361b2ff40754c5f4",
+        "8ec363363e79e36d",
+        "77d8d663daf4653a"
+      ]
+    },
+    {
+      "index": 68,
+      "description": "grid_vector_068",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "9083149080483012848"
+        },
+        "turn": "68000204",
+        "domain": "road_event",
+        "entity_id": "unit:68:route-0",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "573eba4666d574ae41d7c9597314eae04a395b461190736586acd48a31949083",
+      "first_words_hex": [
+        "86175df8fdb6a3e5",
+        "9e266503753c5828",
+        "7d47077f8c6bcabb",
+        "fe2dc8a8ed95ea94"
+      ]
+    },
+    {
+      "index": 69,
+      "description": "grid_vector_069",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "7eb57c6f09ee8ea0b9e0115751660b7df2a6a6964fa74a3219bfdb1b30e56cf2"
+        },
+        "turn": "69000207",
+        "domain": "market_shock",
+        "entity_id": "unit:69:route-1",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "05d3cc8afd9c5bcb2e24944f69533b3a6de063ed669c50c96481fbf7d5dec0eb",
+      "first_words_hex": [
+        "8eecf8b68c54d2fe",
+        "a098b664bfef6a05",
+        "e5387a3a15889191",
+        "d55762b195ce482a"
+      ]
+    },
+    {
+      "index": 70,
+      "description": "grid_vector_070",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1212031079743005160"
+        },
+        "turn": "70000210",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "128dcfe1ce7fd1f467608ed1f01f481b146f9d2cd5dc180518531249f30f2704",
+      "first_words_hex": [
+        "0eabb6547d3d6b90",
+        "9ef6e9fa97b22fad",
+        "bfc0a63171b8575c",
+        "cadee7ac7b486ef2"
+      ]
+    },
+    {
+      "index": 71,
+      "description": "grid_vector_071",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-2723527920626998684"
+        },
+        "turn": "71000213",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:71:route-3",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "8b2a0b908b43304c4362f6669711bd948da82eeb5078ec2b326fabac58e50965",
+      "first_words_hex": [
+        "a1c149b57e876a46",
+        "a2f6a9db10668713",
+        "21d8e0d102c2a940",
+        "0a4b760f85fdbe04"
+      ]
+    },
+    {
+      "index": 72,
+      "description": "grid_vector_072",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "8c0bccf3dacec3016b3ae20449829b95e33dc7fd2b6d402e3f38bba03bc7bf20"
+        },
+        "turn": "72000216",
+        "domain": "road_event",
+        "entity_id": "unit:72:route-4",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "12555c46ae6d9e3cd9e5843f648ab4d7a58201b6d81921e4706542ea80a024b1",
+      "first_words_hex": [
+        "cfa41cbc6bef5e31",
+        "dc9f668d86d407c0",
+        "141a4b870abc26e7",
+        "2fb99b17666f95d0"
+      ]
+    },
+    {
+      "index": 73,
+      "description": "grid_vector_073",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7852098152342545244"
+        },
+        "turn": "73000219",
+        "domain": "market_shock",
+        "entity_id": "unit:73:route-5",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "b1af4c47f3a078130431fadba96a2a8c1bca928685421017ad7897cdbf40045b",
+      "first_words_hex": [
+        "b689a89cef9ad3df",
+        "aacb4e305bb503b2",
+        "8cba6c09a0394712",
+        "887edc9f1114a065"
+      ]
+    },
+    {
+      "index": 74,
+      "description": "grid_vector_074",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3916539151972541400"
+        },
+        "turn": "74000222",
+        "domain": "cli",
+        "entity_id": "unit:74:route-6",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "036aa66f80bf8ca31f6afd0de823575fc0814756786479c4d75acab699cc7447",
+      "first_words_hex": [
+        "270cf320bb075b2b",
+        "2737d34fded4162c",
+        "e4d3fc52e7602185",
+        "0775f56fa11e783b"
+      ]
+    },
+    {
+      "index": 75,
+      "description": "grid_vector_075",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "f0a5e68257f396e44f69f9b6e4e55c9510b43ec31fb85468ce997004b4253297"
+        },
+        "turn": "75000225",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "00271f6762f787b4b02d1a80d9e50c727a4ea6a59c4226304a40b0dbf2f40359",
+      "first_words_hex": [
+        "1aec77e6703b28ec",
+        "db12ebcc9265065b",
+        "38707823ac619971",
+        "588b55d258656677"
+      ]
+    },
+    {
+      "index": 76,
+      "description": "grid_vector_076",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3954578848767466288"
+        },
+        "turn": "76000228",
+        "domain": "road_event",
+        "entity_id": "unit:76:route-8",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1c1c41ebc7e6cd52aebb888ab221c2519a81cd3aeed59a885d460dc38242668e",
+      "first_words_hex": [
+        "f4a653726b36d529",
+        "ee8c424bc16833bf",
+        "a6c3d9a57f4ab6fa",
+        "9792d5329810da90"
+      ]
+    },
+    {
+      "index": 77,
+      "description": "grid_vector_077",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7890137849137470132"
+        },
+        "turn": "77000231",
+        "domain": "market_shock",
+        "entity_id": "unit:77:route-9",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "43fb61d1d3d9359d9933641ffe2d80746490778b601be1f69b036f119eabd702",
+      "first_words_hex": [
+        "f10bea968062b89b",
+        "f97dc681aef3dcf1",
+        "892ea9f7eb715285",
+        "6a10513d9c0f7019"
+      ]
+    },
+    {
+      "index": 78,
+      "description": "grid_vector_078",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "df0f6a8febafd53277f521324da6c3f74c157ae81eeb2560b2a04f894587ea86"
+        },
+        "turn": "78000234",
+        "domain": "cli",
+        "entity_id": "unit:78:route-10",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0ea2e7af2ddd8e807c1fe933b13984969c957b9ac9e9448a546cf0308bc80053",
+      "first_words_hex": [
+        "ded200dd9cabb4c9",
+        "e8374f4e65d4cb24",
+        "d07e957d0a77f0c2",
+        "a8dae866eafef592"
+      ]
+    },
+    {
+      "index": 79,
+      "description": "grid_vector_079",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "2685488223832073796"
+        },
+        "turn": "79000237",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:79:route-11",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "202e91b8ecc927b2e774e4b7e059b199c35b5b738a03319b708ccb529ea8fe92",
+      "first_words_hex": [
+        "70ce5afbee1b07c2",
+        "6f2e6363eabe7717",
+        "877bfd68f159ae7f",
+        "2a6f27b2082a0d5b"
+      ]
+    },
+    {
+      "index": 80,
+      "description": "grid_vector_080",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1250070776537930048"
+        },
+        "turn": "80000240",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "434a16cf10c7e6f8499cb4ffeb2637265a8a3440a3ab90e931436fcfd5710e76",
+      "first_words_hex": [
+        "1c47b0af16cfb887",
+        "704e5b0c979bbb95",
+        "886dde0508ccee13",
+        "4128de732d36b623"
+      ]
+    },
+    {
+      "index": 81,
+      "description": "grid_vector_081",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "1ac76ded800dd703166155920260369cbfc1e0c4ce70adf958c6e0fd58da0648"
+        },
+        "turn": "81000243",
+        "domain": "market_shock",
+        "entity_id": "unit:81:route-13",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "8fde5e613af17865fadcf72448a2ffbda7c4d77452d9cadf6b6fabaf69045556",
+      "first_words_hex": [
+        "f9d23775e79e8582",
+        "3124fa3ca7d45257",
+        "9c645fed19033ec4",
+        "62cac7d840215d00"
+      ]
+    },
+    {
+      "index": 82,
+      "description": "grid_vector_082",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-9121188777277937736"
+        },
+        "turn": "82000246",
+        "domain": "cli",
+        "entity_id": "unit:82:route-14",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a181ba921e79090a11e9ca562668b67774e991f9e5ee30623eb91aed871aea96",
+      "first_words_hex": [
+        "e325d01301fc81b3",
+        "7526593d11dd2ad7",
+        "42e84c7da12235d5",
+        "87de31878784f754"
+      ]
+    },
+    {
+      "index": 83,
+      "description": "grid_vector_083",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "5389996296061610036"
+        },
+        "turn": "83000249",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:83:route-15",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6a5e34e8c6a95fcaba52ec9e2b34de9ce712baa74b7d8e2ec8d1a553b0b0f563",
+      "first_words_hex": [
+        "4af6f9929ae7c8b1",
+        "15014ff8a37c9870",
+        "6b3a0cdff97f392b",
+        "901bcc8b48c09a8f"
+      ]
+    },
+    {
+      "index": 84,
+      "description": "grid_vector_084",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "ad64d1ef71e6d540e3214390fbfac87cdb77fe2f7426df3b01587edce6e475ea"
+        },
+        "turn": "84000252",
+        "domain": "road_event",
+        "entity_id": "unit:84:route-16",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4a46beb7442e34f206dd628df868087b68deb12c407ff666dc3e0a705cdd8318",
+      "first_words_hex": [
+        "793a62bbb892ed62",
+        "7cf0c9400aa24939",
+        "d1abbb8b3f531c32",
+        "03b1418bdaa4eb35"
+      ]
+    },
+    {
+      "index": 85,
+      "description": "grid_vector_085",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-2481121704678397652"
+        },
+        "turn": "85000255",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "d94040ac225cfb58da1e813d85455eac8df8ad444e294d1a726098221caddabe",
+      "first_words_hex": [
+        "726b604ffbb8b0e1",
+        "5fa3484383a4bcac",
+        "942d66439c6e9a26",
+        "10ac4433198df86d"
+      ]
+    },
+    {
+      "index": 86,
+      "description": "grid_vector_086",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6416680705048401496"
+        },
+        "turn": "86000258",
+        "domain": "cli",
+        "entity_id": "unit:86:route-1",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "d8bb089f22970c8e28fd9664caa9011f6cd7f73bdcd361e68212f8b07bac88bc",
+      "first_words_hex": [
+        "2e5a6d1b276ea6a3",
+        "8e7a355df8f6aff4",
+        "d84c6ff156652db6",
+        "e9d29f111115556c"
+      ]
+    },
+    {
+      "index": 87,
+      "description": "grid_vector_087",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "50466cc97b885fcb53aa3f5897b81b7be0c2877a4fa9ac25c60a529e8c6d5678"
+        },
+        "turn": "87000261",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:87:route-2",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4ebc7bf334622273790ff7d4ad6e6158960ae6d8977c5a6ca13b774c9597342a",
+      "first_words_hex": [
+        "4d3dd54510c877df",
+        "9f9afe66459b37b9",
+        "4efba9822163caae",
+        "8764d5c65e932bf4"
+      ]
+    },
+    {
+      "index": 88,
+      "description": "grid_vector_088",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4158945367921142432"
+        },
+        "turn": "88000264",
+        "domain": "road_event",
+        "entity_id": "unit:88:route-3",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "396d2f21332ece1882ae2c8452d3b11c5d8533ab5622edacd4b127c9a9bab5c2",
+      "first_words_hex": [
+        "286c8949c123a7da",
+        "aa551ab1af235ee9",
+        "7db2ee2dcd16ea83",
+        "ba213ddb54ac00fc"
+      ]
+    },
+    {
+      "index": 89,
+      "description": "grid_vector_089",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "223386367551138588"
+        },
+        "turn": "89000267",
+        "domain": "market_shock",
+        "entity_id": "unit:89:route-4",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "9562a90fbe2ebabd8cc37057b1813e822b83bb2d108336eb88ffd7fbf914168f",
+      "first_words_hex": [
+        "49fbd5692d9d65ac",
+        "3b79700f530a8f19",
+        "18f41dcc2b0f0061",
+        "d40a12664c8ff01e"
+      ]
+    },
+    {
+      "index": 90,
+      "description": "grid_vector_090",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "c29c0e93d373cd541597d0cac102b9d6de2c6375906ad34d85b20055e54eb089"
+        },
+        "turn": "90000270",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "7900d072159e59b2da10ac6cb5f478f64b5be7dc404bf17475d0b9c87673d366",
+      "first_words_hex": [
+        "3c78bcdf987e8597",
+        "6a3a74a7ed7edac4",
+        "57e0bd48396b0fb4",
+        "5ab5d4f89a980cae"
+      ]
+    },
+    {
+      "index": 91,
+      "description": "grid_vector_091",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7647731633188869100"
+        },
+        "turn": "91000273",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:91:route-6",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "13d96f4235bf61cb56138a37a0da94c54ffebdff34d3264cde943d45627b4fb3",
+      "first_words_hex": [
+        "78caf1cd4c7a60f4",
+        "dc31b96d86269e29",
+        "5360a805f0ce8e3a",
+        "f8a356dc0121022d"
+      ]
+    },
+    {
+      "index": 92,
+      "description": "grid_vector_092",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6863453440150678672"
+        },
+        "turn": "92000276",
+        "domain": "road_event",
+        "entity_id": "unit:92:route-7",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "7fbcd4d66b3e32c52c7fd16db08c3c249c53c8d5c432eb3ceb638c81f852c78f",
+      "first_words_hex": [
+        "b76e97f63d032706",
+        "10b712523f050a16",
+        "65240bb5937276b1",
+        "468daa88f429fa4b"
+      ]
+    },
+    {
+      "index": 93,
+      "description": "grid_vector_093",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "5f47913061f75387da119a97d17ebf43ce4bd8773277e24b91c7e8bd1a58a42d"
+        },
+        "turn": "93000279",
+        "domain": "market_shock",
+        "entity_id": "unit:93:route-8",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "da7083d5cca493a6b0b1b9b7b16f851fd047e943ecbab81b7c904758b3deb266",
+      "first_words_hex": [
+        "c371ad860c189454",
+        "42f0745c41d884b0",
+        "0e350de4bc7dccfb",
+        "f232070979b9136e"
+      ]
+    },
+    {
+      "index": 94,
+      "description": "grid_vector_094",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1007664560589329016"
+        },
+        "turn": "94000282",
+        "domain": "cli",
+        "entity_id": "unit:94:route-9",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "35e778d3b65fea0a38fc3f6be4d0973e89736adad89cacd3f694af113a78a595",
+      "first_words_hex": [
+        "e3b18f3cc42230fb",
+        "e6e2e8edf211c7c7",
+        "b870483986c4a926",
+        "f00a84aeed228c62"
+      ]
+    },
+    {
+      "index": 95,
+      "description": "grid_vector_095",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4943223560959332860"
+        },
+        "turn": "95000285",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "51550a9ee26a30c681d0cb52a4eb5ed7f809a3f11ab0b22c92139ae005297737",
+      "first_words_hex": [
+        "7ba42483a6a593e1",
+        "a6693ec450b962a3",
+        "f2b93855542a16b0",
+        "9b93ccc769cad9a7"
+      ]
+    },
+    {
+      "index": 96,
+      "description": "grid_vector_096",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "3fd19d95bd6ecb37abb3c7a2d565db598a530c3e54d2df0acdc22ea55a4714b9"
+        },
+        "turn": "96000288",
+        "domain": "road_event",
+        "entity_id": "unit:96:route-11",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "00744c81782fc5a29c0053e9fbb23b5e8efabd7178216531a4143022d1ea6f8a",
+      "first_words_hex": [
+        "4fab5079deb1699c",
+        "3b6050da15c0e757",
+        "e52f70ce60e1ea71",
+        "bdd8741f4d307a2e"
+      ]
+    },
+    {
+      "index": 97,
+      "description": "grid_vector_097",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "5632402512010211068"
+        },
+        "turn": "97000291",
+        "domain": "market_shock",
+        "entity_id": "unit:97:route-12",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f1ba7d52f4e652654851ec6650313347b7f56feb4e3e3fd51e9a0e91300387b4",
+      "first_words_hex": [
+        "5698c55abcb9f3ca",
+        "7036806053970154",
+        "1ee84b410e10bf99",
+        "e3002efe52eaa811"
+      ]
+    },
+    {
+      "index": 98,
+      "description": "grid_vector_098",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1696843511640207224"
+        },
+        "turn": "98000294",
+        "domain": "cli",
+        "entity_id": "unit:98:route-13",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "3133ee901dfb717217f1ddb2bea9d5a5dfc56e02e3e5b85e1318c5869c3ec6b0",
+      "first_words_hex": [
+        "9ef0ed1a9738b58f",
+        "e601750e948a3b90",
+        "90807b7e83d9a8fd",
+        "bd130e12a15ec343"
+      ]
+    },
+    {
+      "index": 99,
+      "description": "grid_vector_099",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "7db8154a5e655778150e0e389460d43bb121b97f6b0abe147ce35125710ab93f"
+        },
+        "turn": "99000297",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:99:route-14",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c16dcdba5d6e8eb6a36dc4a6a8153cd4647359314517900fa6186e1a1349c3eb",
+      "first_words_hex": [
+        "91899c84a5443a93",
+        "83ec2411c5af93fb",
+        "2f69049df8a84565",
+        "eef46956cdf7ae70"
+      ]
+    },
+    {
+      "index": 100,
+      "description": "grid_vector_100",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6174274489099800464"
+        },
+        "turn": "100000300",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6a028101231cd396db4cb7f354e556b82c4bb9f4c196f8bcddbf0dde9a2ade7f",
+      "first_words_hex": [
+        "1c13a2c5c963a3c0",
+        "a6c7b19e0c804304",
+        "ebbb7b6b867c2ade",
+        "373edee5badb8b40"
+      ]
+    },
+    {
+      "index": 101,
+      "description": "grid_vector_101",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "8336910584239747308"
+        },
+        "turn": "101000303",
+        "domain": "market_shock",
+        "entity_id": "unit:101:route-16",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4680a3fa80c8e8995b98c58ef01dd0817d2b4046369b68aef45b1229dd54ba72",
+      "first_words_hex": [
+        "6ec4a60bfe780a5c",
+        "8a192aec860d1003",
+        "f74f6f454936f0d0",
+        "02aa1b8fd86f0756"
+      ]
+    },
+    {
+      "index": 102,
+      "description": "grid_vector_102",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "ed1584baf7fdf2cd31f0a415ee3a53689435ef8f6cfd345d36e1ca70b03ece31"
+        },
+        "turn": "102000306",
+        "domain": "cli",
+        "entity_id": "unit:102:route-0",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "64d2d2aa91030f8480065b0d796e8e5174c5b838ed29c008b8b44ce07740baf3",
+      "first_words_hex": [
+        "0faedbf1051e7089",
+        "041634495acea8f7",
+        "d890398f2a5d3282",
+        "9261b52507132d7e"
+      ]
+    },
+    {
+      "index": 103,
+      "description": "grid_vector_103",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "465792583499739620"
+        },
+        "turn": "103000309",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:103:route-1",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1b209c96942cb2f2704489ae8b1fb93ead48c3a30a193a13b03b8c4447628217",
+      "first_words_hex": [
+        "326f7c5f31ef6a73",
+        "313ce7e4904a498d",
+        "829e5eefcdd9c6b6",
+        "6905a9ac0249b89e"
+      ]
+    },
+    {
+      "index": 104,
+      "description": "grid_vector_104",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3469766416870264224"
+        },
+        "turn": "104000312",
+        "domain": "road_event",
+        "entity_id": "unit:104:route-2",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1034d43af566b44e23e6adce952bd6e5057317019eebc1d45de7dc448f39fea9",
+      "first_words_hex": [
+        "fdd27eb73bebff5e",
+        "c4c9a0fdfa379360",
+        "ea49b1f5155113a7",
+        "a3d2624c9e320f60"
+      ]
+    },
+    {
+      "index": 105,
+      "description": "grid_vector_105",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "61dd107215d68c86c37efaaf8b34a7637ed3eb8061680d508da41dc02258c906"
+        },
+        "turn": "105000315",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "52ab048c9fd6c4106ab0a2f5fef244bf7025e97d85aa51a4ec8108c797bafd26",
+      "first_words_hex": [
+        "0a02549d33f6e529",
+        "c63d8cd69d2e7810",
+        "1644ffc9c851627f",
+        "932cc94d2e8279a7"
+      ]
+    },
+    {
+      "index": 106,
+      "description": "grid_vector_106",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7105859656099279704"
+        },
+        "turn": "106000318",
+        "domain": "cli",
+        "entity_id": "unit:106:route-4",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c37dc2f64dd5757a011f4ac41b6cc4871139c60aa725027963f4ff4f5a55a572",
+      "first_words_hex": [
+        "9bedf5d02ebdc6d9",
+        "626091f4d9d4ba4d",
+        "d1fdd1fe6b7e83c4",
+        "e1b5a7fa7d7ff163"
+      ]
+    },
+    {
+      "index": 107,
+      "description": "grid_vector_107",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3170300655729275860"
+        },
+        "turn": "107000321",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:107:route-5",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "9dce7d8a9d344c567b3612410af8c80bc35cb2bca6824d529c255ab1822777a1",
+      "first_words_hex": [
+        "d6ec95fd670124bf",
+        "c81456ebf0e4f946",
+        "3bf731030684c66b",
+        "de620578e2b953f6"
+      ]
+    },
+    {
+      "index": 108,
+      "description": "grid_vector_108",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "f68d558e0b2d7db76d9c9d742399de50ab4516c606a186e7af94a0a6544da33c"
+        },
+        "turn": "108000324",
+        "domain": "road_event",
+        "entity_id": "unit:108:route-6",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e1bd5d6963a2d3d58f1c4f1feeaec7239d50ae7fb9f54329199c66902e0d6c38",
+      "first_words_hex": [
+        "842ab37a8fac0ae3",
+        "eadddf955de51ef3",
+        "bb1665b4eb2c2e9e",
+        "0fe46438115bb0e7"
+      ]
+    },
+    {
+      "index": 109,
+      "description": "grid_vector_109",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4700817345010731828"
+        },
+        "turn": "109000327",
+        "domain": "market_shock",
+        "entity_id": "unit:109:route-7",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "b374604016afff7eba53e04e3994382b8f8a0f61d0eb4b6033810e381e6d1ff9",
+      "first_words_hex": [
+        "5ec68f19c3cd8668",
+        "20b895cc6441cf7e",
+        "629217867ecfdea8",
+        "9e7118a5a9a2600d"
+      ]
+    },
+    {
+      "index": 110,
+      "description": "grid_vector_110",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-8636376345380735672"
+        },
+        "turn": "110000330",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c00f4c1b0709723789275dad8ff6e39c521c8c8bf3ae82af92d86aefc6b3c384",
+      "first_words_hex": [
+        "d3c280c59265c3d6",
+        "06045d4dee0b7366",
+        "5467f0b74a921fad",
+        "867c27671f4d1279"
+      ]
+    },
+    {
+      "index": 111,
+      "description": "grid_vector_111",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "4efe656f3e1c16aec6d9156ea11d0c74e7a5a752152e2c844731babb9ba2a316"
+        },
+        "turn": "111000333",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:111:route-9",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "472058808678b0e015ca6ac48f23c48435cce12bd96be5aeb19669172b30a3cb",
+      "first_words_hex": [
+        "a998ca02e1eeca0a",
+        "b2180c742a5cefa6",
+        "bfd1b5f5dcbcb614",
+        "6331a1a79bdd5061"
+      ]
+    },
+    {
+      "index": 112,
+      "description": "grid_vector_112",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1939249727588808256"
+        },
+        "turn": "112000336",
+        "domain": "road_event",
+        "entity_id": "unit:112:route-10",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "7eacd95825a041249db39cfa941c5dc9049bcfe4d5ed49756e4c19f36a6abbca",
+      "first_words_hex": [
+        "38c9dc92e2cd48fb",
+        "02770770dc66b3ce",
+        "c87ebef0965e9a46",
+        "9b2f21e1ddf4db48"
+      ]
+    },
+    {
+      "index": 113,
+      "description": "grid_vector_113",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1996309272781195588"
+        },
+        "turn": "113000339",
+        "domain": "market_shock",
+        "entity_id": "unit:113:route-11",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e8f38a9719ba531549c601f7e8ce7593416af7e421b076442b4f845b1895ace9",
+      "first_words_hex": [
+        "b37e3cc401964498",
+        "3881318a88e513a1",
+        "bd88a415b8e85058",
+        "5fbcf9dc4bde1940"
+      ]
+    },
+    {
+      "index": 114,
+      "description": "grid_vector_114",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "2923a760c33387b30ed748d44790cd1b08618ac8634de7b025ed08b556aff842"
+        },
+        "turn": "114000342",
+        "domain": "cli",
+        "entity_id": "unit:114:route-12",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "318ca1516caa85b1bbd43e14c5fe16016bd7d430825b165e31a057895e8295a9",
+      "first_words_hex": [
+        "84b77d996955339d",
+        "1a04a405660b467c",
+        "f7ed28df80f6523e",
+        "14a8c86859362b99"
+      ]
+    },
+    {
+      "index": 115,
+      "description": "grid_vector_115",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "8579316800188348340"
+        },
+        "turn": "115000345",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6974c07c75eb208f90958137dad74b48b2945571faf1b6d3f59327b3e63eb197",
+      "first_words_hex": [
+        "f95c03081efc41a9",
+        "b2414777433331d2",
+        "545bc20b6760d30a",
+        "4d8c2e99c81c8edd"
+      ]
+    },
+    {
+      "index": 116,
+      "description": "grid_vector_116",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4643757799818344496"
+        },
+        "turn": "116000348",
+        "domain": "road_event",
+        "entity_id": "unit:116:route-14",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "3a3d21cc0ea07a11387684241d665f57e839c511c5faa55d0a5a1fa5a5586caf",
+      "first_words_hex": [
+        "5ef32df4bcbd90a0",
+        "809b8c40369ef97c",
+        "035b3e2970bf28f5",
+        "ea76edba7181dd84"
+      ]
+    },
+    {
+      "index": 117,
+      "description": "grid_vector_117",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "dc83b1ff8272a80be9532383c027592ebd2a370947a57d6c8d74fddf3b626662"
+        },
+        "turn": "117000351",
+        "domain": "market_shock",
+        "entity_id": "unit:117:route-15",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1079103a58e6326cebe24116ff7b1a08494eea2a43c5833ee2b61fd2ae0820b1",
+      "first_words_hex": [
+        "c0c52ce326361fbf",
+        "a492d8a75edc72b4",
+        "1049f492756d6b89",
+        "3cd03da1313d57f3"
+      ]
+    },
+    {
+      "index": 118,
+      "description": "grid_vector_118",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3227360200921663192"
+        },
+        "turn": "118000354",
+        "domain": "cli",
+        "entity_id": "unit:118:route-16",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "2b24529a93c62b66aeaa39f86ef97fb41abc4ee04f250ebea4d684c47a3c3937",
+      "first_words_hex": [
+        "86ff7f366c53bc2b",
+        "7c876ea2f218ff87",
+        "d050f71720a35d9b",
+        "31a7e71a6ff32abc"
+      ]
+    },
+    {
+      "index": 119,
+      "description": "grid_vector_119",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7162919201291667036"
+        },
+        "turn": "119000357",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:119:route-0",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6db9334a7f690f0595c5a3dea97686d534e7b1ebe9032f053f4e6b66758f5aea",
+      "first_words_hex": [
+        "997f78cff5bfbe95",
+        "e71b3de46bb63aaa",
+        "6663d2fc054b27b0",
+        "7a7e5eb240bc86bf"
+      ]
+    },
+    {
+      "index": 120,
+      "description": "grid_vector_120",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "b8e76c0bd3150993bbfd19e4456bf94c1360519b8435208281c9eb2fcbc10bbb"
+        },
+        "turn": "120000360",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "31581bb915eb7a05b037637ea70e706de5493c4805889b4f59f0ef27a4bf094c",
+      "first_words_hex": [
+        "2ab005156ef58035",
+        "b462323e351d1c43",
+        "6626c63d585416d6",
+        "9036f2ce74263bde"
+      ]
+    },
+    {
+      "index": 121,
+      "description": "grid_vector_121",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3412706871677876892"
+        },
+        "turn": "121000363",
+        "domain": "market_shock",
+        "entity_id": "unit:121:route-2",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0e7088df95b97b683b376fde6b593840cc2881eb2993ee171f508c7f93eb43df",
+      "first_words_hex": [
+        "52f4fce426bdc643",
+        "b815dc793e0001f7",
+        "afe932d8002b15e1",
+        "b7d89264c92be7bb"
+      ]
+    },
+    {
+      "index": 122,
+      "description": "grid_vector_122",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-522852128692126952"
+        },
+        "turn": "122000366",
+        "domain": "cli",
+        "entity_id": "unit:122:route-3",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a5ea9dcf10f1c05d9a4729ec6b2101347e48ca462480fe3add47dac526306b4a",
+      "first_words_hex": [
+        "09c72af7bbd41a6b",
+        "0bd472fb493fa4ed",
+        "3cf764c305f4fdda",
+        "47df814bd3e94e08"
+      ]
+    },
+    {
+      "index": 123,
+      "description": "grid_vector_123",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "e2e5a8c8bdd2d56851d51cc32e00f9a52409ee4d6ea85bc8c32c2082f272befd"
+        },
+        "turn": "123000369",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:123:route-4",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "06771894b2c8b4230d06a9599e313ed13faca32bc7f53a9206b6cfeb92a63f66",
+      "first_words_hex": [
+        "ce335f9d10ade82c",
+        "dd02db95f673e670",
+        "5a4fd6c26ffa9118",
+        "c7fae9e7748d9bed"
+      ]
+    },
+    {
+      "index": 124,
+      "description": "grid_vector_124",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-8393970129432134640"
+        },
+        "turn": "124000372",
+        "domain": "road_event",
+        "entity_id": "unit:124:route-5",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "44e9d2ed196ab8707fe991d4cc1a737acf7369de8e36fa5b4792733364af836a",
+      "first_words_hex": [
+        "3e7e96f3231895ec",
+        "b74438e3ae20e3a4",
+        "54cf70b09002db72",
+        "d4bed71426633767"
+      ]
+    },
+    {
+      "index": 125,
+      "description": "grid_vector_125",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6117214943907413132"
+        },
+        "turn": "125000375",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4a7e8a9c039c7bf6fece6887da89eb66d9f6955b21c2c21568fa19da211e1f01",
+      "first_words_hex": [
+        "cc5687eccf90c1e3",
+        "63288e98ea28b472",
+        "0623d30e66acc2b5",
+        "2598e7f8eb7e549e"
+      ]
+    },
+    {
+      "index": 126,
+      "description": "grid_vector_126",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "d9a19ac39166eb275f36dc854dc34cddaeb4d0a9d3e4c0533edbe12765b548f4"
+        },
+        "turn": "126000378",
+        "domain": "cli",
+        "entity_id": "unit:126:route-7",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4f2d2f6bed29b2ef4b085ea0dc0319ad6ade05f8dec26bed745e16322907ee40",
+      "first_words_hex": [
+        "27b9a48392a19bc1",
+        "3949e31231b0461a",
+        "0fac4c90b4fafb55",
+        "34290f4a1029242d"
+      ]
+    },
+    {
+      "index": 127,
+      "description": "grid_vector_127",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1753903056832594556"
+        },
+        "turn": "127000381",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:127:route-8",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "8ada04495b17264be9e1999ebec9d70b4dc0f854d6f98d3ddd3da7044489856b",
+      "first_words_hex": [
+        "a1a9446e0a389dc0",
+        "ae5071fc50037942",
+        "ff9fc4a25ad0e016",
+        "e610a5d89b36d2d7"
+      ]
+    },
+    {
+      "index": 128,
+      "description": "grid_vector_128",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-5689462057202598400"
+        },
+        "turn": "128000384",
+        "domain": "road_event",
+        "entity_id": "unit:128:route-9",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "b1c4e4cb8e9eacbd893f4ce19d146ff34d3330c523e7074198da6571231ec977",
+      "first_words_hex": [
+        "23b270ef25de2903",
+        "ddf17c2b38fcdc39",
+        "5ea15cea39fe5240",
+        "49dff64737e16b25"
+      ]
+    },
+    {
+      "index": 129,
+      "description": "grid_vector_129",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "85ad2ec768563041e4192fff29737e76000398228ec4538b692c6a09e8d798f4"
+        },
+        "turn": "129000387",
+        "domain": "market_shock",
+        "entity_id": "unit:129:route-10",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a56d2d153f37461171c1c6ef8f2a9ae7d38db23ff335945ef50dd0cb103972db",
+      "first_words_hex": [
+        "83ce041f9fe4bb98",
+        "3845bdc83714ec00",
+        "510fba0465419cb3",
+        "43072c1f55c8edb5"
+      ]
+    },
+    {
+      "index": 130,
+      "description": "grid_vector_130",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4886164015766945528"
+        },
+        "turn": "130000390",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "29e63ac901cf1585013a428619cff3c29afc9961c0803f2ab4595ec3d8d6254c",
+      "first_words_hex": [
+        "9bf715f974938ace",
+        "4c3bb3f93d36fa4d",
+        "4fc95c213044ec71",
+        "2ad2bfa68776cd2b"
+      ]
+    },
+    {
+      "index": 131,
+      "description": "grid_vector_131",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "950605015396941684"
+        },
+        "turn": "131000393",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:131:route-12",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "b84e7ab4ed001cd6a2ae2dd3077f876bbc903c6f77750cb587d1b7a5a916da24",
+      "first_words_hex": [
+        "abdef55ffd23467d",
+        "695fa525d1a11eef",
+        "bddffa6a06f86b69",
+        "c393abe169a023db"
+      ]
+    },
+    {
+      "index": 132,
+      "description": "grid_vector_132",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "fd00f3f3b6da06b1647122223dab29e3fdd102a5dbea4e6b39d82d278c91fadb"
+        },
+        "turn": "132000396",
+        "domain": "road_event",
+        "entity_id": "unit:132:route-13",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1e22b72e150e72f370cba28ee60c5796983e2490a8c288fe40b88e3d3f6e78b3",
+      "first_words_hex": [
+        "b72af9765928a7be",
+        "95e048fa649a96ec",
+        "46183ca92b3f9d41",
+        "97a64dec500a941e"
+      ]
+    },
+    {
+      "index": 133,
+      "description": "grid_vector_133",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6920512985343066004"
+        },
+        "turn": "133000399",
+        "domain": "market_shock",
+        "entity_id": "unit:133:route-14",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "456015a57b7abe5a956c1d33a9d0d52f44fbea0cd699e7415afd5c4e508e97cd",
+      "first_words_hex": [
+        "b2cf1a6c110e4a9e",
+        "5992c39001996cd8",
+        "a1929cafbc0f8b3b",
+        "d37d7afe0ae888bd"
+      ]
+    },
+    {
+      "index": 134,
+      "description": "grid_vector_134",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7590672087996481768"
+        },
+        "turn": "134000402",
+        "domain": "cli",
+        "entity_id": "unit:134:route-15",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f54dedf15c0da79dcd97e966f440d791b9e3cbdccf323a91b575448cf0f83480",
+      "first_words_hex": [
+        "6841b66b3238d6f7",
+        "c6c4db4c3e8d1494",
+        "3b845584d154966b",
+        "e82c2dfde6a0ed2f"
+      ]
+    },
+    {
+      "index": 135,
+      "description": "grid_vector_135",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "289b671cc0a6eeacaa2b160b5f3e79da5c2a3a9a4f4d633ee80aa175769ad927"
+        },
+        "turn": "135000405",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1c77f6d53ec7e4b9fffd99320128b55f7868b2c776f48645305ad68e935bf5d4",
+      "first_words_hex": [
+        "f8ec309b8a1ab07a",
+        "b31761f67db2df33",
+        "4a73b4f28e584a1d",
+        "59177ac9f6e90ec1"
+      ]
+    },
+    {
+      "index": 136,
+      "description": "grid_vector_136",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-280445912743525920"
+        },
+        "turn": "136000408",
+        "domain": "road_event",
+        "entity_id": "unit:136:route-0",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "ee01eb73277ae7a34dd300e81381c528fcef2350c04b526eed9e868aec99b3d0",
+      "first_words_hex": [
+        "eb4d5d98b292f54b",
+        "1b2e34ec758710fe",
+        "8064ece45d98c230",
+        "dbf2603d35935334"
+      ]
+    },
+    {
+      "index": 137,
+      "description": "grid_vector_137",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4216004913113529764"
+        },
+        "turn": "137000411",
+        "domain": "market_shock",
+        "entity_id": "unit:137:route-1",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "2cd94002ec721ac005219c6ad39e57e09bb5ebb02b5a7a02a04c84d8b6042d8f",
+      "first_words_hex": [
+        "7380d4fbd04f035c",
+        "f5d385e6105d54ae",
+        "3f7295a21d1a7327",
+        "5b8e72c09b498615"
+      ]
+    },
+    {
+      "index": 138,
+      "description": "grid_vector_138",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "990b0ae02c51af6914688bb1d9cfe7f89711a3aa96c9a4de439f4fe260ad817f"
+        },
+        "turn": "138000414",
+        "domain": "cli",
+        "entity_id": "unit:138:route-2",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "77a46114d1bfb23019e892936f6e47cd7a89bd2452ebcc75f1fb5eb7e32676a3",
+      "first_words_hex": [
+        "a84a7cbeb45ed88f",
+        "11e360a9eb3c0aa5",
+        "6b0d3c7dde390ac9",
+        "e7b5b9bc9abc653b"
+      ]
+    },
+    {
+      "index": 139,
+      "description": "grid_vector_139",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6359621159856014164"
+        },
+        "turn": "139000417",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:139:route-3",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "64c02ac95258d4bcf9b8571784447628359883974202c240f927075fa0717b4c",
+      "first_words_hex": [
+        "41b90dc6905836cc",
+        "c68823d50506b2cc",
+        "f6db17e1461e215b",
+        "bf1f26a8fd91da83"
+      ]
+    },
+    {
+      "index": 140,
+      "description": "grid_vector_140",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "2424062159486010320"
+        },
+        "turn": "140000420",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "9a8265272828db4da834958d63430ef498e0f8f653ecb8a68c8f8119952e2964",
+      "first_words_hex": [
+        "dd63d61743909fb5",
+        "d41eba9766e60800",
+        "6d9866318a829a20",
+        "e648482203d4da8f"
+      ]
+    },
+    {
+      "index": 141,
+      "description": "grid_vector_141",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "4a8ff919a522b49aed1d75f105a13585a9cf6b49407aeec21b8e857fdfbc8324"
+        },
+        "turn": "141000423",
+        "domain": "market_shock",
+        "entity_id": "unit:141:route-5",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c3a2848ae1bef0931985283a9c5d38bad8d48b69ae3660973eebbc69f7446031",
+      "first_words_hex": [
+        "4a2c05a8e5e691ce",
+        "3e7e0a611b884c2d",
+        "62165e967e420bcc",
+        "0000e03bb3ba82d4"
+      ]
+    },
+    {
+      "index": 142,
+      "description": "grid_vector_142",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-5447055841253997368"
+        },
+        "turn": "142000426",
+        "domain": "cli",
+        "entity_id": "unit:142:route-6",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "5606324744893317040dfc386d7d52ad97e955db725a1288d16b647d4945b9bf",
+      "first_words_hex": [
+        "991fe924385e61dc",
+        "9d1aabcd58b2ddcd",
+        "1c4e8e4a6f16b0ab",
+        "d9ff62bf12dd5112"
+      ]
+    },
+    {
+      "index": 143,
+      "description": "grid_vector_143",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "9064129232085550404"
+        },
+        "turn": "143000429",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:143:route-7",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "aef5cc3382286884f2a7723a43cec79cc679ff377695e55fbe9614bed21814fc",
+      "first_words_hex": [
+        "4f6081cfbbbaa68c",
+        "c5e064afa5f1e0f3",
+        "bbfe75b06a1d8bc4",
+        "c3ebdf49654641b4"
+      ]
+    },
+    {
+      "index": 144,
+      "description": "grid_vector_144",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "de4b8d05c5527be99989bbe5c012770bb75cd6b4ba08bc1d1fb578fd7308fe43"
+        },
+        "turn": "144000432",
+        "domain": "road_event",
+        "entity_id": "unit:144:route-8",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6186edf350d40b27f627272b6d2e93e9a320831800aaee474f92a4287ff89c1a",
+      "first_words_hex": [
+        "04d8f7ef2ea5a9cc",
+        "dd0e1d5d1379d284",
+        "19f64fbd2e8505cf",
+        "2eec93e4c2984b83"
+      ]
+    },
+    {
+      "index": 145,
+      "description": "grid_vector_145",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1193011231345542716"
+        },
+        "turn": "145000435",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a0234eb46c2709eb38a702e5b4521a0ff67953575798eade3e8f4686e41543c3",
+      "first_words_hex": [
+        "40080fa50f80b98c",
+        "b9578a0198edbf80",
+        "b2b1038924103252",
+        "4a018af8365886ee"
+      ]
+    },
+    {
+      "index": 146,
+      "description": "grid_vector_146",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-2742547769024461128"
+        },
+        "turn": "146000438",
+        "domain": "cli",
+        "entity_id": "unit:146:route-10",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e293bc1add3b07ccd7e7b405bd0e6b3cbb4cca585102e38b68b492f3337ce3b0",
+      "first_words_hex": [
+        "791074b696cebb8f",
+        "f28f6f2fa1c2f841",
+        "6d03a29356050c65",
+        "430a76a32ad90b17"
+      ]
+    },
+    {
+      "index": 147,
+      "description": "grid_vector_147",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "d16a69b36743e80ab6b3bad1fbc440062f0cf006cc9d0e25b11073eb9f4e3e51"
+        },
+        "turn": "147000441",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:147:route-11",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "7824a6d0e133365867ff5f144a2311656da7707d3a9a9beee76b8ce95d0c6840",
+      "first_words_hex": [
+        "77a8ee8059e568d8",
+        "044a1ced95f5d421",
+        "72142201ed6ab913",
+        "6ca6dcd60d4d44b9"
+      ]
+    },
+    {
+      "index": 148,
+      "description": "grid_vector_148",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7833078303945082800"
+        },
+        "turn": "148000444",
+        "domain": "road_event",
+        "entity_id": "unit:148:route-12",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "7ebbe51dee927dd01a94bf06e1746d3fc9f20bed20a5d571912a61668f51c8b1",
+      "first_words_hex": [
+        "49547aca48abb165",
+        "1b6c32e7f4b98cce",
+        "302b5b460cebf4ec",
+        "d2a60e3018620a6f"
+      ]
+    },
+    {
+      "index": 149,
+      "description": "grid_vector_149",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3897519303575078956"
+        },
+        "turn": "149000447",
+        "domain": "market_shock",
+        "entity_id": "unit:149:route-13",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "eabb355209756cc2bedff008b7fd97ebb356a733936fdfa49922a6e035886945",
+      "first_words_hex": [
+        "0dd36bce6930634c",
+        "6a4ed216a363882c",
+        "a51b9cfa6771a393",
+        "7adaef01e7cd11fe"
+      ]
+    },
+    {
+      "index": 150,
+      "description": "grid_vector_150",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "b6f755f37da3dbec12342efdba6a4f840db75d1f8a0a8d62d7aabd731de93380"
+        },
+        "turn": "150000450",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1f5daa63609bfc467401531bd4dec213c0d8219418bd945ee0d4c68e776868b3",
+      "first_words_hex": [
+        "810d309adb425df8",
+        "42a327f7f6c4b5e5",
+        "d41355548abea9ed",
+        "aac82506b20d9631"
+      ]
+    },
+    {
+      "index": 151,
+      "description": "grid_vector_151",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3973598697164928732"
+        },
+        "turn": "151000453",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:151:route-15",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4db3f1285dcb51ab1be6ab52f08f912e936500f4021de3d3837b99bef039aaa2",
+      "first_words_hex": [
+        "edba192104b72b96",
+        "4fb1d01c145eaa61",
+        "fc96c7bfcf7e5664",
+        "ed311535fd968bd4"
+      ]
+    },
+    {
+      "index": 152,
+      "description": "grid_vector_152",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7909157697534932576"
+        },
+        "turn": "152000456",
+        "domain": "road_event",
+        "entity_id": "unit:152:route-16",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "46ad15c86e741365c7440aacca3ce209776af1d4adcc97f0d8d2a51a3c2e1c60",
+      "first_words_hex": [
+        "9775f33111a41dde",
+        "b5f0c1044663e65c",
+        "989bc06e252cffa6",
+        "8c0ba88a79b9cdcf"
+      ]
+    },
+    {
+      "index": 153,
+      "description": "grid_vector_153",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "c23d895b5ee12a29e7099909c5cb1d72b24527ec47bad509f9bbcc21639e15d4"
+        },
+        "turn": "153000459",
+        "domain": "market_shock",
+        "entity_id": "unit:153:route-0",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0220110354dddf63cd1b409d5751616de803d09605d6b0041fea0d554cb801f4",
+      "first_words_hex": [
+        "911703911ede3f3b",
+        "34866385a42d0075",
+        "520351b22abf6de5",
+        "302d40cd81957cc2"
+      ]
+    },
+    {
+      "index": 154,
+      "description": "grid_vector_154",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "2666468375434611352"
+        },
+        "turn": "154000462",
+        "domain": "cli",
+        "entity_id": "unit:154:route-1",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4df94303d6f9591e3af367f6c2a229f24a12e97e92b67ea5a2b1bf3ba7d84e77",
+      "first_words_hex": [
+        "c7218a6ba7c88a3d",
+        "29647e6b283bdac6",
+        "cd3eb36b8134cc79",
+        "51a6d3fee52e9b31"
+      ]
+    },
+    {
+      "index": 155,
+      "description": "grid_vector_155",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1269090624935392492"
+        },
+        "turn": "155000465",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "045b103d2b3a33776141b186db637b335d47ee19745487ed1e2773b9de10f29a",
+      "first_words_hex": [
+        "4da62b7f53e80eb0",
+        "5f0c5397a6a3b0e2",
+        "b1f823646f5eec45",
+        "316b31fa261e7051"
+      ]
+    },
+    {
+      "index": 156,
+      "description": "grid_vector_156",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "faf16ad27248fb5a32784f5dbcd859e8ae3f1d43dbb6f9f15d51eba77534a390"
+        },
+        "turn": "156000468",
+        "domain": "road_event",
+        "entity_id": "unit:156:route-3",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "fb9c4d7f93f3218bdb4e0bc979b856656055b98ee97b2a79862b1a42c0e5b0a6",
+      "first_words_hex": [
+        "f262588904108ea9",
+        "4333126a7e11c55f",
+        "0d871c04787beebb",
+        "36a90b48c22d4d62"
+      ]
+    },
+    {
+      "index": 157,
+      "description": "grid_vector_157",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-9140208625675400180"
+        },
+        "turn": "157000471",
+        "domain": "market_shock",
+        "entity_id": "unit:157:route-4",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "75fb6957bcbd5b069237b375157e0ec20c7f398e09eee9213abb207a59c5c524",
+      "first_words_hex": [
+        "5c7d8941b728254f",
+        "a6640785c6e0a3f0",
+        "450bd5bdf83a8f4d",
+        "0be04e66a0bdb9c2"
+      ]
+    },
+    {
+      "index": 158,
+      "description": "grid_vector_158",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "5370976447664147592"
+        },
+        "turn": "158000474",
+        "domain": "cli",
+        "entity_id": "unit:158:route-5",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "2030d6e5d709583bf68c563625736242cbf00fe81b674fac91e11ded8f1f9022",
+      "first_words_hex": [
+        "0bb099027157f6f1",
+        "03e689c93c1985e8",
+        "12a3a9a57f514364",
+        "17a902798a46a6b3"
+      ]
+    },
+    {
+      "index": 159,
+      "description": "grid_vector_159",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "d6fcc9cfeb154d8115ab6773f560892a2a7cd9a96963bf2c1e4c82be7e188211"
+        },
+        "turn": "159000477",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:159:route-6",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "367e6fcd99021e01d221a0f6faa2084194133b3e884adfa5abc520977b95cc6b",
+      "first_words_hex": [
+        "3d4db7b0704874c7",
+        "bef407502877a52a",
+        "819ee1b837c2ed52",
+        "1b09b6c8efb45049"
+      ]
+    },
+    {
+      "index": 160,
+      "description": "grid_vector_160",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-2500141553075860096"
+        },
+        "turn": "160000480",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "03500de886ac155d81c1ca9d3bf64648d84ab93362047a1c474a3003bb240c59",
+      "first_words_hex": [
+        "d42dfb90f03b97c2",
+        "2a60ed7702f16985",
+        "bfed359f55a258e7",
+        "0060fffec7a1e59b"
+      ]
+    },
+    {
+      "index": 161,
+      "description": "grid_vector_161",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6435700553445863940"
+        },
+        "turn": "161000483",
+        "domain": "market_shock",
+        "entity_id": "unit:161:route-8",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "717ea382ac84a93717637fa0ce0acedc17260db6fbd8f9b39c29ea24cecce05f",
+      "first_words_hex": [
+        "5f737dc756950b86",
+        "110c36383065096e",
+        "76c010e37dd67095",
+        "b540002156b71c39"
+      ]
+    },
+    {
+      "index": 162,
+      "description": "grid_vector_162",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "f3b7f2e3289da04420ad41c06603895594782f72f1c703bd3325036813605e52"
+        },
+        "turn": "162000486",
+        "domain": "cli",
+        "entity_id": "unit:162:route-9",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "669ad590eb1bd257f2e285302487b1e4efef8564a9791164f02befed697a07ba",
+      "first_words_hex": [
+        "2291533839a7a1a0",
+        "b08e5f6a8ec63d94",
+        "1c185589d28c9e5d",
+        "5bd7668156096cb1"
+      ]
+    },
+    {
+      "index": 163,
+      "description": "grid_vector_163",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4139925519523679988"
+        },
+        "turn": "163000489",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:163:route-10",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e14d0ece3d68ba0b2ec3caf627dac29c6976a3412c5fcb603a2337c569461e7e",
+      "first_words_hex": [
+        "b2fd52b46e0d347a",
+        "3abdaa27b308b734",
+        "181e91462bd18ee8",
+        "452569c74ba0ddc5"
+      ]
+    },
+    {
+      "index": 164,
+      "description": "grid_vector_164",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "204366519153676144"
+        },
+        "turn": "164000492",
+        "domain": "road_event",
+        "entity_id": "unit:164:route-11",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "ca1044248258d9468b78389ddfb3def42cf184299305782897159106462b1c61",
+      "first_words_hex": [
+        "d04947899fe2112e",
+        "944e8dea629eebf0",
+        "53b4f3d59efc0109",
+        "5ab69dd006dff487"
+      ]
+    },
+    {
+      "index": 165,
+      "description": "grid_vector_165",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "eade6db295a7199c41e16e064e4963b8f0f131b889fe13321fef5dc147cba5ce"
+        },
+        "turn": "165000495",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "401cab079053cf3b35423651dba8922e9d766408bbee7e71e3b7460980f809c8",
+      "first_words_hex": [
+        "185b2234bccf035c",
+        "9c832cceea85c696",
+        "a6dc6783d9d6d768",
+        "a0340d940d1bfe9a"
+      ]
+    },
+    {
+      "index": 166,
+      "description": "grid_vector_166",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7666751481586331544"
+        },
+        "turn": "166000498",
+        "domain": "cli",
+        "entity_id": "unit:166:route-13",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "05c06d4188e57fbe8fda13ce68e400c87ee5ee59233aa7fb86dec98af9a14e2e",
+      "first_words_hex": [
+        "41211227051ab76a",
+        "3e2b332a371b3df0",
+        "11dfcf4fad440dfc",
+        "fa90e286b8b63d32"
+      ]
+    },
+    {
+      "index": 167,
+      "description": "grid_vector_167",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6844433591753216228"
+        },
+        "turn": "167000501",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:167:route-14",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e98d2a5e2b42b9e9de68f2b47627dcd4128fa05bab6a26d1a008436b431b08ec",
+      "first_words_hex": [
+        "035c1a801f56b6b2",
+        "386600ee6dd99482",
+        "d924688c6d75d44b",
+        "5dfdc342f46b441c"
+      ]
+    },
+    {
+      "index": 168,
+      "description": "grid_vector_168",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "eaac7a6db094b68b3764ccec9ffa92ede623f3a271aa878c35930dcd9aff407e"
+        },
+        "turn": "168000504",
+        "domain": "road_event",
+        "entity_id": "unit:168:route-15",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "ec10522fd0315992cc7cd5e2eb82991ee0a90208bac6d735a53b7c1ba927f639",
+      "first_words_hex": [
+        "d891e12e35eae092",
+        "12c1cbac3d327c9f",
+        "348e70e36221532a",
+        "7f32bf8ca055cf89"
+      ]
+    },
+    {
+      "index": 169,
+      "description": "grid_vector_169",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1026684408986791460"
+        },
+        "turn": "169000507",
+        "domain": "market_shock",
+        "entity_id": "unit:169:route-16",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "31a5df2d06350f9596aba23f52bb2b6ed63fa5cda7bb7e5fb3d9983b497d8f80",
+      "first_words_hex": [
+        "e666859d45d80840",
+        "52910b77e5141166",
+        "117300bf889df180",
+        "b374e2d686551edb"
+      ]
+    },
+    {
+      "index": 170,
+      "description": "grid_vector_170",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4962243409356795304"
+        },
+        "turn": "170000510",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "86f26f27d4d380744cf2c88bf3d5eccb26b6bfaabf5b9fdde7495c9c7f099046",
+      "first_words_hex": [
+        "a6e39ea37edf01b2",
+        "11d5112910d661cf",
+        "44967ec39ecc4723",
+        "4ccf06d871490f9e"
+      ]
+    },
+    {
+      "index": 171,
+      "description": "grid_vector_171",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "2dc77c0336c8b98a59cf08d96548af67fd8fe5f7a71955710df0fb666b96f54f"
+        },
+        "turn": "171000513",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:171:route-1",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e63b359ed5c2d18f468da2526290bd8e22f6cc3b6179977c0e4e6fdced1f87a5",
+      "first_words_hex": [
+        "3d98e30e378e6fe7",
+        "3b873741eee8c454",
+        "ac73630f171765ab",
+        "0eecb39285a39aef"
+      ]
+    },
+    {
+      "index": 172,
+      "description": "grid_vector_172",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "5613382663612748624"
+        },
+        "turn": "172000516",
+        "domain": "road_event",
+        "entity_id": "unit:172:route-2",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f385e57258615fb4912387e5b765f55767e9673122343f43230bce8c0537ae04",
+      "first_words_hex": [
+        "fa4bae27bf6aa31c",
+        "94eb57f3d025ad28",
+        "eaf53628dfa64aba",
+        "7f052fbf9bfb45e2"
+      ]
+    },
+    {
+      "index": 173,
+      "description": "grid_vector_173",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1677823663242744780"
+        },
+        "turn": "173000519",
+        "domain": "market_shock",
+        "entity_id": "unit:173:route-3",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a757303e44c959ba660e6dfb80185f5dc6396d34aa425ee5a31b5176325b26fa",
+      "first_words_hex": [
+        "6fb96ef0d0d8bee8",
+        "83549c9e4a11af7d",
+        "e38deaf0acafb4c2",
+        "7f460af882bef0f6"
+      ]
+    },
+    {
+      "index": 174,
+      "description": "grid_vector_174",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "2fbe06a716829f5aa3cee1893c2a886c10d7b382ef208401fca9a3286edb9143"
+        },
+        "turn": "174000522",
+        "domain": "cli",
+        "entity_id": "unit:174:route-4",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "97d27acf948ba96c07c7efee55e1e382ebca965879b40a4c041d39c78e65edd5",
+      "first_words_hex": [
+        "61ade53d1b3a7f58",
+        "1d2703964a9b90c5",
+        "d8f79095b3fe2847",
+        "af1e6e275cb4b48f"
+      ]
+    },
+    {
+      "index": 175,
+      "description": "grid_vector_175",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6193294337497262908"
+        },
+        "turn": "175000525",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1ccc3dbfafcbe44254b818be1cdf2e1ba339c458283993616de9026c9ba97656",
+      "first_words_hex": [
+        "a904baaf52cec807",
+        "ffedfa4567da6f99",
+        "cecdb67b6a8b2c92",
+        "91e572f465db0453"
+      ]
+    },
+    {
+      "index": 176,
+      "description": "grid_vector_176",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "8317890735842284864"
+        },
+        "turn": "176000528",
+        "domain": "road_event",
+        "entity_id": "unit:176:route-6",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "042d7939386df1baa78a0dd72706248bb597ac70dafd7eec4eaa23e7c464f0ee",
+      "first_words_hex": [
+        "bd126ba7ccfd52e9",
+        "399d7faa1478fb2f",
+        "af0c3b292fdabad6",
+        "2bba0be9a180ed5d"
+      ]
+    },
+    {
+      "index": 177,
+      "description": "grid_vector_177",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "651bb0650726e820f887c0741dd2e8b6fa2c320318eb47e8f7a466e93a060ced"
+        },
+        "turn": "177000531",
+        "domain": "market_shock",
+        "entity_id": "unit:177:route-7",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "2804ac648bf2821f59dc5a548f7efa46888ed6eacf17329fe5cb6cf3b895efa8",
+      "first_words_hex": [
+        "87f24f75b0816e03",
+        "0dd67e9e158f3257",
+        "fa898eadead0336a",
+        "87b16190de2cc2f3"
+      ]
+    },
+    {
+      "index": 178,
+      "description": "grid_vector_178",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "446772735102277176"
+        },
+        "turn": "178000534",
+        "domain": "cli",
+        "entity_id": "unit:178:route-8",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "214e8f280a3ccd126b74767c91bb966b1265c1d597b68cd34931c226bdad2f1e",
+      "first_words_hex": [
+        "c064875857e5e530",
+        "23b7f37a65e91c9e",
+        "934b69292a6ae36c",
+        "e82a2490ae3d86e3"
+      ]
+    },
+    {
+      "index": 179,
+      "description": "grid_vector_179",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3488786265267726668"
+        },
+        "turn": "179000537",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:179:route-9",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "13b0d7022cff868d9f592286ee4154d6bf00f353bbb7619d17033bdce2c40c3b",
+      "first_words_hex": [
+        "407030225b9dfd82",
+        "ddc27e4c0d5ce3c5",
+        "08dc5c001177b7d6",
+        "748eec08482d67dc"
+      ]
+    },
+    {
+      "index": 180,
+      "description": "grid_vector_180",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "2200257105907fcc3d2cc4cf9ffb5a45860ed2629c6893b9cb12801df68a4b5f"
+        },
+        "turn": "180000540",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "788815a6f6feaab95b5c20a39ec27d1e8071f083ac9b16183e756deab4cac848",
+      "first_words_hex": [
+        "4cb6744ea69e1497",
+        "fd3275a67c55137c",
+        "ea649ecda331f8a3",
+        "a015ccef857c0003"
+      ]
+    },
+    {
+      "index": 181,
+      "description": "grid_vector_181",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7086839807701817260"
+        },
+        "turn": "181000543",
+        "domain": "market_shock",
+        "entity_id": "unit:181:route-11",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "990c7a9c6e7893bf1095501919c317488814addf0faf73e618593476a22b7d1e",
+      "first_words_hex": [
+        "2a35b9838b8560b9",
+        "380e8dd2cc7e41bf",
+        "d905bde6fd927741",
+        "9bf5a0650d83071d"
+      ]
+    },
+    {
+      "index": 182,
+      "description": "grid_vector_182",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3151280807331813416"
+        },
+        "turn": "182000546",
+        "domain": "cli",
+        "entity_id": "unit:182:route-12",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a959f095ba82f9a3270254954a597db4fb249cae52b8de3ed5f5116bcfbc33a9",
+      "first_words_hex": [
+        "7f590822dec2949c",
+        "1881b9b1bbd22c2b",
+        "dde32dff6a0568db",
+        "4cf66691030ab130"
+      ]
+    },
+    {
+      "index": 183,
+      "description": "grid_vector_183",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "7c03bf5cec48cbc001d779f90ba71058a8e1f70868f39fb60c01d0bb24cc134b"
+        },
+        "turn": "183000549",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:183:route-13",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "963064e693f63b8857c11106547b3d1fb421159e23ef6f5c5adf7c6a2c56303d",
+      "first_words_hex": [
+        "60ad1547c02aa68d",
+        "9828571bf2850e84",
+        "1be6d16306a4f6f8",
+        "14665ec164efa5e6"
+      ]
+    },
+    {
+      "index": 184,
+      "description": "grid_vector_184",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4719837193408194272"
+        },
+        "turn": "184000552",
+        "domain": "road_event",
+        "entity_id": "unit:184:route-14",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f42097de8f5b0b3252c6af69b8226d2b125f7465abd3a3fae90b4a5d8a424c19",
+      "first_words_hex": [
+        "33e77d2da2b06e0b",
+        "df6caa2d6500a7a6",
+        "b9166855114f9d11",
+        "dc8052263ed4a5df"
+      ]
+    },
+    {
+      "index": 185,
+      "description": "grid_vector_185",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-8655396193778198116"
+        },
+        "turn": "185000555",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a38e6ea3107fbf44c8dbcd16f0ef28e4afc0a3e8c2052c9278c9480b5ceb8b83",
+      "first_words_hex": [
+        "d278c33a00639fc9",
+        "087e6412b4b5e12f",
+        "9993a482504823dd",
+        "0988f50b9df25819"
+      ]
+    },
+    {
+      "index": 186,
+      "description": "grid_vector_186",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "4e2d7478c7613ca3bcf80585ab7a3885c8c1fdec01c43e37488a382b794ff7c8"
+        },
+        "turn": "186000558",
+        "domain": "cli",
+        "entity_id": "unit:186:route-16",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1f79f17e7f80a62cd25e429ed0b8ddfd59d99f4e1aa24facc438f95ceaa399ad",
+      "first_words_hex": [
+        "db1037aaa1ac3d5d",
+        "f1bd2aab20ea7a95",
+        "d60d29cc339ec49a",
+        "a1d36a3d33479f67"
+      ]
+    },
+    {
+      "index": 187,
+      "description": "grid_vector_187",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1920229879191345812"
+        },
+        "turn": "187000561",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:187:route-0",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0ad428741505131184d9e8869eef14430dda6982c857e8a9770fc218bd379eaa",
+      "first_words_hex": [
+        "e9088741eadea008",
+        "7ca9cd361c027273",
+        "7b82f0cf09fc4a2c",
+        "cca52aab64572c02"
+      ]
+    },
+    {
+      "index": 188,
+      "description": "grid_vector_188",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-2015329121178658032"
+        },
+        "turn": "188000564",
+        "domain": "road_event",
+        "entity_id": "unit:188:route-1",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "252171b8b2335364ba79e2cca6a4ad242f7fe95e21634f84078636a98483b68a",
+      "first_words_hex": [
+        "7d12f8a5d2564ee8",
+        "f627dd3243fa90fd",
+        "dcfdbdd0d2f73659",
+        "a2191f40de10cde7"
+      ]
+    },
+    {
+      "index": 189,
+      "description": "grid_vector_189",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "802b8b0209ef396e11aa2f39cf19f3ebc608adbf7e1d73898ef1390e827b1bc5"
+        },
+        "turn": "189000567",
+        "domain": "market_shock",
+        "entity_id": "unit:189:route-2",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "599eae21a3d168cfa07186712b911518f99093671aff0681bd4321a7c033787b",
+      "first_words_hex": [
+        "c2080e91dcf442d1",
+        "d3dedde37b7a263e",
+        "5341c48f574213e3",
+        "824b9b09b7380526"
+      ]
+    },
+    {
+      "index": 190,
+      "description": "grid_vector_190",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "8560296951790885896"
+        },
+        "turn": "190000570",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "cb3825d35696381748b13451558619a3adfc8c8960f127582d30703978216227",
+      "first_words_hex": [
+        "c65070c68b26c93f",
+        "cba2515d77bd2c57",
+        "e8cbfa5100e791da",
+        "360e5f7422db62b4"
+      ]
+    },
+    {
+      "index": 191,
+      "description": "grid_vector_191",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4624737951420882052"
+        },
+        "turn": "191000573",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:191:route-4",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "49eaa12b7e9627533d66c985afac5a2aa4d8121615077899a5b6de8ccddc8415",
+      "first_words_hex": [
+        "e1954d6e8f0c23d0",
+        "6279da5424ea7be5",
+        "f049c2a1bf6c502c",
+        "7ef320dcecdf8f4f"
+      ]
+    },
+    {
+      "index": 192,
+      "description": "grid_vector_192",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "f6c7b76f75017150ab7fd86147da81bd437ea1b29f650cf9a86c2cd532394c7e"
+        },
+        "turn": "192000576",
+        "domain": "road_event",
+        "entity_id": "unit:192:route-5",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "b1f8d5a31e91f5e0f3c921e57969bc074d52ed4a1ab4da1811638fb1dc3c6dcc",
+      "first_words_hex": [
+        "77b8536d9389dab1",
+        "df8b008b7ac8bfab",
+        "e45993ea72325bf1",
+        "a59c04e90ebc9b9f"
+      ]
+    },
+    {
+      "index": 193,
+      "description": "grid_vector_193",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3246380049319125636"
+        },
+        "turn": "193000579",
+        "domain": "market_shock",
+        "entity_id": "unit:193:route-6",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "54d134d911eb27bd54808f7ca8265701c24767f051cca6065420e8bb7cae7e60",
+      "first_words_hex": [
+        "774311993bc592e4",
+        "684985d26894302b",
+        "7a4f9eea798dc83d",
+        "3f946ee71088938b"
+      ]
+    },
+    {
+      "index": 194,
+      "description": "grid_vector_194",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7181939049689129480"
+        },
+        "turn": "194000582",
+        "domain": "cli",
+        "entity_id": "unit:194:route-7",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "911849ee11c3ec23b49dbdf69c1cef23bb09760ab9f7b10ce74feedc9287eca0",
+      "first_words_hex": [
+        "5d51e2538c4e5eed",
+        "a10470a29ae2b436",
+        "8ecfb114d3768a51",
+        "2abc4e25067b4d3f"
+      ]
+    },
+    {
+      "index": 195,
+      "description": "grid_vector_195",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "cba137110dd5fa902007919857041687ab6f3d43f41230ed0680d1464b0691db"
+        },
+        "turn": "195000585",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "828d8e56baa855236bc901ecded2ebe34e63478f0c3bdc2c3c3f0dadd094ad96",
+      "first_words_hex": [
+        "b8c9d33c3665da1c",
+        "d901f6d0aa7d428a",
+        "e40c4be1ed6828af",
+        "5f3a2064bd444773"
+      ]
+    },
+    {
+      "index": 196,
+      "description": "grid_vector_196",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3393687023280414448"
+        },
+        "turn": "196000588",
+        "domain": "road_event",
+        "entity_id": "unit:196:route-9",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0cf9826bfbde5b117df8afd4aaff5ab157ff7678ccc83351faaf13084b94125b",
+      "first_words_hex": [
+        "f66a51604f92dc8e",
+        "0bdb893cbd58de6e",
+        "08264bb83a2f98bf",
+        "bb6d09ac20ce7fb8"
+      ]
+    },
+    {
+      "index": 197,
+      "description": "grid_vector_197",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-541871977089589396"
+        },
+        "turn": "197000591",
+        "domain": "market_shock",
+        "entity_id": "unit:197:route-10",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "11f8c36c435c2b582a3846d6b56ef9c00fa6245ba130a50b11e38efd6e849f1e",
+      "first_words_hex": [
+        "cf340bc36e03baab",
+        "2a90c21e48e940f8",
+        "4921a49d76916511",
+        "f203209f958e737f"
+      ]
+    },
+    {
+      "index": 198,
+      "description": "grid_vector_198",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "3f6f67b3b2d0b01fb917244908710485e5790443aa534562a46ab21d19ebb025"
+        },
+        "turn": "198000594",
+        "domain": "cli",
+        "entity_id": "unit:198:route-11",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "39f441e10daa6484c1fba672ee6e039791f06b73755d57c11e130bc2764f982b",
+      "first_words_hex": [
+        "508009a1e538022d",
+        "488ecdad698a6dd3",
+        "c8162547ff61d261",
+        "24b18003d66b80ce"
+      ]
+    },
+    {
+      "index": 199,
+      "description": "grid_vector_199",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-8412989977829597084"
+        },
+        "turn": "199000597",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:199:route-12",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "15c6cf13c4a3069cb53ba4cd77d37c43f93b89db7c1520f76a2ea47325c690e8",
+      "first_words_hex": [
+        "d4ef2016aac67331",
+        "833af642843997bb",
+        "5b3a14a177fbc95e",
+        "6c0d6955a5f5b230"
+      ]
+    },
+    {
+      "index": 200,
+      "description": "grid_vector_200",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6098195095509950688"
+        },
+        "turn": "200000600",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "cff4d182ed148ea0c792549daef648e88af4ba3cfeb9338573c48e782622ef44",
+      "first_words_hex": [
+        "b97835dfc2012a42",
+        "0849cefc2394a829",
+        "93ec71f4e17dad0c",
+        "b4e672edede866cf"
+      ]
+    },
+    {
+      "index": 201,
+      "description": "grid_vector_201",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "21a537838738f2b7932b87831038ed03a58849530d2cad6eeccc3ffe44941f14"
+        },
+        "turn": "201000603",
+        "domain": "market_shock",
+        "entity_id": "unit:201:route-14",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "3a09f8bb535a6ad1e5352c22aa730ed4ba63fd01d4355fb6a94065cbf2f31a9c",
+      "first_words_hex": [
+        "ead462702a848750",
+        "436f5f2d5c48af8d",
+        "63142b70ac222103",
+        "78d10883fb0a03fb"
+      ]
+    },
+    {
+      "index": 202,
+      "description": "grid_vector_202",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1772922905230057000"
+        },
+        "turn": "202000606",
+        "domain": "cli",
+        "entity_id": "unit:202:route-15",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "d2b3b8aaec31542cfcdf00672da0e1869b5b870f5bcca6bfd0370864e9b8c603",
+      "first_words_hex": [
+        "6c23bf949e2154c6",
+        "114c7b016f23ebd7",
+        "b5f15ace05de0fc4",
+        "851af293f81fdf3a"
+      ]
+    },
+    {
+      "index": 203,
+      "description": "grid_vector_203",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-5708481905600060844"
+        },
+        "turn": "203000609",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:203:route-16",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "ad566d3bca46b00f85c9ce0f0825a915ae351ae69af979bcb524a5eef1cabf7d",
+      "first_words_hex": [
+        "9e3d2a68646ea816",
+        "85ffb79596415fe8",
+        "dae1d70401a68b76",
+        "69a01614c421247c"
+      ]
+    },
+    {
+      "index": 204,
+      "description": "grid_vector_204",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "8174e3e00e1e2d89ec4d4213d0755c74d2a9a40cece29ffc765ed6cf9d4be1de"
+        },
+        "turn": "204000612",
+        "domain": "road_event",
+        "entity_id": "unit:204:route-0",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "47dfe3ca5bf60eecb7f0be5805f7447b979afa21d0e217769332c8a37eaf8e1e",
+      "first_words_hex": [
+        "67442b868a91e737",
+        "8d55d3c53022358d",
+        "55c4509d3b7a4cbb",
+        "294d7f6bc65dc6c0"
+      ]
+    },
+    {
+      "index": 205,
+      "description": "grid_vector_205",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4867144167369483084"
+        },
+        "turn": "205000615",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "dde87e65cf1902a04f6632852672b184fc9d1c9626c2ca032f36895639471d7f",
+      "first_words_hex": [
+        "04014d8042494774",
+        "3d5f05d791d7cb75",
+        "8a93a3ea49f5f642",
+        "64dad81d6b09903e"
+      ]
+    },
+    {
+      "index": 206,
+      "description": "grid_vector_206",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "931585166999479240"
+        },
+        "turn": "206000618",
+        "domain": "cli",
+        "entity_id": "unit:206:route-2",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e7773c9d64f8755e2db0176c7aa169b46d9bb036f546bc11152ee902a63d8540",
+      "first_words_hex": [
+        "9efedf7f539f6d43",
+        "7b9961a25d360e2e",
+        "0a08a3674e314d5a",
+        "56d0995a53123076"
+      ]
+    },
+    {
+      "index": 207,
+      "description": "grid_vector_207",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "21fea51cd910f23a69068b40bffbfaaf2e52a3593b27b96f48f9ba5a53f2cf63"
+        },
+        "turn": "207000621",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:207:route-3",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "22f0a2223d74261e0305192dc0f5ead054489d3e75e792f670d9073bc67afb4e",
+      "first_words_hex": [
+        "450e2f8f80aa0b4b",
+        "6301222d28841da5",
+        "c333787f85dafe38",
+        "1b65c2a471e929ca"
+      ]
+    },
+    {
+      "index": 208,
+      "description": "grid_vector_208",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6939532833740528448"
+        },
+        "turn": "208000624",
+        "domain": "road_event",
+        "entity_id": "unit:208:route-4",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "82ab4f21d130cf6ba5365263faae9b1eed66333534cf8cc6f28a3d73243ce945",
+      "first_words_hex": [
+        "c09f114301f87a8a",
+        "ce20f6477494cfef",
+        "e8b71b11d62bf42e",
+        "e03931a168a36cf3"
+      ]
+    },
+    {
+      "index": 209,
+      "description": "grid_vector_209",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7571652239599019324"
+        },
+        "turn": "209000627",
+        "domain": "market_shock",
+        "entity_id": "unit:209:route-5",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "83814493ac18be9b4286f62ab1309ce4690a6f31c3526db0b8598f9fd87006bb",
+      "first_words_hex": [
+        "0314cbde25cfbb7c",
+        "a382215dd3e35018",
+        "836fb50f7d373df8",
+        "ff83c27ea86592ea"
+      ]
+    },
+    {
+      "index": 210,
+      "description": "grid_vector_210",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "03e1c57a041f259d16e7105258e46bb203bbb49ef8e8fd7bf546d6b1ea96ff01"
+        },
+        "turn": "210000630",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "777b2e24d6f74a5a83f4d416a8095470937e2095e2e2666db479d0f499aeacad",
+      "first_words_hex": [
+        "f622dd02faf9803b",
+        "a64607c2c5751b22",
+        "7d50cf36792eb01c",
+        "e06e3714835cfa6f"
+      ]
+    },
+    {
+      "index": 211,
+      "description": "grid_vector_211",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-299465761140988364"
+        },
+        "turn": "211000633",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:211:route-7",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "029679e2c8502093ca30bd88bd281b61e8a25c1fe926836ab12e8c688f5e3044",
+      "first_words_hex": [
+        "812b7b18827c6826",
+        "d8bdf15067c518ef",
+        "c45090a2d4421c52",
+        "45cb6f4b571e5dde"
+      ]
+    },
+    {
+      "index": 212,
+      "description": "grid_vector_212",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4235024761510992208"
+        },
+        "turn": "212000636",
+        "domain": "road_event",
+        "entity_id": "unit:212:route-8",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "b92aea696304574e7a980353db282b6d5c4596a26d08f367f080f474b28dde61",
+      "first_words_hex": [
+        "7f8bf3870092b1df",
+        "bce55f8aa0ab2cbe",
+        "dcca32e52f644c78",
+        "3e574cc27f564f49"
+      ]
+    },
+    {
+      "index": 213,
+      "description": "grid_vector_213",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "a59dfd0a512aee52747e064deee2c9c7240eb8a71619529fce4d3dc258abb585"
+        },
+        "turn": "213000639",
+        "domain": "market_shock",
+        "entity_id": "unit:213:route-9",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "380392e2308fa2b15f7966da6ece133d876c21f44249f1ebdc1655f06fafc185",
+      "first_words_hex": [
+        "4fb1603c618c1d3c",
+        "0509bbeaf219ef62",
+        "69f9faf7ed964190",
+        "154c8d04ef151178"
+      ]
+    },
+    {
+      "index": 214,
+      "description": "grid_vector_214",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6340601311458551720"
+        },
+        "turn": "214000642",
+        "domain": "cli",
+        "entity_id": "unit:214:route-10",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "03355c65c75da24392c750f16a5c0ed67f74b75bfe3a0874b540927702bd5f1f",
+      "first_words_hex": [
+        "a50b466416d7e849",
+        "588bff0012303ec2",
+        "323e9e010ac9febb",
+        "f8981507831a2cf8"
+      ]
+    },
+    {
+      "index": 215,
+      "description": "grid_vector_215",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "2405042311088547876"
+        },
+        "turn": "215000645",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "5139b158af0aac7aa7f9d6360771e2267f65e561087ce750bc85f77a7b735c24",
+      "first_words_hex": [
+        "e9f684ea4ab520df",
+        "32e488e7c0db916a",
+        "1203ed80878bea16",
+        "0679c1b2db4b4d72"
+      ]
+    },
+    {
+      "index": 216,
+      "description": "grid_vector_216",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "fafae1d97737af5261205afa61750dbf103dc9fad7ae4d9d179a62b3239822cd"
+        },
+        "turn": "216000648",
+        "domain": "road_event",
+        "entity_id": "unit:216:route-12",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "b17d1854f31a6c027f2d9b7d3a79a5bd2fe37a27f5c8fc7f31820b448338be1c",
+      "first_words_hex": [
+        "0f0cda698f5c671e",
+        "32e144f831bba544",
+        "418ad5d50a9f6081",
+        "8d4c1bfc7900b833"
+      ]
+    },
+    {
+      "index": 217,
+      "description": "grid_vector_217",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-5466075689651459812"
+        },
+        "turn": "217000651",
+        "domain": "market_shock",
+        "entity_id": "unit:217:route-13",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e1510bbc705b8376c9052af02e83319105c1a8f0ca948c5b7506d7cfb2ba9554",
+      "first_words_hex": [
+        "0449c7a4e592bf3b",
+        "ea02cfcf3f777bf2",
+        "eb9d81f3cd43a86f",
+        "11fe14b4527c4398"
+      ]
+    },
+    {
+      "index": 218,
+      "description": "grid_vector_218",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "9045109383688087960"
+        },
+        "turn": "218000654",
+        "domain": "cli",
+        "entity_id": "unit:218:route-14",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6e85b4f55754d09d32c8065cc8cf3d076a6ddb9641d4967ce3fc0b828a4209d5",
+      "first_words_hex": [
+        "a53f563eb4725168",
+        "9d180a2524f97287",
+        "2f9f4531a9f9fb1d",
+        "5bace4d5f3d5d216"
+      ]
+    },
+    {
+      "index": 219,
+      "description": "grid_vector_219",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "a0d3b601b05702c19cbd837a4e39b4b83587ff08d802563a65e1d9b74ec2ea0b"
+        },
+        "turn": "219000657",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:219:route-15",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e923e65ff06792766b146089f8deaae20e7f1d72c67b527779106fd3a04729fe",
+      "first_words_hex": [
+        "750d290f2a891bda",
+        "1512e15cbe90fcee",
+        "611d60d91b40bf0b",
+        "5c27a3c41916e24a"
+      ]
+    },
+    {
+      "index": 220,
+      "description": "grid_vector_220",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1173991382948080272"
+        },
+        "turn": "220000660",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "39d6dd745ee320bb5aa208ea55d6c448a715bc3872338ae5abdd8a4907a671fb",
+      "first_words_hex": [
+        "9e19cdcbe54b60a6",
+        "137f4f4e97d4d0d2",
+        "d40ac8d0c9f15918",
+        "32807b312de5f768"
+      ]
+    },
+    {
+      "index": 221,
+      "description": "grid_vector_221",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-2761567617421923572"
+        },
+        "turn": "221000663",
+        "domain": "market_shock",
+        "entity_id": "unit:221:route-0",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "c57e44e77c3190b362eac45d3c9fd1e06a279acc6a4758b15786376302ed7d2d",
+      "first_words_hex": [
+        "eeded7614fc54e69",
+        "d7961bfdcf8aae48",
+        "1a7ef9cb03ed8ebf",
+        "3b21175b653455c6"
+      ]
+    },
+    {
+      "index": 222,
+      "description": "grid_vector_222",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "0178e927f129dda2eac06af3b218cdb1c5bd96ef9af8601f6d618c6a17d30fa3"
+        },
+        "turn": "222000666",
+        "domain": "cli",
+        "entity_id": "unit:222:route-1",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "fc03202488cabe55eb96508ba5601edec24829c408c33a8d18b453748ea5aecc",
+      "first_words_hex": [
+        "26b227b8a94fcb2c",
+        "f2bfa03f25b042b2",
+        "468e060c0b204b8c",
+        "0f7b301e273b0d3c"
+      ]
+    },
+    {
+      "index": 223,
+      "description": "grid_vector_223",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "7814058455547620356"
+        },
+        "turn": "223000669",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:223:route-2",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "074d41c8ec5712c5d251562b726131a77ea8a2eeffee97a9fa052d474d53afd0",
+      "first_words_hex": [
+        "bbacdcaccf4ab7ac",
+        "6c1588ff85ffdbe6",
+        "03c05253483a0176",
+        "217330b22fa925f8"
+      ]
+    },
+    {
+      "index": 224,
+      "description": "grid_vector_224",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "3878499455177616512"
+        },
+        "turn": "224000672",
+        "domain": "road_event",
+        "entity_id": "unit:224:route-3",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "fe9d7e1fd9841757109e8dc39b8617311c7c1628a88e9aedb65aecf15a7808b3",
+      "first_words_hex": [
+        "aa734e86b6d586b4",
+        "85b239938f80c135",
+        "c7f35c320d45e4c0",
+        "9d20b27cf307d4d0"
+      ]
+    },
+    {
+      "index": 225,
+      "description": "grid_vector_225",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "9fe346d158b03bcc6ab2749ec05cdadd8592b045ff3ddc65a935ce58c47dc2b6"
+        },
+        "turn": "225000675",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a62b50942e327644b8a87f402c262f40120e66a77039f3a77d0580598c8200ea",
+      "first_words_hex": [
+        "c0400b83a7be09d3",
+        "647e4ac24222d1ea",
+        "03ef1390ffa31b2a",
+        "55a62593b2b141c8"
+      ]
+    },
+    {
+      "index": 226,
+      "description": "grid_vector_226",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-3992618545562391176"
+        },
+        "turn": "226000678",
+        "domain": "cli",
+        "entity_id": "unit:226:route-5",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "da6c1678b165b4a79e87236aa9a0935ef547e194570b52e569aa515b2e101b4c",
+      "first_words_hex": [
+        "d00e5f7e0abf2589",
+        "0d9a749897854e56",
+        "c7fa32c8d26e2a79",
+        "ffbab2b6169e992a"
+      ]
+    },
+    {
+      "index": 227,
+      "description": "grid_vector_227",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7928177545932395020"
+        },
+        "turn": "227000681",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:227:route-6",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "ae30f1aec366b261e82b4720e9a9d326db61e3659f2f1f4dffb2d4dc3f63e890",
+      "first_words_hex": [
+        "abdfbbf82b8e5215",
+        "897075009f7ce34e",
+        "9c898765eb542416",
+        "b80f272977409ccc"
+      ]
+    },
+    {
+      "index": 228,
+      "description": "grid_vector_228",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "74322f5e78af87222a750022b5d80b1c25fc5656b185dca831e983d830a7070a"
+        },
+        "turn": "228000684",
+        "domain": "road_event",
+        "entity_id": "unit:228:route-7",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "abbec102a175fe644b9365b99907cdf9f08fbb2e1830a8b3920ba4bf06c5090b",
+      "first_words_hex": [
+        "ff23d859afb28c69",
+        "060c2b57ca644920",
+        "547f135e7a499a60",
+        "b8feea8902079743"
+      ]
+    },
+    {
+      "index": 229,
+      "description": "grid_vector_229",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "2647448527037148908"
+        },
+        "turn": "229000687",
+        "domain": "market_shock",
+        "entity_id": "unit:229:route-8",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0d018b869533921ff40f41ce28ddaf8425a9400ba200b3f1d178bff379c9e3c8",
+      "first_words_hex": [
+        "c26ffeab41c88669",
+        "2605c658f5b1f787",
+        "de5f6c1b3b24e48f",
+        "d8501385f6f80fe9"
+      ]
+    },
+    {
+      "index": 230,
+      "description": "grid_vector_230",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1288110473332854936"
+        },
+        "turn": "230000690",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "a5f13fde84df6a1df8e4dad34fb4b9495d201c421fceab5b3245297e3497e50f",
+      "first_words_hex": [
+        "6607c8bdf8ed7666",
+        "13e3aa5d60391058",
+        "478f57d0c96a8dca",
+        "c6170cbd3bed69ca"
+      ]
+    },
+    {
+      "index": 231,
+      "description": "grid_vector_231",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "d932c61fa32c1cd79873395821cab2dc797ef33381a5144ca5c02f748eef1f8a"
+        },
+        "turn": "231000693",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:231:route-10",
+        "roll_index": "3",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "053f46df3e2a711160d8589efbde0a144918f891b549f81344a40ab9da0da00b",
+      "first_words_hex": [
+        "e503683126316434",
+        "706af05be1cf040e",
+        "256a28a11de2791c",
+        "56694016e2b7183d"
+      ]
+    },
+    {
+      "index": 232,
+      "description": "grid_vector_232",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-9159228474072862624"
+        },
+        "turn": "232000696",
+        "domain": "road_event",
+        "entity_id": "unit:232:route-11",
+        "roll_index": "4",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "e443ae9f9119e684cd3cd4c86b1818a7b2a48bfa207cfe8813bd27e657abad4c",
+      "first_words_hex": [
+        "15f528b40d412083",
+        "0059457c0f86eb31",
+        "86d9d5fa99a55112",
+        "3b74134a7b339c31"
+      ]
+    },
+    {
+      "index": 233,
+      "description": "grid_vector_233",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "5351956599266685148"
+        },
+        "turn": "233000699",
+        "domain": "market_shock",
+        "entity_id": "unit:233:route-12",
+        "roll_index": "5",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6f085df918c187d8c41e12b61060f0840d3cfe4d0be3830d9239da87539aad54",
+      "first_words_hex": [
+        "a90ab7cf2d9ac6dc",
+        "2d1ca6bc31d770ad",
+        "489f889feeed3099",
+        "0cf6f5070ca2fd15"
+      ]
+    },
+    {
+      "index": 234,
+      "description": "grid_vector_234",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "21b4b7953169838348d75785cd3dc7e974ca2e3095ad0ffe8fd3e9842daf9a6a"
+        },
+        "turn": "234000702",
+        "domain": "cli",
+        "entity_id": "unit:234:route-13",
+        "roll_index": "6",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "daf21fe8c538a2c34aeafebbd22770b3b0580e5e4222d45710d5e867ddcf980d",
+      "first_words_hex": [
+        "cfd63ac64f5dcc67",
+        "a869260d22ba74f5",
+        "a0849ab3b77db2b4",
+        "83f54b37b4922d5b"
+      ]
+    },
+    {
+      "index": 235,
+      "description": "grid_vector_235",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-2519161401473322540"
+        },
+        "turn": "235000705",
+        "domain": "encounter.tier_2",
+        "entity_id": "",
+        "roll_index": "7",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "36d1c031110c9168f513f5ebb3df4f39236421d12cac5edb1ded25007baf00eb",
+      "first_words_hex": [
+        "7ed830b8c4f7cb3e",
+        "af2751a0a09d4a88",
+        "3998f38575732891",
+        "6c81fe77a9cab09c"
+      ]
+    },
+    {
+      "index": 236,
+      "description": "grid_vector_236",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-6454720401843326384"
+        },
+        "turn": "236000708",
+        "domain": "road_event",
+        "entity_id": "unit:236:route-15",
+        "roll_index": "8",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "29a4efb817e701c1022961ebd3ecadffa24265b16f37f459f8f0ed57fb130531",
+      "first_words_hex": [
+        "63e17fab8c9c04a9",
+        "bb99da999d8d9143",
+        "b0254e9816275832",
+        "9b198ea3e8a7e018"
+      ]
+    },
+    {
+      "index": 237,
+      "description": "grid_vector_237",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "2e2e1d7234d4ec9c1772279e52d724d87dcaac7ebb671f550e9846359f1fdcf2"
+        },
+        "turn": "237000711",
+        "domain": "market_shock",
+        "entity_id": "unit:237:route-16",
+        "roll_index": "9",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "5c1dbcb6af38ec90576f623fe8afc7a4a7cfb92aebd1e2958aa3b014a8ecd142",
+      "first_words_hex": [
+        "d77ce2ba6e8ba3ee",
+        "1b99c14249782dd7",
+        "81147b2c06129c6e",
+        "40b904dc3b384c90"
+      ]
+    },
+    {
+      "index": 238,
+      "description": "grid_vector_238",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "4120905671126217544"
+        },
+        "turn": "238000714",
+        "domain": "cli",
+        "entity_id": "unit:238:route-0",
+        "roll_index": "10",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "79e7e1a3dbc975280f7e32a169accd31488aca61b57165cb8d6654b830985d86",
+      "first_words_hex": [
+        "764f993dcbc46635",
+        "a45f2ea40889c4e2",
+        "901659afaae76bb4",
+        "a1dd2fc5b1f7d150"
+      ]
+    },
+    {
+      "index": 239,
+      "description": "grid_vector_239",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "185346670756213700"
+        },
+        "turn": "239000717",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:239:route-1",
+        "roll_index": "11",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "38b38b6cc5b48e72166ffa6729f5fa0dc2c27533eacd40b705aeae4a3b7c857b",
+      "first_words_hex": [
+        "6cd5ccc6501aa7f6",
+        "c31a2c4d0b6327ea",
+        "3c413d10daee518d",
+        "08de8b02f0da6fae"
+      ]
+    },
+    {
+      "index": 240,
+      "description": "grid_vector_240",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "dcce2573394ae5bb45c04df1789371c5edefbdd8b8baa148a2088de6f9a5fd2a"
+        },
+        "turn": "240000720",
+        "domain": "road_event",
+        "entity_id": "",
+        "roll_index": "12",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "885f908c73c76f05ad2dec6f74415cc6b917ee581765917835690377f4a47683",
+      "first_words_hex": [
+        "edc4db45bf02893a",
+        "a3583582a21fb0d9",
+        "0c47a9b1fc5f4f58",
+        "8ec93de692fa7b35"
+      ]
+    },
+    {
+      "index": 241,
+      "description": "grid_vector_241",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-7685771329983793988"
+        },
+        "turn": "241000723",
+        "domain": "market_shock",
+        "entity_id": "unit:241:route-3",
+        "roll_index": "13",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "0d68280a5794d971f18c62a10618168545880a8f07dfe4ab3ab2ddf1fcf7dbbc",
+      "first_words_hex": [
+        "44995d67db74dda3",
+        "4e88e25dd16a1ddf",
+        "b6300beb0b574a61",
+        "fc3e21c8ec4f66d0"
+      ]
+    },
+    {
+      "index": 242,
+      "description": "grid_vector_242",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "6825413743355753784"
+        },
+        "turn": "242000726",
+        "domain": "cli",
+        "entity_id": "unit:242:route-4",
+        "roll_index": "14",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "929d4ad7755b00117132fb4de5e474db9e9efd0297d494eb4809023fcef998c5",
+      "first_words_hex": [
+        "c9b76ee8548c332d",
+        "1e83d1ba83d40b1f",
+        "3a7857b11dc85cbc",
+        "97f1546d873c401d"
+      ]
+    },
+    {
+      "index": 243,
+      "description": "grid_vector_243",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "d7a0d2979d8843cd17a287839799644ed9d79a2827641067892c982281de7987"
+        },
+        "turn": "243000729",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:243:route-5",
+        "roll_index": "15",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "4fc51097bd853e197009fca067635bcf4a5fed5ac70b0f2524ce72290ec94986",
+      "first_words_hex": [
+        "bda0c7d454b4881d",
+        "866373c4b9b7e7df",
+        "7c4e3a45d593a4da",
+        "3b82706ab0603633"
+      ]
+    },
+    {
+      "index": 244,
+      "description": "grid_vector_244",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-1045704257384253904"
+        },
+        "turn": "244000732",
+        "domain": "road_event",
+        "entity_id": "unit:244:route-6",
+        "roll_index": "16",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "6ca360ebf6fb2b5fc78c3b009a3f663bc832da5da80740651702aea265647c04",
+      "first_words_hex": [
+        "aecb4263872a3bc0",
+        "3409ab5b85e6e24c",
+        "f0e953bb0a53d181",
+        "b9211b0d4396128f"
+      ]
+    },
+    {
+      "index": 245,
+      "description": "grid_vector_245",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "-4981263257754257748"
+        },
+        "turn": "245000735",
+        "domain": "market_shock",
+        "entity_id": "",
+        "roll_index": "17",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "565489e044e94a825341e487d1412898444de709dfc6f58d4dfd15c9d6b9a826",
+      "first_words_hex": [
+        "bfba4f564c096c4f",
+        "9634cd31ba485efc",
+        "c941eee6ae1c65c0",
+        "f322142927c62acc"
+      ]
+    },
+    {
+      "index": 246,
+      "description": "grid_vector_246",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "f2f2fd02c2893b16a2ed03e6f90fcb0d1ce0d2293098e47c388d4052beb28587"
+        },
+        "turn": "246000738",
+        "domain": "cli",
+        "entity_id": "unit:246:route-8",
+        "roll_index": "18",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "1a05e33fd869181aab2f78564b99d3a360373cc7c038f8d547c1355c3088eed1",
+      "first_words_hex": [
+        "9e134427ae951462",
+        "788b61ba0c401cf1",
+        "a44e1c4a982d194f",
+        "350a001dcb32222c"
+      ]
+    },
+    {
+      "index": 247,
+      "description": "grid_vector_247",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "5594362815215286180"
+        },
+        "turn": "247000741",
+        "domain": "encounter.tier_2",
+        "entity_id": "unit:247:route-9",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "961d7fc6bec869bfab0acce24be773d145459023d8dbd05d801e481f914d99e5",
+      "first_words_hex": [
+        "df86088f309ec6ae",
+        "d133b528228099d0",
+        "aa3e47a795a3307f",
+        "0d86927444ab2d0c"
+      ]
+    },
+    {
+      "index": 248,
+      "description": "grid_vector_248",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1658803814845282336"
+        },
+        "turn": "248000744",
+        "domain": "road_event",
+        "entity_id": "unit:248:route-10",
+        "roll_index": "1",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "40edb74d07b619d6fea574f2cdc53459b6cfa0a1846d8817bb6a93f11418bd02",
+      "first_words_hex": [
+        "8a7d867312b0afde",
+        "b8ef006fdb81ef94",
+        "37a8aee573e32f4d",
+        "cc84d2a91fb1f040"
+      ]
+    },
+    {
+      "index": 249,
+      "description": "grid_vector_249",
+      "address": {
+        "campaign_seed": {
+          "kind": "bytes32",
+          "value": "70ad27f2f22a94f54ffce49f7b7ebd25e0f0fbce963e7396c702489e91d9ade1"
+        },
+        "turn": "249000747",
+        "domain": "market_shock",
+        "entity_id": "unit:249:route-11",
+        "roll_index": "2",
+        "rules_version": "roll.v3"
+      },
+      "derived_key_hex": "f0e2fd95398cd5e269800b42fcf61c9e7cc9c13ce70703ec99adbf001b44c989",
+      "first_words_hex": [
+        "97766afe54cdac70",
+        "7e07954f77827e55",
+        "d95cd03b128581f7",
+        "cced70a05c2387c0"
+      ]
+    }
+  ],
+  "invalid_addresses": [
+    {
+      "description": "empty domain rejected",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "expected_field": "domain"
+    },
+    {
+      "description": "domain over 128 bytes rejected",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "expected_field": "domain"
+    },
+    {
+      "description": "domain containing ASCII space rejected",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "road event",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "expected_field": "domain"
+    },
+    {
+      "description": "entity_id containing ESC control byte rejected",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "road",
+        "entity_id": "bad\u001bname",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "expected_field": "entity_id"
+    },
+    {
+      "description": "entity_id over 256 bytes rejected",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "road",
+        "entity_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "roll_index": "0",
+        "rules_version": "roll.v3"
+      },
+      "expected_field": "entity_id"
+    },
+    {
+      "description": "empty rules_version rejected",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": ""
+      },
+      "expected_field": "rules_version"
+    },
+    {
+      "description": "rules_version over 64 bytes rejected",
+      "address": {
+        "campaign_seed": {
+          "kind": "int64",
+          "value": "1"
+        },
+        "turn": "0",
+        "domain": "cli",
+        "entity_id": "",
+        "roll_index": "0",
+        "rules_version": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+      },
+      "expected_field": "rules_version"
+    }
+  ],
+  "lemire_stream_vectors": [
+    {
+      "span": "1",
+      "seed_int64": "-500",
+      "sampled": "0",
+      "raw_draws_hex": [
+        "27595fa9c36d6166"
+      ]
+    },
+    {
+      "span": "2",
+      "seed_int64": "837",
+      "sampled": "0",
+      "raw_draws_hex": [
+        "4cd5138f7b9682e6"
+      ]
+    },
+    {
+      "span": "3",
+      "seed_int64": "2174",
+      "sampled": "0",
+      "raw_draws_hex": [
+        "37b8fcd902efed03"
+      ]
+    },
+    {
+      "span": "6",
+      "seed_int64": "3511",
+      "sampled": "2",
+      "raw_draws_hex": [
+        "62d3158270d976f4"
+      ]
+    },
+    {
+      "span": "20",
+      "seed_int64": "4848",
+      "sampled": "17",
+      "raw_draws_hex": [
+        "db2061d7c2ef68e4"
+      ]
+    },
+    {
+      "span": "100",
+      "seed_int64": "6185",
+      "sampled": "75",
+      "raw_draws_hex": [
+        "c20bcff7975ad943"
+      ]
+    },
+    {
+      "span": "4294967296",
+      "seed_int64": "7522",
+      "sampled": "617605417",
+      "raw_draws_hex": [
+        "24cfe929b886100e"
+      ]
+    },
+    {
+      "span": "9007199254740999",
+      "seed_int64": "8859",
+      "sampled": "3071804462650242",
+      "raw_draws_hex": [
+        "574e51ae869c0041"
+      ]
+    },
+    {
+      "span": "13835058055282163712",
+      "seed_int64": "10196",
+      "sampled": "4846012826217760161",
+      "raw_draws_hex": [
+        "59ab53fca4edb22d"
+      ]
+    },
+    {
+      "span": "18446744073709551615",
+      "seed_int64": "11533",
+      "sampled": "3496470482175977365",
+      "raw_draws_hex": [
+        "3085f560e1bce796"
+      ]
+    }
+  ],
+  "lemire_tape_vectors": [
+    {
+      "description": "slow_path_rejection_span_3",
+      "span": "3",
+      "threshold": "1",
+      "tape_hex": [
+        "0000000000000000",
+        "53f955076a9af498"
+      ],
+      "expected_sampled": "0",
+      "expected_consumed": 2
+    },
+    {
+      "description": "slow_path_rejection_span_6",
+      "span": "6",
+      "threshold": "4",
+      "tape_hex": [
+        "0000000000000000",
+        "2aaaaaaaaaaaaaab",
+        "53f955076a9af49d"
+      ],
+      "expected_sampled": "1",
+      "expected_consumed": 3
+    },
+    {
+      "description": "slow_path_rejection_span_20",
+      "span": "20",
+      "threshold": "16",
+      "tape_hex": [
+        "0000000000000000",
+        "0ccccccccccccccd",
+        "53f955076a9af48f"
+      ],
+      "expected_sampled": "6",
+      "expected_consumed": 3
+    },
+    {
+      "description": "slow_path_rejection_span_100",
+      "span": "100",
+      "threshold": "16",
+      "tape_hex": [
+        "0000000000000000",
+        "53f955076a9af4ff"
+      ],
+      "expected_sampled": "32",
+      "expected_consumed": 2
+    },
+    {
+      "description": "slow_path_rejection_span_9007199254740999",
+      "span": "9007199254740999",
+      "threshold": "9007199254726663",
+      "tape_hex": [
+        "0000000000000000",
+        "0000000000000800",
+        "53d955076a9af49c"
+      ],
+      "expected_sampled": "2950172785857376",
+      "expected_consumed": 3
+    },
+    {
+      "description": "slow_path_rejection_span_13835058055282163712",
+      "span": "13835058055282163712",
+      "threshold": "4611686018427387904",
+      "tape_hex": [
+        "0000000000000000",
+        "0000000000000004",
+        "93f955076a9af49b"
+      ],
+      "expected_sampled": "7996985312338524020",
+      "expected_consumed": 3
+    },
+    {
+      "description": "slow_path_rejection_span_18446744073709551614",
+      "span": "18446744073709551614",
+      "threshold": "2",
+      "tape_hex": [
+        "0000000000000000",
+        "ac06aaf895650b65"
+      ],
+      "expected_sampled": "12395783009018907491",
+      "expected_consumed": 2
+    },
+    {
+      "description": "slow_path_rejection_span_18446744073709551615",
+      "span": "18446744073709551615",
+      "threshold": "1",
+      "tape_hex": [
+        "0000000000000000",
+        "000000000000002a"
+      ],
+      "expected_sampled": "41",
+      "expected_consumed": 2
+    },
+    {
+      "description": "slow_branch_exact_threshold_accept_span_6",
+      "span": "6",
+      "threshold": "4",
+      "tape_hex": [
+        "5555555555555556"
+      ],
+      "expected_sampled": "2",
+      "expected_consumed": 1
+    },
+    {
+      "description": "span_1_zero_draw_single_step",
+      "span": "1",
+      "threshold": "0",
+      "tape_hex": [
+        "0000000000000000"
+      ],
+      "expected_sampled": "0",
+      "expected_consumed": 1
+    }
+  ]
+}
