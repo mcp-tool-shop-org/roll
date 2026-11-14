@@ -137,6 +137,9 @@ pub enum RollError {
         total_dice: u64,
         max: u64,
     },
+    DrawBudgetExceeded {
+        limit: u32,
+    },
     InvalidClampBounds {
         min: i64,
         max: i64,
@@ -177,6 +180,10 @@ impl fmt::Display for RollError {
             Self::DiceBudgetExceeded { total_dice, max } => write!(
                 f,
                 "total dice count {total_dice} exceeds expression budget of {max}"
+            ),
+            Self::DrawBudgetExceeded { limit } => write!(
+                f,
+                "evaluation exceeded maximum draw budget of {limit} RNG draws"
             ),
             Self::InvalidClampBounds {
                 min,

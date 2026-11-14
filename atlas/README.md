@@ -1,19 +1,18 @@
 # roll: how it works
 
-Mapped at 2026-11-14 from commit f5002bc by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit 2742ebb by Atlas 1.26.0.
 
 ## What this is
 
-8 parts, mostly TypeScript (58 files), Rust (22), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
+8 parts, mostly TypeScript (58 files), Rust (23), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
 
-## What changed since 2026-11-14 (caeb56c)
+## What changed since 2026-11-14 (f5002bc)
 
-- fixtures/conformance/v3/04_exact_analysis.json is now read by crates/roll-cli/tests/cli_fixtures.rs.
-- 5 files added and 14 changed content, across 4 parts.
+Nothing structural changed since 2026-11-14; 1 file added and 26 changed content.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 15 paths; or by hand. Runs crates/roll-cli/src/main.rs, src/bin.ts, crates/roll-cli/tests/ and 34 more; builds src/; checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
+1. **CI.** On a pull request; on a push touching 15 paths; or by hand. Runs crates/roll-cli/src/main.rs, src/bin.ts, crates/roll-cli/tests/ and 35 more; builds src/; checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
 2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs tests/; builds src/.
 3. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 4. **roll** (a command built from crates/roll-cli, which nothing ships, from crates/roll-cli/Cargo.toml). Runs crates/roll-cli/src/main.rs.
@@ -56,10 +55,10 @@ CI writes nothing this map can see.
 
 ## What tends to change together
 
-- **src/bridge/handler.ts** and **src/mcp/server.ts** changed together in 6 of 6 commits, inside the src part.
-- **src/bin.ts** and **src/bridge/handler.ts** changed together in 6 of 7 commits, inside the src part.
-- **src/bin.ts** and **src/mcp/server.ts** changed together in 6 of 7 commits, inside the src part.
-- **src/bin.ts** and **src/display/format.ts** changed together in 5 of 7 commits, inside the src part.
+- **src/bin.ts** and **src/mcp/server.ts** changed together in 7 of 8 commits, inside the src part.
+- **src/bridge/handler.ts** and **src/mcp/server.ts** changed together in 6 of 7 commits, inside the src part.
+- **src/bin.ts** and **src/bridge/handler.ts** changed together in 6 of 8 commits, inside the src part.
+- **src/bin.ts** and **src/display/format.ts** changed together in 5 of 8 commits, inside the src part.
 - **src/bridge/handler.ts** and **src/display/format.ts** changed together in 4 of 7 commits, inside the src part.
 
 Confidence is low: fewer than 25 source files reach 10 revisions in the window.

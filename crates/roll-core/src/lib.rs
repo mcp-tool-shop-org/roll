@@ -33,12 +33,14 @@ pub use analyze::{
 pub use ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
     ExplosionVariant, Expr, KeepDropOp, MAX_DICE_PER_GROUP, MAX_DIE_SIDES, MAX_EXPLOSIONS,
-    MAX_EXPRESSION_BYTES, MAX_REROLLS, MAX_TOTAL_DICE_PER_EXPR, ResultMode, SortOrder,
+    MAX_EXPRESSION_BYTES, MAX_REROLLS, MAX_TOTAL_DICE_PER_EXPR, MAX_TOTAL_DRAWS, ResultMode,
+    SortOrder,
 };
 pub use canonical_json::{cmp_utf16_code_units, to_canonical_json};
 pub use error::{ReceiptVerifyError, RollError};
 pub use eval::{
     CritKind, DieTrace, ExpressionOutcome, GroupOutcome, checked_div_floor, evaluate_with_rng,
+    evaluate_with_tape,
 };
 pub use parser::parse;
 pub use receipt::{

@@ -1557,6 +1557,10 @@ impl DrawSource for StreamDrawSource {
 
 /// Estimates the distribution of `expr` via `samples` trials on the continuous
 /// `ChaCha12Rng::from_seed(*MONTE_CARLO_DEFAULT_SEED)` stream (`§5.3`).
+///
+/// Any evaluation error on a trial (including [`RollError::DrawBudgetExceeded`],
+/// [`RollError::DivisionByZero`], or [`RollError::ArithmeticOverflow`]) aborts immediately
+/// on that sample and is surfaced directly to the caller without retrying remaining samples.
 pub fn monte_carlo_distribution(expr: &Expr, samples: u32) -> Result<Distribution, RollError> {
     let mut source = StreamDrawSource {
         rng: ChaCha12Rng::from_seed(*MONTE_CARLO_DEFAULT_SEED),
@@ -1591,46 +1595,28 @@ pub fn lemire_witness_word(span: NonZeroU64, k: u64) -> u64 {
 struct OracleTapeSource<'a> {
     words: &'a [u64],
     cursor: usize,
+    last_span: Option<NonZeroU64>,
     exhausted_span: Option<NonZeroU64>,
 }
 
 impl DrawSource for OracleTapeSource<'_> {
+    #[inline]
+    fn on_sample_span(&mut self, span: NonZeroU64) {
+        self.last_span = Some(span);
+    }
+
     fn next_u64_word(&mut self) -> Result<u64, RollError> {
         if let Some(&word) = self.words.get(self.cursor) {
             self.cursor += 1;
             Ok(word)
         } else {
+            self.exhausted_span = self.last_span;
             Err(RollError::ReceiptInvalid(
                 ReceiptVerifyError::DrawTapeUnderflow {
                     needed_at_index: self.cursor,
                 },
             ))
         }
-    }
-
-    fn sample_lemire_u64(&mut self, span: NonZeroU64) -> Result<u64, RollError> {
-        if self.cursor >= self.words.len() {
-            self.exhausted_span = Some(span);
-            return Err(RollError::ReceiptInvalid(
-                ReceiptVerifyError::DrawTapeUnderflow {
-                    needed_at_index: self.cursor,
-                },
-            ));
-        }
-        // Execute the exact `DrawSource::sample_lemire_u64` integer multiplication-rejection math.
-        let s = span.get();
-        let x = self.next_u64_word()?;
-        let mut m = u128::from(x) * u128::from(s);
-        let mut low = m as u64;
-        if low < s {
-            let threshold = s.wrapping_neg() % s;
-            while low < threshold {
-                let x_retry = self.next_u64_word()?;
-                m = u128::from(x_retry) * u128::from(s);
-                low = m as u64;
-            }
-        }
-        Ok((m >> 64) as u64)
     }
 }
 
@@ -1663,6 +1649,7 @@ pub fn run_prefix_tape_oracle(
             let mut src = OracleTapeSource {
                 words: &st.tape,
                 cursor: 0,
+                last_span: None,
                 exhausted_span: None,
             };
             match evaluate_with_source(expr, &mut src) {

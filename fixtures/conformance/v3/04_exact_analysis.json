@@ -6927,6 +6927,11 @@
       "description": "i64::MIN / -1 floor division overflow in analyzer (-9223372036854775808)/-1",
       "expression": "(-9223372036854775808)/-1",
       "expected_error_kind": "arithmetic_overflow"
+    },
+    {
+      "description": "Monte Carlo draw budget exceeded surfaces on first sample without 100k retries",
+      "expression": "1000d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1!kh1",
+      "expected_error_kind": "draw_budget_exceeded"
     }
   ]
 }

@@ -181,7 +181,11 @@ pub fn derive_roll_key(addr: &RollAddress) -> Result<[u8; 32], RollError> {
 pub(crate) trait DrawSource {
     fn next_u64_word(&mut self) -> Result<u64, RollError>;
 
+    #[inline]
+    fn on_sample_span(&mut self, _span: NonZeroU64) {}
+
     fn sample_lemire_u64(&mut self, span: NonZeroU64) -> Result<u64, RollError> {
+        self.on_sample_span(span);
         let s: u64 = span.get();
         let x: u64 = self.next_u64_word()?;
         let mut m: u128 = u128::from(x) * u128::from(s);

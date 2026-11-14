@@ -4,10 +4,10 @@ use core::num::NonZeroU64;
 
 use crate::ast::{
     BinaryOp, ComparePoint, DiceSides, DiceSpec, ExplosionVariant, Expr, KeepDropOp,
-    MAX_EXPLOSIONS, MAX_REROLLS, ResultMode,
+    MAX_EXPLOSIONS, MAX_REROLLS, MAX_TOTAL_DRAWS, ResultMode,
 };
 use crate::error::RollError;
-use crate::rng::{DrawSource, RollRng};
+use crate::rng::{DrawSource, RollRng, TapeSource};
 
 /// Natural / pool critical marker recorded on a kept die.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -81,8 +81,54 @@ pub(crate) fn pool_die_delta(value: i64, cs: &[ComparePoint], cf: &[ComparePoint
 }
 
 /// Evaluates `expr` against a mutable [`RollRng`], recording all `u64` draws in `rng`.
+///
+/// Enforces [`MAX_TOTAL_DRAWS`] across the entire expression evaluation (all dice groups
+/// combined), checking the budget before taking each draw and before pushing to any trace.
 pub fn evaluate_with_rng(expr: &Expr, rng: &mut RollRng) -> Result<ExpressionOutcome, RollError> {
     evaluate_with_source(expr, rng)
+}
+
+/// Evaluates `expr` deterministically against a caller-supplied slice of raw `u64` draw words.
+///
+/// Returns `Ok((outcome, words_consumed))`, [`RollError::DrawBudgetExceeded`] if the evaluation
+/// requests more than [`MAX_TOTAL_DRAWS`] draws, or `RollError::ReceiptInvalid(DrawTapeUnderflow)`
+/// if `tape` ends before evaluation finishes.
+pub fn evaluate_with_tape(
+    expr: &Expr,
+    tape: &[u64],
+) -> Result<(ExpressionOutcome, usize), RollError> {
+    let mut source = TapeSource::new(tape);
+    let outcome = evaluate_with_source(expr, &mut source)?;
+    Ok((outcome, source.cursor()))
+}
+
+/// Evaluation-wide RNG draw counter wrapping any [`DrawSource`].
+///
+/// Shared across every dice group in a single expression evaluation and checked strictly
+/// **before** `inner.next_u64_word()` is called so neither `RollRng` draw logs nor `DieTrace`
+/// vectors can ever grow past [`MAX_TOTAL_DRAWS`].
+struct BudgetedSource<'a, S: DrawSource + ?Sized> {
+    inner: &'a mut S,
+    draws: u32,
+}
+
+impl<S: DrawSource + ?Sized> DrawSource for BudgetedSource<'_, S> {
+    #[inline]
+    fn on_sample_span(&mut self, span: NonZeroU64) {
+        self.inner.on_sample_span(span);
+    }
+
+    #[inline]
+    fn next_u64_word(&mut self) -> Result<u64, RollError> {
+        if self.draws >= MAX_TOTAL_DRAWS {
+            return Err(RollError::DrawBudgetExceeded {
+                limit: MAX_TOTAL_DRAWS,
+            });
+        }
+        let word = self.inner.next_u64_word()?;
+        self.draws += 1;
+        Ok(word)
+    }
 }
 
 pub(crate) struct EvalScratch {
@@ -102,9 +148,22 @@ impl EvalScratch {
 /// Allocation-reusing total evaluator used by Monte Carlo sampling (`§5.3`).
 ///
 /// Consumes the exact same `DrawSource` sequence and executes the exact same
-/// stages, caps, and checked `i64` arithmetic as [`evaluate_with_source`],
-/// without formatting per-trial canonical strings or `DieTrace` histories.
+/// stages, caps, evaluation-wide [`MAX_TOTAL_DRAWS`] budget, and checked `i64`
+/// arithmetic as [`evaluate_with_source`], without formatting per-trial canonical
+/// strings or `DieTrace` histories.
 pub(crate) fn evaluate_total_with_source<S: DrawSource>(
+    expr: &Expr,
+    source: &mut S,
+    scratch: &mut EvalScratch,
+) -> Result<i64, RollError> {
+    let mut budgeted = BudgetedSource {
+        inner: source,
+        draws: 0,
+    };
+    walk_total_expr(expr, &mut budgeted, scratch)
+}
+
+fn walk_total_expr<S: DrawSource>(
     expr: &Expr,
     source: &mut S,
     scratch: &mut EvalScratch,
@@ -113,12 +172,12 @@ pub(crate) fn evaluate_total_with_source<S: DrawSource>(
         Expr::Number(v) => Ok(*v),
         Expr::Dice(spec) => roll_dice_group_total(spec, source, scratch),
         Expr::UnaryNeg(operand) => {
-            let val = evaluate_total_with_source(operand, source, scratch)?;
+            let val = walk_total_expr(operand, source, scratch)?;
             val.checked_neg().ok_or(RollError::ArithmeticOverflow)
         }
         Expr::Binary { op, left, right } => {
-            let lhs = evaluate_total_with_source(left, source, scratch)?;
-            let rhs = evaluate_total_with_source(right, source, scratch)?;
+            let lhs = walk_total_expr(left, source, scratch)?;
+            let rhs = walk_total_expr(right, source, scratch)?;
             match op {
                 BinaryOp::Add => lhs.checked_add(rhs).ok_or(RollError::ArithmeticOverflow),
                 BinaryOp::Sub => lhs.checked_sub(rhs).ok_or(RollError::ArithmeticOverflow),
@@ -133,8 +192,12 @@ pub(crate) fn evaluate_with_source<S: DrawSource>(
     expr: &Expr,
     source: &mut S,
 ) -> Result<ExpressionOutcome, RollError> {
+    let mut budgeted = BudgetedSource {
+        inner: source,
+        draws: 0,
+    };
     let mut groups = Vec::new();
-    let total = walk_expr(expr, source, &mut groups)?;
+    let total = walk_expr(expr, &mut budgeted, &mut groups)?;
     Ok(ExpressionOutcome {
         canonical_expression: expr.to_canonical_string(),
         total,
