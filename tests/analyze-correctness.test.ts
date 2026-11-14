@@ -1,10 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { parse } from "../src/parser/parser.js";
-import { computeDistribution, type Distribution } from "../src/analyze/distribution.js";
+import { parse, ParseError } from "../src/parser/parser.js";
+import type { DiceNode } from "../src/parser/ast.js";
+import {
+  computeDistribution,
+  computeDistributionWithMethod,
+  type Distribution,
+} from "../src/analyze/distribution.js";
 import { computeStats } from "../src/analyze/stats.js";
 import { monteCarloDistribution } from "../src/analyze/montecarlo.js";
 import { evaluate } from "../src/engine/roller.js";
-import { seededRng } from "../src/engine/random.js";
+import { runPipeline } from "../src/engine/pipeline.js";
+import { seededRng, type RngFn } from "../src/engine/random.js";
+import { roll, analyze as analyzePublic } from "../src/index.js";
 
 // Correctness tests for the exact/Monte-Carlo probability analyzer. Every bug
 // here is a SILENT-WRONG-PROBABILITY bug: the "exact" analyzer disagrees with
@@ -292,3 +299,422 @@ describe("F-AT-006 percentile/median robust to truncated mass", () => {
     expect(stats.percentiles[50]).toBe(7);
   });
 });
+
+// ─── Combined modifiers + divide-by-zero oracle & parity tests ────────────────
+//
+// Independent brute-force oracle: enumerates die outcomes directly through
+// `runPipeline` in `src/engine/pipeline.ts` (never touching `distribution.ts`).
+//
+// For a single die (or N dice without explosion/reroll):
+//   We drive `runPipeline` with a deterministic tape RNG that yields each face
+//   sequence `(f_1, f_2, ...)` in `{1..s}^L`, weighted by `(1/s)^L`.
+//
+// When a die node has no keep/drop, the N dice in `NdM` are independent and
+// identically distributed through stages 1–4 and stage 8 (`runPipeline`
+// processes each initial die's reroll, min/max, and explosion chain
+// independently before summing kept dice). For finite-tape single-die
+// enumeration (used for `ro` + `!` or non-exploding dice) or exact Markov
+// transition enumeration derived by probing `runPipeline` on 1-die tapes (for
+// unlimited `r` + `!`), the oracle computes the exact single-die distribution
+// to explosion depth D = 10 (`leftover probability <= (p_explode)^11`; for d6
+// exploding on 6, `(1/6)^11 ≈ 2.76e-9` per die, `<= 5.52e-9` for 2 dice) and
+// combines N independent dice by direct Cartesian sum over single-die support.
+
+/**
+ * Independent brute-force oracle for a `DiceNode` using ONLY `runPipeline` from
+ * `src/engine/pipeline.ts`. Never calls any helper in `distribution.ts`.
+ *
+ * Strategy:
+ * 1. If the expression uses only bounded-draw modifiers per die (`min`/`max`,
+ *    `ro`, `kh`/`kl`/`dh`/`dl`, `cs`/`cf`) with at most `L` RNG draws total
+ *    where `s^L <= 250_000`, enumerate every possible RNG draw sequence of
+ *    length `L` directly through `runPipeline(node.count, node.sides, ...)`.
+ * 2. For exploding dice (or unlimited reroll `r`), each initial die is
+ *    processed independently by `runPipeline`:
+ *      - Stage 2 (`stageReroll`): probe `runPipeline(1, sides, rerollOnlyMods)`
+ *        over all 1-step and 2-step face tapes to obtain the exact post-reroll
+ *        face distribution (solving the geometric series `p / (1 - p_reroll)`
+ *        for unlimited `r` directly from which faces `stageReroll` replaces).
+ *      - Stage 3 (`stageMinMax`): pass each post-reroll face through
+ *        `runPipeline(1, sides, minMaxOnlyMods)` to obtain the exact
+ *        post-min/max face distribution.
+ *      - Stage 4 (`stageExplode`): for each post-min/max initial face `f_0`,
+ *        enumerate explosion chains up to depth `maxExplosionDepth` (default 10,
+ *        matching the analyzer's depth cap; leftover mass `(1/s)^(depth+1)` is
+ *        <= `6^-11 ≈ 2.76e-9` for d6!) by running `runPipeline(1, sides,
+ *        explodeAndCountMods)` on the tape `[f_0, e_1, ..., e_d]`.
+ *    Then combine `node.count` independent dice by direct nested-loop sum.
+ */
+function oracleDistributionFromPipeline(
+  expr: string,
+  maxExplosionDepth = 10,
+): Distribution {
+  const ast = parse(expr);
+  if (ast.type !== "dice") {
+    throw new Error(`Oracle expects a single dice node, got ${ast.type}`);
+  }
+  const node: DiceNode = ast;
+  if (node.sides === "F" || node.sides === "%") {
+    throw new Error("Oracle only supports numeric small dice (d2-d6)");
+  }
+  const s = node.sides;
+  const resultMode = node.resultMode ?? "sum";
+
+  const hasKeepDrop = node.modifiers.some(
+    (m) => m.kind === "kh" || m.kind === "kl" || m.kind === "dh" || m.kind === "dl",
+  );
+  const hasExplosion = node.modifiers.some(
+    (m) => m.kind === "explode" || m.kind === "compound" || m.kind === "penetrate",
+  );
+  const hasUnlimitedReroll = node.modifiers.some((m) => m.kind === "reroll");
+  const rerollOnceCount = node.modifiers.filter((m) => m.kind === "reroll_once").length;
+
+  // Helper: create a deterministic tape RNG that feeds `tape` into runPipeline
+  // and records how many draws were consumed.
+  function runWithTape(
+    count: number,
+    mods: DiceNode["modifiers"],
+    tape: number[],
+    mode: "sum" | "success_count" = resultMode,
+  ): { total: number; consumed: number; firstDieValue: number } {
+    let idx = 0;
+    const rng: RngFn = (_min: number, _max: number): number => {
+      const val = tape[idx];
+      if (val === undefined) {
+        throw new Error(`Oracle tape exhausted at index ${idx} (length ${tape.length})`);
+      }
+      idx++;
+      return val;
+    };
+    const res = runPipeline(count, s, mods, rng, mode);
+    return {
+      total: res.total,
+      consumed: idx,
+      firstDieValue: res.dice[0]?.value ?? 0,
+    };
+  }
+
+  // Case A: Keep/drop without explosion or unlimited reroll — enumerate full
+  // N-die RNG tapes directly through `runPipeline(node.count, ...)`.
+  if (hasKeepDrop && !hasExplosion && !hasUnlimitedReroll) {
+    const maxDraws = node.count * (1 + rerollOnceCount);
+    const dist: Distribution = new Map();
+    const tape = new Array<number>(maxDraws).fill(1);
+    const totalTapes = Math.pow(s, maxDraws);
+    const tapeProb = 1 / totalTapes;
+
+    function enumFullTapes(pos: number): void {
+      if (pos === maxDraws) {
+        const { total } = runWithTape(node.count, node.modifiers, tape);
+        dist.set(total, (dist.get(total) ?? 0) + tapeProb);
+        return;
+      }
+      for (let f = 1; f <= s; f++) {
+        tape[pos] = f;
+        enumFullTapes(pos + 1);
+      }
+    }
+    enumFullTapes(0);
+    return dist;
+  }
+
+  // Case B: Per-die independent pipeline stages (Stages 1 -> 2 -> 3 -> 4 -> 8)
+  // probed directly via `runPipeline(1, ...)`.
+  //
+  // Stage 1: initial roll distribution on {1..s}.
+  let singleDieFaceDist: Distribution = new Map();
+  for (let f = 1; f <= s; f++) {
+    singleDieFaceDist.set(f, 1 / s);
+  }
+
+  // Stage 2: apply each reroll / reroll_once modifier in the exact order
+  // `stageReroll` executes them (all `reroll` mods in order, then all
+  // `reroll_once` mods in order — see `src/engine/pipeline.ts:95-122`).
+  const orderedRerolls = [
+    ...node.modifiers.filter((m) => m.kind === "reroll"),
+    ...node.modifiers.filter((m) => m.kind === "reroll_once"),
+  ];
+  for (const rMod of orderedRerolls) {
+    const nextDist: Distribution = new Map();
+    if (rMod.kind === "reroll") {
+      // Probe `runPipeline` with a 2-element tape `[face, fallback]` where
+      // `fallback` is a non-matching face: if `consumed > 1`, `stageReroll`
+      // rerolled `face`.
+      const stays: number[] = [];
+      for (let f = 1; f <= s; f++) {
+        // Tape of 105 copies of `f`: if `f` does NOT match the reroll compare,
+        // `stageReroll` consumes only 1 draw (`the initial stageRoll`).
+        const probe = runWithTape(1, [rMod], new Array<number>(105).fill(f), "sum");
+        if (probe.consumed === 1) {
+          stays.push(f);
+        }
+      }
+      // In `stageReroll`, if a face is rerolled, it draws a fresh uniform face
+      // in `1..s` until it lands on `stays` (each staying face reached with
+      // equal conditional probability `1 / stays.length`).
+      let rerolledMass = 0;
+      for (const [f, p] of singleDieFaceDist) {
+        if (stays.includes(f)) {
+          nextDist.set(f, (nextDist.get(f) ?? 0) + p);
+        } else {
+          rerolledMass += p;
+        }
+      }
+      for (const fStay of stays) {
+        nextDist.set(fStay, (nextDist.get(fStay) ?? 0) + rerolledMass / stays.length);
+      }
+    } else {
+      // `reroll_once`: enumerate all `(initialFace, secondFace)` pairs through
+      // `runPipeline(1, [rMod])` weighted by `singleDieFaceDist.get(initialFace) * (1/s)`.
+      for (const [f1, p1] of singleDieFaceDist) {
+        for (let f2 = 1; f2 <= s; f2++) {
+          const { firstDieValue } = runWithTape(1, [rMod], [f1, f2], "sum");
+          const p = p1 * (1 / s);
+          nextDist.set(firstDieValue, (nextDist.get(firstDieValue) ?? 0) + p);
+        }
+      }
+    }
+    singleDieFaceDist = nextDist;
+  }
+
+  // Stage 3: apply `stageMinMax` by running each face through `runPipeline(1, minMaxMods)`.
+  const minMaxMods = node.modifiers.filter((m) => m.kind === "min" || m.kind === "max");
+  if (minMaxMods.length > 0) {
+    const clampedDist: Distribution = new Map();
+    for (const [f, p] of singleDieFaceDist) {
+      const { firstDieValue } = runWithTape(1, minMaxMods, [f], "sum");
+      clampedDist.set(firstDieValue, (clampedDist.get(firstDieValue) ?? 0) + p);
+    }
+    singleDieFaceDist = clampedDist;
+  }
+
+  // Stage 4 + Stage 8: explosion + total per initial die, probed through
+  // `runPipeline(1, postMinMaxMods, tape, resultMode)`.
+  const postMinMaxMods = node.modifiers.filter(
+    (m) =>
+      m.kind === "explode" ||
+      m.kind === "compound" ||
+      m.kind === "penetrate" ||
+      m.kind === "cs_count" ||
+      m.kind === "cf_count",
+  );
+
+  const singleDieTotalDist: Distribution = new Map();
+
+  if (!hasExplosion) {
+    for (const [f, p] of singleDieFaceDist) {
+      const { total } = runWithTape(1, postMinMaxMods, [f], resultMode);
+      singleDieTotalDist.set(total, (singleDieTotalDist.get(total) ?? 0) + p);
+    }
+  } else {
+    // Enumerate explosion chains tree-wise using `runPipeline(1, postMinMaxMods)`:
+    // For a prefix tape `[f0, e1, ..., ed]`, pad with a non-exploding sentinel
+    // tail and check how many draws `runPipeline` consumes. If `consumed === d + 1`,
+    // the chain terminated at depth `d` and its exact total is `res.total`.
+    // If it still wants to explode at `d < maxExplosionDepth`, branch over
+    // `e_{d+1} in 1..s`, each with conditional probability `1/s`.
+    // At `d === maxExplosionDepth`, stop branching and record the truncated
+    // chain's total (matching the depth-10 truncation).
+    // Find a face that does not trigger explosion (or fallback to 1).
+    let nonExplodingFace = 1;
+    for (let f = 1; f <= s; f++) {
+      const probe = runWithTape(1, postMinMaxMods, new Array<number>(105).fill(f), resultMode);
+      if (probe.consumed === 1) {
+        nonExplodingFace = f;
+        break;
+      }
+    }
+
+    function walkExplosionTree(prefix: number[], prob: number, depth: number): void {
+      if (depth === maxExplosionDepth) {
+        // Compute total of the chain `prefix` without further explosions by
+        // evaluating each roll in `prefix` through the non-exploding stageTotal
+        // or by temporarily capping the chain. Since `prefix` has `maxExplosionDepth + 1`
+        // rolls and all `prefix[0..depth-1]` exploded, only `prefix[depth]` might
+        // still want to explode. If `prefix[depth]` does not explode, `runWithTape`
+        // with `[...prefix, nonExplodingFace]` consumes ` prefix.length` draws.
+        // If `prefix[depth]` DOES explode, its contribution at depth cap is the
+        // same as its contribution in `stageExplode` before the next push.
+        const padded = [...prefix, ...new Array<number>(105).fill(nonExplodingFace)];
+        const probe = runWithTape(1, postMinMaxMods, padded, resultMode);
+        if (probe.consumed === prefix.length) {
+          singleDieTotalDist.set(probe.total, (singleDieTotalDist.get(probe.total) ?? 0) + prob);
+        } else {
+          // `prefix[depth]` also matched the explosion threshold, so `stageExplode`
+          // drew one extra `nonExplodingFace`. Subtract that extra draw's contribution:
+          const extra = runWithTape(1, postMinMaxMods, [nonExplodingFace], resultMode).total;
+          const isPen = postMinMaxMods.some((m) => m.kind === "penetrate");
+          const extraContribution =
+            resultMode === "sum"
+              ? isPen
+                ? Math.max(1, nonExplodingFace - 1)
+                : nonExplodingFace
+              : extra;
+          const totalAtCap = probe.total - extraContribution;
+          singleDieTotalDist.set(
+            totalAtCap,
+            (singleDieTotalDist.get(totalAtCap) ?? 0) + prob,
+          );
+        }
+        return;
+      }
+
+      const padded = [...prefix, ...new Array<number>(105).fill(nonExplodingFace)];
+      const probe = runWithTape(1, postMinMaxMods, padded, resultMode);
+      if (probe.consumed === prefix.length) {
+        // Chain terminated naturally at this depth!
+        singleDieTotalDist.set(probe.total, (singleDieTotalDist.get(probe.total) ?? 0) + prob);
+        return;
+      }
+
+      // Otherwise `prefix[prefix.length - 1]` exploded: branch over next roll 1..s.
+      for (let nextFace = 1; nextFace <= s; nextFace++) {
+        prefix.push(nextFace);
+        walkExplosionTree(prefix, prob * (1 / s), depth + 1);
+        prefix.pop();
+      }
+    }
+
+    for (const [f0, p0] of singleDieFaceDist) {
+      walkExplosionTree([f0], p0, 0);
+    }
+  }
+
+  // Combine `node.count` independent dice by direct Cartesian sum (no `convolve`
+  // from `distribution.ts`!).
+  let combined: Distribution = new Map([[0, 1]]);
+  for (let d = 0; d < node.count; d++) {
+    const next: Distribution = new Map();
+    for (const [sumA, probA] of combined) {
+      for (const [sumB, probB] of singleDieTotalDist) {
+        const total = sumA + sumB;
+        next.set(total, (next.get(total) ?? 0) + probA * probB);
+      }
+    }
+    combined = next;
+  }
+  return combined;
+}
+
+/** Assert every outcome probability in `actual` matches `oracle` within `tol`. */
+function expectDistributionMatchesOracle(
+  actual: Distribution,
+  oracle: Distribution,
+  tol: number,
+): void {
+  const allKeys = new Set<number>([...actual.keys(), ...oracle.keys()]);
+  for (const k of allKeys) {
+    const pa = actual.get(k) ?? 0;
+    const po = oracle.get(k) ?? 0;
+    expect(Math.abs(pa - po)).toBeLessThanOrEqual(tol);
+  }
+}
+
+describe("Combined modifiers exact analysis vs independent pipeline oracle", () => {
+  it("2d6r=1! matches pipeline oracle and reports method: 'exact'", () => {
+    // Reroll 1s (stage 2) -> faces 2..6 each have p=1/5 -> explode on 6 (stage 4,
+    // explosion rolls use raw 1..6 faces). Pre-fix bug: `tryExact` routed to
+    // `explosionDistribution`, ignoring `r=1` and returning plain `2d6!` where
+    // initial face 1 (and sum 2) had non-zero probability.
+    const res = computeDistributionWithMethod(parse("2d6r=1!"));
+    const oracle = oracleDistributionFromPipeline("2d6r=1!", 10);
+    expect(res.method).toBe("exact");
+    // Minimum possible sum is 4 (each die starts on 2..5, or 6 which adds >=1).
+    expect(res.distribution.get(2) ?? 0).toBe(0);
+    expect(res.distribution.get(3) ?? 0).toBe(0);
+    expectDistributionMatchesOracle(res.distribution, oracle, 1e-9);
+    expect(computeStats(res.distribution).mean).toBeCloseTo(computeStats(oracle).mean, 6);
+  });
+
+  it("2d6min2! matches pipeline oracle and reports method: 'exact'", () => {
+    // Min floor 2 (stage 3) -> face 1 becomes 2 (so P(2)=2/6, P(3..6)=1/6) ->
+    // explode on 6 (stage 4). Pre-fix bug: `tryExact` routed to
+    // `explosionDistribution`, ignoring `min2` and returning plain `2d6!` where
+    // sum 2 and 3 had non-zero mass.
+    const res = computeDistributionWithMethod(parse("2d6min2!"));
+    const oracle = oracleDistributionFromPipeline("2d6min2!", 10);
+    expect(res.method).toBe("exact");
+    expect(res.distribution.get(2) ?? 0).toBe(0);
+    expect(res.distribution.get(3) ?? 0).toBe(0);
+    expect(res.distribution.get(4)).toBeCloseTo(4 / 36, 9);
+    expectDistributionMatchesOracle(res.distribution, oracle, 1e-9);
+    expect(computeStats(res.distribution).mean).toBeCloseTo(computeStats(oracle).mean, 6);
+  });
+
+  it("2d6r=1min3 matches pipeline oracle and reports method: 'exact'", () => {
+    // Reroll 1s (stage 2: faces 2..6 each p=1/5) -> min 3 (stage 3: face 2
+    // clamps to 3, so P(3)=2/5, P(4)=1/5, P(5)=1/5, P(6)=1/5). Pre-fix bug:
+    // `tryExact` routed to `rerollDistribution`, ignoring `min3` and leaving
+    // face 2 (and sums 4, 5) with positive probability.
+    const res = computeDistributionWithMethod(parse("2d6r=1min3"));
+    const oracle = oracleDistributionFromPipeline("2d6r=1min3");
+    expect(res.method).toBe("exact");
+    expect(res.distribution.get(4) ?? 0).toBe(0);
+    expect(res.distribution.get(5) ?? 0).toBe(0);
+    expect(res.distribution.get(6)).toBeCloseTo(4 / 25, 12);
+    expectDistributionMatchesOracle(res.distribution, oracle, 1e-12);
+    expect(computeStats(res.distribution).mean).toBeCloseTo(computeStats(oracle).mean, 10);
+  });
+
+  it("2d4ro=1min2! (3-stage combined: reroll_once + min + explode) matches pipeline oracle", () => {
+    // Combines all three per-die modifier families on d4:
+    //   Stage 2 (`ro=1`): P(1)=1/16, P(2)=5/16, P(3)=5/16, P(4)=5/16
+    //   Stage 3 (`min2`): clamps 1 -> 2, so P(2)=6/16, P(3)=5/16, P(4)=5/16
+    //   Stage 4 (`!`): face 4 explodes with raw d4 rolls (1..4).
+    const res = computeDistributionWithMethod(parse("2d4ro=1min2!"));
+    const oracle = oracleDistributionFromPipeline("2d4ro=1min2!", 10);
+    expect(res.method).toBe("exact");
+    expect(res.distribution.get(2) ?? 0).toBe(0);
+    expect(res.distribution.get(3) ?? 0).toBe(0);
+    expect(res.distribution.get(4)).toBeCloseTo(36 / 256, 12);
+    expectDistributionMatchesOracle(res.distribution, oracle, 1e-8);
+    expect(computeStats(res.distribution).mean).toBeCloseTo(computeStats(oracle).mean, 5);
+  });
+
+  it("3d4ro=1kh2 (reroll_once + keep-highest) matches pipeline oracle", () => {
+    // Combines reroll + keep/drop: `enumerateKeepDrop` previously ignored
+    // rerolls and `tryExact` fell back to noisy Monte Carlo.
+    const res = computeDistributionWithMethod(parse("3d4ro=1kh2"));
+    const oracle = oracleDistributionFromPipeline("3d4ro=1kh2");
+    expect(res.method).toBe("exact");
+    expectDistributionMatchesOracle(res.distribution, oracle, 1e-12);
+  });
+});
+
+describe("Division by zero agreement between roll() and analyze()", () => {
+  it("1d6/0 throws ParseError('Division by zero') in both roll() and analyze()", () => {
+    expect(() => roll("1d6/0")).toThrow(ParseError);
+    expect(() => roll("1d6/0")).toThrow(/division by zero/i);
+    expect(() => analyzePublic("1d6/0")).toThrow(ParseError);
+    expect(() => analyzePublic("1d6/0")).toThrow(/division by zero/i);
+    expect(() => computeDistribution(parse("1d6/0"))).toThrow(ParseError);
+  });
+
+  it("divisor distribution that can roll 0 (1d6/(1d2-1) and 1d6/(4d20-4)) throws ParseError('Division by zero')", () => {
+    // Any divisor with P(divisor = 0) > 0 must deterministically throw
+    // ParseError("Division by zero") in analyze() / computeDistribution(),
+    // even when P(0) is small enough (e.g. 4d20-4 where P(0) = 1/160000) that
+    // 10,000 Monte Carlo samples miss it.
+    expect(() => analyzePublic("1d6/(1d2-1)")).toThrow(ParseError);
+    expect(() => analyzePublic("1d6/(1d2-1)")).toThrow(/division by zero/i);
+    expect(() => analyzePublic("1d6/(4d20-4)")).toThrow(ParseError);
+    expect(() => analyzePublic("1d6/(4d20-4)")).toThrow(/division by zero/i);
+    expect(() => computeDistribution(parse("1d6/(4d20-4)"))).toThrow(ParseError);
+
+    // And rolling with a seed that lands on 1d2 = 1 (so divisor = 0) throws the
+    // exact same ParseError("Division by zero").
+    let threwDivZero = false;
+    for (let seed = 1; seed <= 50; seed++) {
+      try {
+        evaluate(parse("1d6/(1d2-1)"), seededRng(seed));
+      } catch (e) {
+        expect(e).toBeInstanceOf(ParseError);
+        expect((e as Error).message).toMatch(/division by zero/i);
+        threwDivZero = true;
+        break;
+      }
+    }
+    expect(threwDivZero).toBe(true);
+  });
+});
+
