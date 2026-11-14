@@ -442,6 +442,82 @@ proptest! {
                 prop_assert!(report.distribution.prob_at_most(prev) < q + 1e-12);
             }
         }
+
+        prop_assert_eq!(
+            report
+                .distribution
+                .target_for_probability(1.0, TargetDirection::AtMost)
+                .unwrap(),
+            max_v
+        );
+        prop_assert_eq!(
+            report
+                .distribution
+                .target_for_probability(1.0, TargetDirection::AtLeast)
+                .unwrap(),
+            min_v
+        );
+    }
+
+    #[test]
+    fn prop_wide_clamps_and_any_analyzed_pmf_conserve_mass(
+        expr in arb_wide_clamped_and_mixed_analyzable_expr()
+    ) {
+        prop_assume!(expr.total_base_dice() <= roll_core::MAX_ANALYZE_DICE);
+        match analyze(&expr) {
+            Ok(report) => {
+                let entries = report.distribution.entries();
+                prop_assert!(!entries.is_empty());
+
+                let mut prev_v: Option<i64> = None;
+                let mut sum = 0.0_f64;
+                let mut comp = 0.0_f64;
+                for &(v, p) in entries {
+                    if let Some(prev) = prev_v {
+                        prop_assert!(v > prev, "support keys must be ascending: {} <= {}", v, prev);
+                    }
+                    prev_v = Some(v);
+                    prop_assert!(p >= 0.0 && p.is_finite(), "invalid prob {} at {}", p, v);
+                    let t = sum + p;
+                    if sum.abs() >= p.abs() {
+                        comp += (sum - t) + p;
+                    } else {
+                        comp += (p - t) + sum;
+                    }
+                    sum = t;
+                }
+                let total_mass = sum + comp;
+                prop_assert!(
+                    (total_mass - 1.0).abs() <= 1e-12,
+                    "PMF mass drifted from 1.0 on {:?} ({:?}): {}",
+                    expr.to_canonical_string(),
+                    report.method,
+                    total_mass
+                );
+                prop_assert_eq!(
+                    report
+                        .distribution
+                        .target_for_probability(1.0, TargetDirection::AtMost)
+                        .unwrap(),
+                    report.stats.max
+                );
+                prop_assert_eq!(
+                    report
+                        .distribution
+                        .target_for_probability(1.0, TargetDirection::AtLeast)
+                        .unwrap(),
+                    report.stats.min
+                );
+            }
+            Err(
+                RollError::DivisionByZero
+                | RollError::ArithmeticOverflow
+                | RollError::DrawBudgetExceeded { .. },
+            ) => {}
+            Err(other) => {
+                prop_assert!(false, "unexpected analyze error: {:?}", other);
+            }
+        }
     }
 
     #[test]
@@ -604,4 +680,111 @@ fn arb_exact_analyzable_expr() -> impl Strategy<Value = Expr> {
             }),
         ]
     })
+}
+
+/// Strategy covering wide clamped dice (`sides` up to `1,000,000`, including `777,777` and
+/// `999,997`, `count` up to `1,000`, single-point and multi-point clamps, optional `ro`),
+/// combined with both `Exact` and `MonteCarlo` expressions.
+fn arb_wide_clamped_and_mixed_analyzable_expr() -> impl Strategy<Value = Expr> {
+    let wide_sides = prop_oneof![
+        Just(999_997_u32),
+        Just(777_777_u32),
+        Just(1_000_000_u32),
+        1_000_u32..=1_000_000_u32,
+    ];
+    let wide_clamped_leaf = (
+        1_u32..=1_000_u32,
+        wide_sides,
+        0_u8..=3_u8,
+        0_i64..=5_i64,
+        any::<bool>(),
+        arb_result_mode(),
+        arb_sort(),
+    )
+        .prop_map(|(count_raw, s_raw, clamp_kind, span, use_ro, mode, sort)| {
+            let effective_s = if use_ro { s_raw.min(20_000) } else { s_raw };
+            let s_i64 = i64::from(effective_s);
+            let clamp = match clamp_kind {
+                0 => ClampBounds {
+                    min: Some(s_i64),
+                    max: None,
+                },
+                1 => ClampBounds {
+                    min: Some((s_i64 - span).max(1)),
+                    max: None,
+                },
+                2 => ClampBounds {
+                    min: None,
+                    max: Some((1 + span).min(s_i64)),
+                },
+                _ => {
+                    let lo = (s_i64 / 2).max(1);
+                    ClampBounds {
+                        min: Some(lo),
+                        max: Some((lo + span).min(s_i64)),
+                    }
+                }
+            };
+            let reroll_once = if use_ro {
+                vec![ComparePoint {
+                    op: CompareOp::Eq,
+                    value: 1,
+                }]
+            } else {
+                Vec::new()
+            };
+            Expr::Dice(DiceSpec {
+                count: NonZeroU32::new(count_raw).unwrap(),
+                sides: DiceSides::Standard(NonZeroU32::new(effective_s).unwrap()),
+                reroll_unlimited: Vec::new(),
+                reroll_once,
+                clamp: Some(clamp),
+                explode: None,
+                keep_drop: Vec::new(),
+                mode,
+                sort,
+            })
+        });
+
+    let mc_or_exact_dice = (
+        1u32..=6u32,
+        (2u32..=12u32).prop_map(|n| DiceSides::Standard(NonZeroU32::new(n).unwrap())),
+        arb_clamp(),
+        prop::option::of((
+            prop_oneof![
+                Just(ExplosionVariant::Standard),
+                Just(ExplosionVariant::Compound),
+                Just(ExplosionVariant::Penetrate),
+            ],
+            (arb_compare_op(), 2i64..=12i64).prop_map(|(op, value)| ComparePoint { op, value }),
+        )),
+        prop::collection::vec(arb_keep_drop(), 0..=2),
+        arb_result_mode(),
+    )
+        .prop_map(|(c, sides, clamp, explode_opt, keep_drop, mode)| {
+            Expr::Dice(DiceSpec {
+                count: NonZeroU32::new(c).unwrap(),
+                sides,
+                reroll_unlimited: Vec::new(),
+                reroll_once: Vec::new(),
+                clamp,
+                explode: explode_opt
+                    .map(|(variant, threshold)| ExplosionRule { variant, threshold }),
+                keep_drop,
+                mode,
+                sort: None,
+            })
+        });
+
+    prop_oneof![
+        7 => wide_clamped_leaf,
+        4 => arb_exact_analyzable_expr(),
+        1 => (mc_or_exact_dice, prop_oneof![-4i64..=-1i64, 1i64..=4i64]).prop_map(|(d, div)| {
+            Expr::Binary {
+                op: BinaryOp::DivFloor,
+                left: Box::new(d),
+                right: Box::new(Expr::Number(div)),
+            }
+        }),
+    ]
 }

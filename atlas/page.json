@@ -45,24 +45,32 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 1,
-      "changed": 26,
+      "added": 0,
+      "changed": 9,
       "moved": 0,
-      "parts": 5,
+      "parts": 3,
       "removed": 0
     },
     "items": [
       {
+        "kind": "door",
+        "sentence": "CI now also runs crates/roll-core/src/analyze.rs.",
+        "subjects": [
+          ".github/workflows/ci.yml",
+          "crates/roll-core/src/analyze.rs"
+        ]
+      },
+      {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-14; 1 file added and 26 changed content.",
+        "sentence": "9 files changed content, across 3 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "f5002bc8b82c4931df2078dcda95713f2adfc6bb",
-      "generatedAt": "2026-11-14T11:31:39.532Z"
+      "commit": "2742ebb4d8df45951e6ec11e15f931485238845b",
+      "generatedAt": "2026-11-14T12:56:51.090Z"
     },
-    "unchanged": true
+    "unchanged": false
   },
   "changesTogether": [
     {
@@ -146,7 +154,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "2742ebb4d8df45951e6ec11e15f931485238845b",
+  "commit": "461e2c4dade587deba5c3a6b40653f257ea4e3a1",
   "defaultBranch": "main",
   "derived": "8 parts, mostly TypeScript (58 files), Rust (23), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).",
   "doors": [
@@ -191,11 +199,12 @@
         "crates/roll-cli/src/main.rs",
         "src/bin.ts",
         "crates/roll-cli/tests/",
+        "crates/roll-core/src/analyze.rs",
         "crates/roll-core/tests/",
         "tests/"
       ],
-      "runsCount": 5,
-      "runsMore": 35,
+      "runsCount": 6,
+      "runsMore": 36,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -433,7 +442,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T12:56:51.090Z",
+  "generatedAt": "2026-11-14T13:55:46.696Z",
   "limits": [
     "3 writes and 2 reads go to a path their caller passes, not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
@@ -470,10 +479,10 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 38,
+  "testFiles": 39,
   "testedBy": {
     "roll-cli": 1,
-    "roll-core": 9,
+    "roll-core": 10,
     "src": 27
   },
   "testedCodeParts": 3,

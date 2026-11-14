@@ -52,11 +52,11 @@
           "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
         },
         {
-          "hash": "92b975ae85a516cf9cbb4a22347c3be4b834ea910167235758bd219bd4aa1b80",
+          "hash": "877633c517ac81225611bfc5ac2ce35cc3d9c0e6ba57e1c7360bbf7516d1024c",
           "path": "fixtures/conformance/v3/04_exact_analysis.json"
         },
         {
-          "hash": "3533b69c95de895aaa84b2e6df05c93bed7b7fbc914e6693981bb395f3f8ccbf",
+          "hash": "e8ae39428b7fd1e73e19f368fca2cdb979c43deac0c714da1eef7a4386d4ef25",
           "path": "fixtures/conformance/v3/MANIFEST.sha256"
         }
       ],
@@ -247,198 +247,288 @@
             {
               "in": "prob_exactly",
               "kind": "match-err",
-              "line": 205
+              "line": 266
             },
             {
               "in": "target_for_probability",
               "kind": "err",
-              "line": 257
+              "line": 313
             },
             {
               "in": "analyze",
               "kind": "err",
-              "line": 414
+              "line": 480
             },
             {
               "in": "analyze",
               "kind": "match-err",
-              "line": 431
+              "line": 498
             },
             {
               "in": "analyze",
               "kind": "err",
-              "line": 431
+              "line": 498
             },
             {
               "in": "analyze",
               "kind": "match-err",
-              "line": 432
+              "line": 499
             },
             {
               "in": "compare",
               "kind": "match-err",
-              "line": 515
+              "line": 591
             },
             {
               "in": "compare",
               "kind": "err",
-              "line": 515
+              "line": 591
             },
             {
               "in": "compare",
               "kind": "match-err",
-              "line": 516
+              "line": 592
             },
             {
-              "in": "try_exact",
+              "in": "charge_transitions",
               "kind": "err",
-              "line": 664
+              "line": 696
+            },
+            {
+              "in": "reserve_live",
+              "kind": "err",
+              "line": 706
+            },
+            {
+              "in": "add_capped",
+              "kind": "err",
+              "line": 787
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 668
+              "line": 860
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 668
+              "line": 862
             },
             {
-              "in": "try_exact",
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 906
+            },
+            {
+              "in": "try_exact_inner",
               "kind": "match-err",
-              "line": 669
+              "line": 910
             },
             {
-              "in": "try_exact",
+              "in": "try_exact_inner",
               "kind": "err",
-              "line": 669
+              "line": 910
             },
             {
-              "in": "try_exact",
+              "in": "try_exact_inner",
               "kind": "match-err",
-              "line": 674
+              "line": 911
             },
             {
-              "in": "try_exact",
+              "in": "try_exact_inner",
               "kind": "err",
-              "line": 674
+              "line": 911
             },
             {
-              "in": "try_exact",
+              "in": "try_exact_inner",
               "kind": "match-err",
-              "line": 675
+              "line": 916
             },
             {
-              "in": "try_exact",
+              "in": "try_exact_inner",
               "kind": "err",
-              "line": 675
+              "line": 922
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "match-err",
+              "line": 924
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 924
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "match-err",
+              "line": 930
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 930
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "match-err",
+              "line": 931
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 931
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "match-err",
+              "line": 936
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 942
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "match-err",
+              "line": 944
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 944
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "match-err",
+              "line": 951
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 957
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "match-err",
+              "line": 962
+            },
+            {
+              "in": "try_exact_inner",
+              "kind": "err",
+              "line": 966
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 747
+              "line": 1062
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 833
+              "line": 1071
             },
             {
-              "in": "explosion_chain_sum_pmf",
+              "in": "explosion_chain_sum_pmf_inner",
               "kind": "err",
-              "line": 892
-            },
-            {
-              "in": "explosion_chain_pool_pmf",
-              "kind": "err",
-              "line": 983
+              "line": 1348
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1031
+              "line": 1532
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1043
-            },
-            {
-              "in": "order_statistic_dp",
-              "kind": "err",
-              "line": 1172
-            },
-            {
-              "in": "order_statistic_dp",
-              "kind": "err",
-              "line": 1252
+              "line": 1549
             },
             {
               "in": "divide_distribution_weighted",
               "kind": "err",
-              "line": 1358
+              "line": 1986
             },
             {
               "in": "convolve",
               "kind": "err",
-              "line": 1376
+              "line": 2015
             },
             {
               "in": "subtract_distributions",
               "kind": "err",
-              "line": 1402
+              "line": 2052
             },
             {
-              "in": "convolve_n",
+              "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 1485
+              "line": 2124
+            },
+            {
+              "in": "convolve_n_uniform_contiguous",
+              "kind": "err",
+              "line": 2128
+            },
+            {
+              "in": "convolve_n_inner",
+              "kind": "err",
+              "line": 2296
             },
             {
               "in": "multiply_distributions",
               "kind": "err",
-              "line": 1496
+              "line": 2320
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 1531
+              "line": 2366
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 1534
+              "line": 2399
             },
             {
               "in": "next_u64_word",
               "kind": "err",
-              "line": 1614
+              "line": 2655
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 1666
+              "line": 2707
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 1669
+              "line": 2710
             },
             {
               "in": "walk",
               "kind": "err",
-              "line": 1669
+              "line": 2710
             }
           ],
-          "hash": "44342a8c7427ac76afd7ce2f0c64988bcc4f82cd277679840f908aded142d2e3",
+          "hash": "42813b9b1435c60d9367ef687e3261a33b1aa34d21c2d4e6076de9a9d9fc34a3",
+          "importOrder": [
+            "crates/roll-core/src/ast.rs",
+            "crates/roll-core/src/error.rs",
+            "crates/roll-core/src/eval.rs",
+            "crates/roll-core/src/math.rs",
+            "crates/roll-core/src/rng.rs",
+            "crates/roll-core/src/parser.rs"
+          ],
           "importsFiles": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs",
             "crates/roll-core/src/eval.rs",
             "crates/roll-core/src/math.rs",
+            "crates/roll-core/src/parser.rs",
             "crates/roll-core/src/rng.rs"
           ],
-          "path": "crates/roll-core/src/analyze.rs"
+          "path": "crates/roll-core/src/analyze.rs",
+          "testsInside": true
         },
         {
           "hash": "bb0bd20e63c7765b125a0659c9224a89cd1490316e18ebe81a89f7c7384da137",
@@ -586,7 +676,7 @@
           "path": "crates/roll-core/src/eval.rs"
         },
         {
-          "hash": "b935f82fda097e3f87cf6ea6bce8cbb958df03e4ddf5903f06549d47de46cc4d",
+          "hash": "b2272a28ecc94c7e9dc21f553b714c085204e8fb9193d72a6c987cd8370f096d",
           "importsFiles": [
             "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
@@ -936,7 +1026,7 @@
           "path": "crates/roll-core/src/rng.rs"
         },
         {
-          "hash": "7f02d78df09903cd67282a8a9f1e51ae77108909b6fe257261c3b9772d855866",
+          "hash": "c06587799b0c8bf5ad0769e4a29f6224793855392fe4b8a89dae1ae9efc0a2cd",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -973,7 +1063,7 @@
           "testsInside": true
         },
         {
-          "hash": "7fa35d7147aba97be1c7648344b58b8c17b0a869c18a1a53a793dfa715142120",
+          "hash": "bb339aa40038f727e8acff213cafd658711a3e7c8fb980068645b1caf82869f7",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -987,7 +1077,7 @@
           "testsInside": true
         },
         {
-          "hash": "dab44220754cfbd0f3b86b9a137710e37cad5fab55e00968e7d64f38ab3894f7",
+          "hash": "3df48bb4b49ff663f67f3b277996087cb9c3efe15c3aec14bc8237ea4c417839",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs",
@@ -1016,7 +1106,7 @@
           "testsInside": true
         },
         {
-          "hash": "a4f0f343bed347b92f8daea1240411c338a9aac65a2a31b5f665a9a6b35f8aa5",
+          "hash": "35acc691b107ea158e2b38865ca030e755e88d23dbb8ae69864674f6d408a0d6",
           "importsFiles": [
             "crates/roll-core/src/conformance.rs"
           ],
@@ -1045,7 +1135,7 @@
       "testRunners": [
         "cargo test"
       ],
-      "testedBy": 9,
+      "testedBy": 10,
       "unresolvedSites": 0
     },
     {
@@ -1065,7 +1155,7 @@
           "path": ".gitignore"
         },
         {
-          "hash": "61a9abff8612e8ed9f87740c25a6765154c7816ed03c2d303e4782ce893d77b1",
+          "hash": "cbf2a3e8b4f3251992737453e222af68f616e57d27eec5ee7675d6f690abdc24",
           "path": "CHANGELOG.md"
         },
         {
@@ -7262,6 +7352,13 @@
         {
           "job": "rust",
           "matched": true,
+          "path": "crates/roll-core/src/analyze.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
+          "job": "rust",
+          "matched": true,
           "path": "crates/roll-core/src/lib.rs",
           "runKind": "checks",
           "via": "cargo check"
@@ -7297,7 +7394,7 @@
           "via": "tsc tsconfig.test.json"
         }
       ],
-      "runsCount": 8,
+      "runsCount": 9,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -7323,13 +7420,13 @@
           ]
         },
         {
-          "files": 9,
+          "files": 10,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (native)"
         },
         {
-          "files": 9,
+          "files": 10,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (wasm32-wasip1)"
@@ -7990,7 +8087,7 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "2742ebb4d8df45951e6ec11e15f931485238845b",
+    "commit": "461e2c4dade587deba5c3a6b40653f257ea4e3a1",
     "tracked": 127
   },
   "landings": [
@@ -8214,6 +8311,6 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 38,
+  "testFiles": 39,
   "unassigned": []
 }

@@ -26,9 +26,10 @@ pub mod rng;
 
 pub use analyze::{
     AnalysisMethod, AnalysisReport, ComparisonReport, DEFAULT_MONTE_CARLO_SAMPLES, Distribution,
-    DistributionStats, MAX_ANALYZE_DICE, MAX_EXACT_STATES, MONTE_CARLO_DEFAULT_SEED, ModelledCaps,
-    PrefixOracleResult, TargetDirection, analyze, compare, compute_stats, lemire_witness_word,
-    monte_carlo_distribution, reduce_keep_drop_interval, run_prefix_tape_oracle,
+    DistributionStats, MAX_ANALYZE_DICE, MAX_EXACT_LIVE_STATES, MAX_EXACT_STATES,
+    MONTE_CARLO_DEFAULT_SEED, ModelledCaps, PrefixOracleResult, TargetDirection, analyze, compare,
+    compute_stats, lemire_witness_word, monte_carlo_distribution, reduce_keep_drop_interval,
+    run_prefix_tape_oracle,
 };
 pub use ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,

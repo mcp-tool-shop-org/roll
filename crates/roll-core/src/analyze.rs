@@ -5,6 +5,7 @@
 //! `MAX_EXPLOSIONS = 100` loop caps, and is never an unlabelled approximation.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::btree_map::Entry;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -13,8 +14,8 @@ use rand_chacha::ChaCha12Rng;
 use rand_core::{Rng, SeedableRng};
 
 use crate::ast::{
-    BinaryOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule, ExplosionVariant, Expr, KeepDropOp,
-    MAX_EXPLOSIONS, MAX_REROLLS, ResultMode,
+    BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
+    ExplosionVariant, Expr, KeepDropOp, MAX_EXPLOSIONS, MAX_REROLLS, MAX_TOTAL_DRAWS, ResultMode,
 };
 use crate::error::{ReceiptVerifyError, RollError};
 use crate::eval::{
@@ -27,8 +28,48 @@ use crate::rng::DrawSource;
 /// Maximum sum of base dice counts across an AST accepted by [`analyze`] and [`compare`] (`§5.3`).
 pub const MAX_ANALYZE_DICE: u32 = 1_000;
 
-/// Maximum state count or inner-loop transition budget per exact pass before falling back to Monte Carlo (`§5.2`, `§5.3`).
+/// AST-wide exact transition budget across all nodes in a single [`analyze`] pass (`§5.2`, `§5.3`),
+/// and per-pair margin convolution cap `|A| * |B| <= MAX_EXACT_STATES` in [`compare`].
+///
+/// ### Exact-budget rule (`MAX_EXACT_STATES = 10_000_000`, `MAX_EXACT_LIVE_STATES = 2_000_000`)
+/// A single `ExactBudget` is threaded through `try_exact` across the entire AST and checked
+/// **before** every allocation and inner loop:
+/// 1. **Cumulative transitions (`<= MAX_EXACT_STATES = 10_000_000`):** monotonically sums
+///    executed transitions across every node in the AST (`1` unit per dense/flat step;
+///    `SPARSE_TRANSITION_WEIGHT = 10` units per `BTreeMap` lookup/insert). Unexecuted steps
+///    that fail the pre-check do not advance the counter, preserving unspent budget for
+///    sibling error-isolation checks.
+/// 2. **Live retained state slots (`<= MAX_EXACT_LIVE_STATES = 2_000_000 <= MAX_EXACT_STATES`):**
+///    tracks simultaneously live state slots across all active stack frames, operand
+///    distributions, `convolve_n` power tables, `order_statistic_dp` buckets, and active
+///    accumulators (`1` slot per `16`-byte `Vec`/dense entry; `SPARSE_STATE_SLOTS = 4` slots
+///    per `BTreeMap` entry; `explosion_chain_sum_pmf` additionally caps `finished.len()` at
+///    `MAX_EXPLOSION_FINISHED_STATES = 250_000`). Aborted subtrees restore the caller's
+///    live-state baseline when their temporaries drop.
+/// 3. **Divisor-first interaction (`§5.4`):** on `BinaryOp::DivFloor` (and on `+`/`-`/`*`
+///    when `right` contains a division and `left` does not), `try_exact` evaluates `right`
+///    before `left`, giving divisors first claim on the budget. Any exact divisor within the
+///    remaining budget with `is_reachable(0)` returns `Err(RollError::DivisionByZero)` even if
+///    its dividend or sibling exceeds the budget. If prior AST work or the divisor itself
+///    exhausts the budget, `try_exact` aborts with `TooLarge` and falls back to Monte Carlo.
 pub const MAX_EXACT_STATES: usize = 10_000_000;
+
+/// Maximum simultaneously retained state slots across all active stack frames and buffers
+/// during an exact [`analyze`] pass (`2_000_000 <= MAX_EXACT_STATES`, `< 50 MiB` peak heap).
+pub const MAX_EXACT_LIVE_STATES: usize = 2_000_000;
+
+/// Live-state slot weight of one `BTreeMap<i64, f64>` entry (`~40–48` bytes vs `16`-byte `Vec` slot).
+const SPARSE_STATE_SLOTS: usize = 4;
+
+/// Transition weight of one `BTreeMap<i64, f64>` probe (`O(log N)` tree walk vs `O(1)` slice index).
+const SPARSE_TRANSITION_WEIGHT: u128 = 10;
+
+/// Maximum distinct finished totals retained by `explosion_chain_sum_pmf` before aborting to Monte Carlo.
+const MAX_EXPLOSION_FINISHED_STATES: usize = 250_000;
+
+/// Deterministic cumulative work ceiling (RNG draws + keep/drop sort work) for [`analyze`]'s
+/// internal Monte Carlo fallback before stopping at a sample boundary (`1 <= samples <= 100_000`).
+const MAX_MC_WORK: u64 = 28_000_000;
 
 /// Default trial count for [`AnalysisMethod::MonteCarlo`] (`§5.3`).
 pub const DEFAULT_MONTE_CARLO_SAMPLES: u32 = 100_000;
@@ -39,6 +80,34 @@ pub const MONTE_CARLO_DEFAULT_SEED: &[u8; 32] = b"roll.v3.montecarlo.default.see
 /// Threshold on `(max_key - min_key + 1)` below which flat dense array accumulation is used
 /// instead of `BTreeMap` (both produce bit-for-bit identical sorted `(i64, f64)` entries).
 const MAX_DENSE_SPAN: u128 = 524_288;
+
+#[inline]
+fn neumaier_add(sum: &mut f64, comp: &mut f64, val: f64) {
+    let t = *sum + val;
+    if sum.abs() >= val.abs() {
+        *comp += (*sum - t) + val;
+    } else {
+        *comp += (val - t) + *sum;
+    }
+    *sum = t;
+}
+
+#[inline]
+fn neumaier_sum_entries(slice: &[(i64, f64)]) -> f64 {
+    let mut sum = 0.0_f64;
+    let mut comp = 0.0_f64;
+    for &(_, p) in slice {
+        neumaier_add(&mut sum, &mut comp, p);
+    }
+    (sum + comp).max(0.0)
+}
+
+#[inline]
+fn normalize_if_singleton(entries: &mut [(i64, f64)]) {
+    if entries.len() == 1 {
+        entries[0].1 = 1.0;
+    }
+}
 
 /// Discrete integer probability distribution (`Roll 3.0 §1.2`, `§5.4`).
 ///
@@ -181,21 +250,13 @@ impl Distribution {
     /// Computes $P(X \ge \text{target})$.
     pub fn prob_at_least(&self, target: i64) -> f64 {
         let start = self.entries.partition_point(|&(v, _)| v < target);
-        let mut prob = 0.0_f64;
-        for &(_, p) in &self.entries[start..] {
-            prob += p;
-        }
-        canon_f64(prob)
+        canon_f64(neumaier_sum_entries(&self.entries[start..]))
     }
 
     /// Computes $P(X \le \text{target})$.
     pub fn prob_at_most(&self, target: i64) -> f64 {
         let end = self.entries.partition_point(|&(v, _)| v <= target);
-        let mut prob = 0.0_f64;
-        for &(_, p) in &self.entries[..end] {
-            prob += p;
-        }
-        canon_f64(prob)
+        canon_f64(neumaier_sum_entries(&self.entries[..end]))
     }
 
     /// Returns $P(X = \text{target})$, or `0.0` if `target` is outside the support.
@@ -213,36 +274,31 @@ impl Distribution {
         }
         let start = self.entries.partition_point(|&(v, _)| v < lo);
         let end = self.entries.partition_point(|&(v, _)| v <= hi);
-        let mut prob = 0.0_f64;
-        for &(_, p) in &self.entries[start..end] {
-            prob += p;
-        }
-        canon_f64(prob)
+        canon_f64(neumaier_sum_entries(&self.entries[start..end]))
     }
 
     /// Cumulative distribution function $v \mapsto P(X \le v)$ in ascending support order.
     pub fn cdf(&self) -> Vec<(i64, f64)> {
         let mut out = Vec::with_capacity(self.entries.len());
         let mut cumulative = 0.0_f64;
+        let mut comp = 0.0_f64;
         for &(v, p) in &self.entries {
-            cumulative += p;
-            out.push((v, canon_f64(cumulative)));
+            neumaier_add(&mut cumulative, &mut comp, p);
+            out.push((v, canon_f64((cumulative + comp).max(0.0))));
         }
         out
     }
 
     /// Survival (complementary CDF) function $v \mapsto P(X \ge v)$ in ascending support order.
     pub fn survival(&self) -> Vec<(i64, f64)> {
-        let mut total = 0.0_f64;
-        for &(_, p) in &self.entries {
-            total += p;
-        }
+        let total = neumaier_sum_entries(&self.entries);
         let mut out = Vec::with_capacity(self.entries.len());
         let mut below = 0.0_f64;
+        let mut below_comp = 0.0_f64;
         for &(v, p) in &self.entries {
-            let surv = (total - below).max(0.0);
+            let surv = (total - (below + below_comp)).max(0.0);
             out.push((v, canon_f64(surv)));
-            below += p;
+            neumaier_add(&mut below, &mut below_comp, p);
         }
         out
     }
@@ -262,6 +318,15 @@ impl Distribution {
             return Ok(0);
         }
 
+        // Every outcome in `self.entries` has strictly positive rational probability (`§5.4`),
+        // so `P(X <= T) >= 1` iff `T` is the true maximum and `P(X >= T) >= 1` iff `T` is the true minimum.
+        if p == 1.0 {
+            return Ok(match dir {
+                TargetDirection::AtMost => self.entries[self.entries.len() - 1].0,
+                TargetDirection::AtLeast => self.entries[0].0,
+            });
+        }
+
         // Guard against floating-point sum ~`1.0 - 1e-16` while remaining strictly > 0.0
         // even for tiny positive `p < 1e-12` so underflowed `0.0` tail entries never false-match.
         let threshold = (p - 1e-12).max(p * 0.5);
@@ -269,9 +334,10 @@ impl Distribution {
         match dir {
             TargetDirection::AtMost => {
                 let mut cumulative = 0.0_f64;
+                let mut comp = 0.0_f64;
                 for &(v, prob) in &self.entries {
-                    cumulative += prob;
-                    if cumulative >= threshold {
+                    neumaier_add(&mut cumulative, &mut comp, prob);
+                    if cumulative + comp >= threshold {
                         return Ok(v);
                     }
                 }
@@ -286,17 +352,15 @@ impl Distribution {
             }
             TargetDirection::AtLeast => {
                 let mut answer = self.entries[0].0;
-                let mut total = 0.0_f64;
-                for &(_, prob) in &self.entries {
-                    total += prob;
-                }
+                let total = neumaier_sum_entries(&self.entries);
                 let mut below = 0.0_f64;
+                let mut below_comp = 0.0_f64;
                 for &(v, prob) in &self.entries {
-                    let survival = total - below;
+                    let survival = total - (below + below_comp);
                     if survival >= threshold {
                         answer = v;
                     }
-                    below += prob;
+                    neumaier_add(&mut below, &mut below_comp, prob);
                 }
                 Ok(answer)
             }
@@ -324,46 +388,47 @@ pub fn compute_stats(dist: &Distribution) -> DistributionStats {
         };
     }
 
-    let mut mass_sum = 0.0_f64;
-    for &(_, p) in &dist.entries {
-        mass_sum += p;
-    }
+    let mass_sum = neumaier_sum_entries(&dist.entries);
     let needs_norm = (mass_sum - 1.0).abs() > 1e-12 && mass_sum > 0.0;
     let inv_norm = if needs_norm { 1.0 / mass_sum } else { 1.0 };
 
     let min = dist.entries[0].0;
     let max = dist.entries[dist.entries.len() - 1].0;
 
-    let mut mean = 0.0_f64;
+    let mut mean_sum = 0.0_f64;
+    let mut mean_comp = 0.0_f64;
     let mut mode = min;
     let mut mode_prob = -1.0_f64;
 
     for &(v, raw_p) in &dist.entries {
         let p = if needs_norm { raw_p * inv_norm } else { raw_p };
-        mean += (v as f64) * p;
+        neumaier_add(&mut mean_sum, &mut mean_comp, (v as f64) * p);
         if p > mode_prob {
             mode_prob = p;
             mode = v;
         }
     }
-    mean = canon_f64(mean);
+    let mean = canon_f64(mean_sum + mean_comp);
 
-    let mut variance = 0.0_f64;
-    let mut entropy = 0.0_f64;
+    let mut var_sum = 0.0_f64;
+    let mut var_comp = 0.0_f64;
+    let mut ent_sum = 0.0_f64;
+    let mut ent_comp = 0.0_f64;
     for &(v, raw_p) in &dist.entries {
         let p = if needs_norm { raw_p * inv_norm } else { raw_p };
         let diff = (v as f64) - mean;
-        variance += p * (diff * diff);
+        neumaier_add(&mut var_sum, &mut var_comp, p * (diff * diff));
         if p > 0.0 {
-            entropy -= p * log2_f64(p);
+            neumaier_add(&mut ent_sum, &mut ent_comp, -(p * log2_f64(p)));
         }
     }
-    let stddev = canon_f64(sqrt_f64(variance.max(0.0)));
-    entropy = canon_f64(entropy.max(0.0));
+    let stddev = canon_f64(sqrt_f64((var_sum + var_comp).max(0.0)));
+    let entropy = canon_f64((ent_sum + ent_comp).max(0.0));
 
     const PERCENTILE_KEYS: [u8; 6] = [10, 25, 50, 75, 90, 95];
     let mut percentiles = BTreeMap::new();
     let mut cumulative = 0.0_f64;
+    let mut cum_comp = 0.0_f64;
     let mut pct_idx = 0usize;
 
     let last_positive_value = dist
@@ -375,11 +440,12 @@ pub fn compute_stats(dist: &Distribution) -> DistributionStats {
 
     for &(v, raw_p) in &dist.entries {
         let p = if needs_norm { raw_p * inv_norm } else { raw_p };
-        cumulative += p;
+        neumaier_add(&mut cumulative, &mut cum_comp, p);
+        let cur = cumulative + cum_comp;
         while pct_idx < PERCENTILE_KEYS.len() {
             let key = PERCENTILE_KEYS[pct_idx];
             let target = f64::from(key) / 100.0;
-            if cumulative >= target - 1e-15 {
+            if cur >= target - 1e-15 {
                 percentiles.insert(key, v);
                 pct_idx += 1;
             } else {
@@ -407,7 +473,7 @@ pub fn compute_stats(dist: &Distribution) -> DistributionStats {
 }
 
 /// Analyzes `expr` and returns its exact probability distribution (with any exercised engine caps)
-/// or a deterministic `100,000`-sample Monte Carlo distribution (`Roll 3.0 §5`).
+/// or a deterministic Monte Carlo distribution (`Roll 3.0 §5`).
 pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
     let total_dice = u64::from(expr.total_base_dice());
     if total_dice > u64::from(MAX_ANALYZE_DICE) {
@@ -417,8 +483,9 @@ pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
         });
     }
 
-    match try_exact(expr) {
-        Ok((distribution, caps)) => {
+    let mut budget = ExactBudget::new();
+    match try_exact(expr, &mut budget) {
+        Ok((distribution, caps)) if expr_max_die_rolls(expr) <= u64::from(MAX_TOTAL_DRAWS) => {
             let stats = compute_stats(&distribution);
             Ok(AnalysisReport {
                 distribution,
@@ -429,9 +496,8 @@ pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
             })
         }
         Err(ExactAbort::Error(err)) => Err(err),
-        Err(ExactAbort::TooLarge | ExactAbort::Unsupported) => {
-            let samples = DEFAULT_MONTE_CARLO_SAMPLES;
-            let distribution = monte_carlo_distribution(expr, samples)?;
+        Ok(_) | Err(ExactAbort::TooLarge | ExactAbort::Unsupported) => {
+            let (distribution, samples) = monte_carlo_fallback(expr, DEFAULT_MONTE_CARLO_SAMPLES)?;
             let stats = compute_stats(&distribution);
             Ok(AnalysisReport {
                 distribution,
@@ -444,9 +510,9 @@ pub fn analyze(expr: &Expr) -> Result<AnalysisReport, RollError> {
 
 /// Compares two independent expressions `left` ($A$) and `right` ($B$) head-to-head (`§5.3`).
 ///
-/// Computes exact `A - B` margin distribution when `|A| * |B| <= MAX_EXACT_STATES`, and falls back
-/// to an $O(|A| + |B|)$ symmetric two-pointer linear scan (`margin: None`) when `|A| * |B|` exceeds
-/// `MAX_EXACT_STATES` (such as `compare("100d100", "100d100")`).
+/// Computes exact `A - B` margin distribution when `|A| * |B|` and its accumulator stay within
+/// the exact budget, and falls back to an $O(|A| + |B|)$ symmetric two-pointer linear scan
+/// (`margin: None`) when `A - B` exceeds the budget (such as `compare("100d100", "100d100")`).
 pub fn compare(left: &Expr, right: &Expr) -> Result<ComparisonReport, RollError> {
     let left_report = analyze(left)?;
     let right_report = analyze(right)?;
@@ -464,6 +530,12 @@ pub fn compare(left: &Expr, right: &Expr) -> Result<ComparisonReport, RollError>
                 caps: merged.into_option(),
             }
         }
+        (
+            AnalysisMethod::MonteCarlo { samples: sl },
+            AnalysisMethod::MonteCarlo { samples: sr },
+        ) => AnalysisMethod::MonteCarlo {
+            samples: sl.min(sr),
+        },
         (AnalysisMethod::MonteCarlo { samples }, _)
         | (_, AnalysisMethod::MonteCarlo { samples }) => AnalysisMethod::MonteCarlo { samples },
     };
@@ -486,27 +558,31 @@ pub fn compare(left: &Expr, right: &Expr) -> Result<ComparisonReport, RollError>
             .ok_or(RollError::ArithmeticOverflow)?;
     }
 
-    match subtract_distributions(a, b) {
+    let mut margin_budget = ExactBudget::with_initial_live(a.len().saturating_add(b.len()));
+    match subtract_distributions(a, b, &mut margin_budget) {
         Ok(margin_dist) => {
             let mut p_left_greater = 0.0_f64;
+            let mut lg_comp = 0.0_f64;
             let mut p_equal = 0.0_f64;
+            let mut eq_comp = 0.0_f64;
             let mut p_right_greater = 0.0_f64;
+            let mut rg_comp = 0.0_f64;
             for &(v, p) in &margin_dist.entries {
                 if v > 0 {
-                    p_left_greater += p;
+                    neumaier_add(&mut p_left_greater, &mut lg_comp, p);
                 } else if v < 0 {
-                    p_right_greater += p;
+                    neumaier_add(&mut p_right_greater, &mut rg_comp, p);
                 } else {
-                    p_equal += p;
+                    neumaier_add(&mut p_equal, &mut eq_comp, p);
                 }
             }
             let mean_margin = canon_f64(left_report.stats.mean - right_report.stats.mean);
             Ok(ComparisonReport {
                 left: left_report,
                 right: right_report,
-                p_left_greater: canon_f64(p_left_greater),
-                p_equal: canon_f64(p_equal),
-                p_right_greater: canon_f64(p_right_greater),
+                p_left_greater: canon_f64((p_left_greater + lg_comp).max(0.0)),
+                p_equal: canon_f64((p_equal + eq_comp).max(0.0)),
+                p_right_greater: canon_f64((p_right_greater + rg_comp).max(0.0)),
                 mean_margin,
                 margin: Some(margin_dist),
                 method,
@@ -535,46 +611,114 @@ fn two_pointer_compare(a: &Distribution, b: &Distribution) -> (f64, f64, f64) {
     let b_slice = &b.entries;
 
     let mut p_left_greater = 0.0_f64;
+    let mut lg_comp = 0.0_f64;
     let mut p_equal = 0.0_f64;
+    let mut eq_comp = 0.0_f64;
     let mut j = 0usize;
     let mut b_less_mass = 0.0_f64;
+    let mut b_less_comp = 0.0_f64;
     for &(va, pa) in a_slice {
         while j < b_slice.len() && b_slice[j].0 < va {
-            b_less_mass += b_slice[j].1;
+            neumaier_add(&mut b_less_mass, &mut b_less_comp, b_slice[j].1);
             j += 1;
         }
-        p_left_greater += pa * b_less_mass;
+        neumaier_add(
+            &mut p_left_greater,
+            &mut lg_comp,
+            pa * (b_less_mass + b_less_comp).max(0.0),
+        );
         if j < b_slice.len() && b_slice[j].0 == va {
-            p_equal += pa * b_slice[j].1;
+            neumaier_add(&mut p_equal, &mut eq_comp, pa * b_slice[j].1);
         }
     }
 
     // Symmetric scan of `B` against `A` so `compare(X, X)` yields bit-identical win probabilities.
     let mut p_right_greater = 0.0_f64;
+    let mut rg_comp = 0.0_f64;
     let mut i = 0usize;
     let mut a_less_mass = 0.0_f64;
+    let mut a_less_comp = 0.0_f64;
     for &(vb, pb) in b_slice {
         while i < a_slice.len() && a_slice[i].0 < vb {
-            a_less_mass += a_slice[i].1;
+            neumaier_add(&mut a_less_mass, &mut a_less_comp, a_slice[i].1);
             i += 1;
         }
-        p_right_greater += pb * a_less_mass;
+        neumaier_add(
+            &mut p_right_greater,
+            &mut rg_comp,
+            pb * (a_less_mass + a_less_comp).max(0.0),
+        );
     }
 
     (
-        canon_f64(p_left_greater),
-        canon_f64(p_equal),
-        canon_f64(p_right_greater),
+        canon_f64((p_left_greater + lg_comp).max(0.0)),
+        canon_f64((p_equal + eq_comp).max(0.0)),
+        canon_f64((p_right_greater + rg_comp).max(0.0)),
     )
 }
 
-// ─── Internal exact engine & accumulators ────────────────────────────────────
+// ─── Internal AST-wide exact budget & accumulators ───────────────────────────
 
 #[derive(Debug)]
 enum ExactAbort {
     TooLarge,
     Unsupported,
     Error(RollError),
+}
+
+/// AST-wide cumulative transition and live-state budget threaded through `try_exact`.
+struct ExactBudget {
+    transitions: usize,
+    live_states: usize,
+}
+
+impl ExactBudget {
+    const fn new() -> Self {
+        Self {
+            transitions: 0,
+            live_states: 0,
+        }
+    }
+
+    const fn with_initial_live(live_states: usize) -> Self {
+        Self {
+            transitions: 0,
+            live_states,
+        }
+    }
+
+    /// Charges `work` elementary transitions before executing a loop or initialization.
+    /// Leaves `self.transitions` unchanged if `self.transitions + work > MAX_EXACT_STATES`.
+    #[inline]
+    fn charge_transitions(&mut self, work: u128) -> Result<(), ExactAbort> {
+        let rem = (MAX_EXACT_STATES - self.transitions) as u128;
+        if work > rem {
+            return Err(ExactAbort::TooLarge);
+        }
+        self.transitions += work as usize;
+        Ok(())
+    }
+
+    /// Reserves `slots` live state slots before allocating heap storage.
+    #[inline]
+    fn reserve_live(&mut self, slots: usize) -> Result<(), ExactAbort> {
+        if slots > MAX_EXACT_LIVE_STATES.saturating_sub(self.live_states) {
+            return Err(ExactAbort::TooLarge);
+        }
+        self.live_states += slots;
+        Ok(())
+    }
+
+    /// Releases `slots` previously reserved live state slots after dropping storage.
+    #[inline]
+    fn release_live(&mut self, slots: usize) {
+        debug_assert!(
+            self.live_states >= slots,
+            "released {slots} slots with only {} live",
+            self.live_states
+        );
+        self.live_states = self.live_states.saturating_sub(slots);
+    }
 }
 
 enum Accum {
@@ -586,99 +730,251 @@ enum Accum {
 }
 
 impl Accum {
-    fn with_bounds(min_key: i64, max_key: i64) -> Self {
+    fn with_bounds(
+        min_key: i64,
+        max_key: i64,
+        budget: &mut ExactBudget,
+    ) -> Result<Self, ExactAbort> {
         if min_key <= max_key {
             let span = (i128::from(max_key) - i128::from(min_key) + 1) as u128;
             if span <= MAX_DENSE_SPAN {
-                return Self::Dense {
+                let len = span as usize;
+                budget.charge_transitions(span)?;
+                budget.reserve_live(len)?;
+                return Ok(Self::Dense {
                     min_key,
-                    slots: vec![(false, 0.0_f64); span as usize],
-                };
+                    slots: vec![(false, 0.0_f64); len],
+                });
             }
         }
-        Self::Sparse(BTreeMap::new())
+        Ok(Self::Sparse(BTreeMap::new()))
     }
 
-    fn sparse() -> Self {
-        Self::Sparse(BTreeMap::new())
+    const fn is_sparse(&self) -> bool {
+        matches!(self, Self::Sparse(_))
     }
 
     #[inline]
-    fn add(&mut self, key: i64, prob: f64) {
+    fn add(&mut self, key: i64, prob: f64, budget: &mut ExactBudget) -> Result<(), ExactAbort> {
+        self.add_capped(key, prob, usize::MAX, budget)
+    }
+
+    #[inline]
+    fn add_capped(
+        &mut self,
+        key: i64,
+        prob: f64,
+        max_sparse_len: usize,
+        budget: &mut ExactBudget,
+    ) -> Result<(), ExactAbort> {
         match self {
             Self::Dense { min_key, slots } => {
                 let idx = (i128::from(key) - i128::from(*min_key)) as usize;
                 let slot = &mut slots[idx];
                 slot.0 = true;
                 slot.1 += prob;
+                Ok(())
             }
             Self::Sparse(map) => {
-                *map.entry(key).or_insert(0.0) += prob;
+                let cur_len = map.len();
+                match map.entry(key) {
+                    Entry::Occupied(mut occ) => {
+                        *occ.get_mut() += prob;
+                        Ok(())
+                    }
+                    Entry::Vacant(vac) => {
+                        if cur_len >= max_sparse_len {
+                            return Err(ExactAbort::TooLarge);
+                        }
+                        budget.reserve_live(SPARSE_STATE_SLOTS)?;
+                        vac.insert(prob);
+                        Ok(())
+                    }
+                }
             }
         }
     }
 
-    fn into_entries(self) -> Vec<(i64, f64)> {
+    /// Converts an intermediate partial-probability accumulator into sorted `(value, prob)` entries
+    /// without normalizing singletons (`order_statistic_dp` and explosion chains hold partial mass `< 1.0`).
+    fn into_entries(self, budget: &mut ExactBudget) -> Result<Vec<(i64, f64)>, ExactAbort> {
         match self {
             Self::Dense { min_key, slots } => {
-                let mut out = Vec::new();
+                let slots_len = slots.len();
+                let reached_count = slots.iter().filter(|&&(reached, _)| reached).count();
+                budget.reserve_live(reached_count)?;
+                let mut vec_out = Vec::with_capacity(reached_count);
                 for (idx, (reached, p)) in slots.into_iter().enumerate() {
                     if reached {
                         let key = (i128::from(min_key) + (idx as i128)) as i64;
-                        out.push((key, canon_f64(p)));
+                        vec_out.push((key, canon_f64(p)));
                     }
                 }
-                out
+                budget.release_live(slots_len);
+                Ok(vec_out)
             }
-            Self::Sparse(map) => map.into_iter().map(|(k, p)| (k, canon_f64(p))).collect(),
+            Self::Sparse(map) => {
+                let map_len = map.len();
+                budget.reserve_live(map_len)?;
+                let mut vec_out = Vec::with_capacity(map_len);
+                for (k, p) in map {
+                    vec_out.push((k, canon_f64(p)));
+                }
+                budget.release_live(map_len * SPARSE_STATE_SLOTS);
+                Ok(vec_out)
+            }
         }
     }
 
-    fn into_distribution(self) -> Distribution {
-        Distribution {
-            entries: self.into_entries(),
+    fn into_distribution(self, budget: &mut ExactBudget) -> Result<Distribution, ExactAbort> {
+        let mut entries = self.into_entries(budget)?;
+        normalize_if_singleton(&mut entries);
+        Ok(Distribution { entries })
+    }
+}
+
+fn expr_contains_div(expr: &Expr) -> bool {
+    match expr {
+        Expr::Number(_) | Expr::Dice(_) => false,
+        Expr::UnaryNeg(inner) => expr_contains_div(inner),
+        Expr::Binary { op, left, right } => {
+            *op == BinaryOp::DivFloor || expr_contains_div(left) || expr_contains_div(right)
         }
     }
 }
 
-fn try_exact(expr: &Expr) -> Result<(Distribution, ModelledCaps), ExactAbort> {
+fn try_exact(
+    expr: &Expr,
+    budget: &mut ExactBudget,
+) -> Result<(Distribution, ModelledCaps), ExactAbort> {
+    let live_base = budget.live_states;
+    match try_exact_inner(expr, budget) {
+        Ok((dist, caps)) => {
+            debug_assert_eq!(
+                budget.live_states,
+                live_base + dist.len(),
+                "live-state accounting mismatch on Ok"
+            );
+            Ok((dist, caps))
+        }
+        Err(abort) => {
+            budget.live_states = live_base;
+            Err(abort)
+        }
+    }
+}
+
+fn try_exact_inner(
+    expr: &Expr,
+    budget: &mut ExactBudget,
+) -> Result<(Distribution, ModelledCaps), ExactAbort> {
     match expr {
-        Expr::Number(v) => Ok((Distribution::point(*v), ModelledCaps::default())),
-        Expr::Dice(spec) => try_exact_dice(spec),
+        Expr::Number(v) => {
+            budget.charge_transitions(1)?;
+            budget.reserve_live(1)?;
+            Ok((Distribution::point(*v), ModelledCaps::default()))
+        }
+        Expr::Dice(spec) => try_exact_dice(spec, budget),
         Expr::UnaryNeg(operand) => {
-            let (inner, caps) = try_exact(operand)?;
-            let negated = negate_distribution(&inner)?;
+            let (inner, caps) = try_exact(operand, budget)?;
+            let negated = negate_distribution(&inner, budget)?;
+            let inner_len = inner.len();
+            drop(inner);
+            budget.release_live(inner_len);
             Ok((negated, caps))
         }
         Expr::Binary { op, left, right } => {
-            // §5.4 Divide-by-zero contract:
-            // 1. Evaluate `try_exact(right)` BEFORE `try_exact(left)`.
-            // 2. If `right` is exact and `right.is_reachable(0)` on `/`, immediately return
-            //    `Err(RollError::DivisionByZero)` even if `left` exceeds `MAX_EXACT_STATES`.
-            // 3. Isolate `TooLarge` / `Unsupported` on `right` and `left` separately so any
-            //    deterministic `DivisionByZero` or `ArithmeticOverflow` inside `left` still
-            //    propagates when `right` is `TooLarge` or `Unsupported`.
-            let right_res = match try_exact(right) {
-                Ok((r_dist, r_caps)) => {
-                    if *op == BinaryOp::DivFloor && r_dist.is_reachable(0) {
-                        return Err(ExactAbort::Error(RollError::DivisionByZero));
+            // §5.4 Divide-by-zero & AST-wide budget interaction:
+            // - Evaluate `right` BEFORE `left` whenever `*op == BinaryOp::DivFloor` (giving the
+            //   divisor first claim on the budget and failing immediately on `is_reachable(0)`),
+            //   or on `+`/`-`/`*` when `right` contains a division and `left` does not (so an
+            //   oversized left sibling like `500d1000+(1d6/(5d20-5))` cannot starve the divisor).
+            // - On division-free left-associative spines (`52 × (3163*d3162+d3162)`), evaluate
+            //   `left` before `right` so right-hand leaves are not stacked during recursion.
+            // - Isolate `TooLarge` / `Unsupported` across siblings so deterministic errors in the
+            //   other child still propagate when budget remains.
+            let right_first =
+                *op == BinaryOp::DivFloor || (expr_contains_div(right) && !expr_contains_div(left));
+
+            let (left_res, right_res) = if right_first {
+                let r_res = match try_exact(right, budget) {
+                    Ok((r_dist, r_caps)) => {
+                        if *op == BinaryOp::DivFloor && r_dist.is_reachable(0) {
+                            let r_len = r_dist.len();
+                            drop(r_dist);
+                            budget.release_live(r_len);
+                            return Err(ExactAbort::Error(RollError::DivisionByZero));
+                        }
+                        Ok((r_dist, r_caps))
                     }
-                    Ok((r_dist, r_caps))
+                    Err(ExactAbort::Error(err)) => return Err(ExactAbort::Error(err)),
+                    Err(non_fatal) => Err(non_fatal),
+                };
+
+                let l_res = match try_exact(left, budget) {
+                    Ok(ok) => Ok(ok),
+                    Err(ExactAbort::Error(err)) => {
+                        if let Ok((r_dist, _)) = r_res {
+                            let r_len = r_dist.len();
+                            drop(r_dist);
+                            budget.release_live(r_len);
+                        }
+                        return Err(ExactAbort::Error(err));
+                    }
+                    Err(non_fatal) => Err(non_fatal),
+                };
+                (l_res, r_res)
+            } else {
+                let l_res = match try_exact(left, budget) {
+                    Ok(ok) => Ok(ok),
+                    Err(ExactAbort::Error(err)) => return Err(ExactAbort::Error(err)),
+                    Err(non_fatal) => Err(non_fatal),
+                };
+
+                let r_res = match try_exact(right, budget) {
+                    Ok(ok) => Ok(ok),
+                    Err(ExactAbort::Error(err)) => {
+                        if let Ok((l_dist, _)) = l_res {
+                            let l_len = l_dist.len();
+                            drop(l_dist);
+                            budget.release_live(l_len);
+                        }
+                        return Err(ExactAbort::Error(err));
+                    }
+                    Err(non_fatal) => Err(non_fatal),
+                };
+                (l_res, r_res)
+            };
+
+            let (left_dist, left_caps) = match left_res {
+                Ok(ok) => ok,
+                Err(abort) => {
+                    if let Ok((r_dist, _)) = right_res {
+                        let r_len = r_dist.len();
+                        drop(r_dist);
+                        budget.release_live(r_len);
+                    }
+                    return Err(abort);
                 }
-                Err(ExactAbort::Error(err)) => return Err(ExactAbort::Error(err)),
-                Err(non_fatal) => Err(non_fatal),
+            };
+            let (right_dist, right_caps) = match right_res {
+                Ok(ok) => ok,
+                Err(abort) => {
+                    let l_len = left_dist.len();
+                    drop(left_dist);
+                    budget.release_live(l_len);
+                    return Err(abort);
+                }
             };
 
-            let left_res = match try_exact(left) {
-                Ok(ok) => Ok(ok),
-                Err(ExactAbort::Error(err)) => return Err(ExactAbort::Error(err)),
-                Err(non_fatal) => Err(non_fatal),
-            };
+            let out_res = eval_binary_distributions(*op, &left_dist, &right_dist, budget);
+            let l_len = left_dist.len();
+            let r_len = right_dist.len();
+            drop(left_dist);
+            drop(right_dist);
+            budget.release_live(l_len + r_len);
 
-            let (left_dist, left_caps) = left_res?;
-            let (right_dist, right_caps) = right_res?;
-
-            let out = eval_binary_distributions(*op, &left_dist, &right_dist)?;
+            let out = out_res?;
             let mut caps = left_caps;
             caps.merge_from(right_caps);
             Ok((out, caps))
@@ -690,18 +986,19 @@ fn eval_binary_distributions(
     op: BinaryOp,
     left: &Distribution,
     right: &Distribution,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
     if right.len() == 1 {
         let rv = right.entries[0].0;
         let r_mass = right.entries[0].1;
         let out = match op {
-            BinaryOp::Add => shift_distribution_weighted(left, rv, r_mass)?,
+            BinaryOp::Add => shift_distribution_weighted(left, rv, r_mass, budget)?,
             BinaryOp::Sub => {
                 // `va - rv` directly so `rv == i64::MIN` works whenever `va < 0`!
-                subtract_scalar_weighted(left, rv, r_mass)?
+                subtract_scalar_weighted(left, rv, r_mass, budget)?
             }
-            BinaryOp::Mul => scale_distribution_weighted(left, rv, r_mass)?,
-            BinaryOp::DivFloor => divide_distribution_weighted(left, rv, r_mass)?,
+            BinaryOp::Mul => scale_distribution_weighted(left, rv, r_mass, budget)?,
+            BinaryOp::DivFloor => divide_distribution_weighted(left, rv, r_mass, budget)?,
         };
         return Ok(out);
     }
@@ -710,19 +1007,19 @@ fn eval_binary_distributions(
         let lv = left.entries[0].0;
         let l_mass = left.entries[0].1;
         let out = match op {
-            BinaryOp::Add => shift_distribution_weighted(right, lv, l_mass)?,
-            BinaryOp::Sub => subtract_from_scalar_weighted(lv, l_mass, right)?,
-            BinaryOp::Mul => scale_distribution_weighted(right, lv, l_mass)?,
-            BinaryOp::DivFloor => divide_distributions(left, right)?,
+            BinaryOp::Add => shift_distribution_weighted(right, lv, l_mass, budget)?,
+            BinaryOp::Sub => subtract_from_scalar_weighted(lv, l_mass, right, budget)?,
+            BinaryOp::Mul => scale_distribution_weighted(right, lv, l_mass, budget)?,
+            BinaryOp::DivFloor => divide_distributions(left, right, budget)?,
         };
         return Ok(out);
     }
 
     match op {
-        BinaryOp::Add => convolve(left, right),
-        BinaryOp::Sub => subtract_distributions(left, right),
-        BinaryOp::Mul => multiply_distributions(left, right),
-        BinaryOp::DivFloor => divide_distributions(left, right),
+        BinaryOp::Add => convolve(left, right, budget),
+        BinaryOp::Sub => subtract_distributions(left, right, budget),
+        BinaryOp::Mul => multiply_distributions(left, right, budget),
+        BinaryOp::DivFloor => divide_distributions(left, right, budget),
     }
 }
 
@@ -736,16 +1033,84 @@ const fn side_count(sides: DiceSides) -> usize {
     }
 }
 
+#[inline]
+const fn apply_clamp_value(mut v: i64, clamp: ClampBounds) -> i64 {
+    if let Some(lo) = clamp.min
+        && v < lo
+    {
+        v = lo;
+    }
+    if let Some(hi) = clamp.max
+        && v > hi
+    {
+        v = hi;
+    }
+    v
+}
+
 /// Composes Stage 1 (base uniform die) -> Stage 2 (`reroll_unlimited` with `MAX_REROLLS = 100`
 /// residual + `reroll_once`) -> Stage 3 (`min`/`max` clamp).
 fn single_die_pre_explode(
     spec: &DiceSpec,
     caps: &mut ModelledCaps,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
+    if let Some(clamp) = spec.clamp
+        && let (Some(lo), Some(hi)) = (clamp.min, clamp.max)
+        && lo > hi
+    {
+        return Err(ExactAbort::Error(RollError::InvalidClampBounds {
+            min: lo,
+            max: hi,
+            byte_offset: 0,
+        }));
+    }
+
     let s = side_count(spec.sides);
     if s > MAX_EXACT_STATES {
         return Err(ExactAbort::TooLarge);
     }
+
+    // Exact integer face-counting fast path for clamped dice without Stage 2 rerolls:
+    // avoids summing `1.0 / s` `O(s)` times in `f64` and runs in `O(post-clamp support)`.
+    if spec.reroll_unlimited.is_empty()
+        && spec.reroll_once.is_empty()
+        && let Some(clamp) = spec.clamp
+    {
+        let raw_min = spec.sides.min_face();
+        let raw_max = spec.sides.max_face();
+        let v_min = apply_clamp_value(raw_min, clamp);
+        let v_max = apply_clamp_value(raw_max, clamp);
+        if v_min == v_max {
+            budget.charge_transitions(1)?;
+            budget.reserve_live(1)?;
+            return Ok(Distribution::point(v_min));
+        }
+
+        let out_len = (v_max - v_min + 1) as usize;
+        budget.charge_transitions(out_len as u128)?;
+        budget.reserve_live(out_len)?;
+
+        let s_f64 = s as f64;
+        let low_count = (v_min - raw_min + 1) as u64;
+        let high_count = (raw_max - v_max + 1) as u64;
+        let p_one = canon_f64(1.0 / s_f64);
+
+        let mut out = Vec::with_capacity(out_len);
+        out.push((v_min, canon_f64((low_count as f64) / s_f64)));
+        for v in (v_min + 1)..v_max {
+            out.push((v, p_one));
+        }
+        out.push((v_max, canon_f64((high_count as f64) / s_f64)));
+        return Ok(Distribution { entries: out });
+    }
+
+    let reroll_passes = 1_u128
+        .saturating_add(spec.reroll_unlimited.len() as u128)
+        .saturating_add(spec.reroll_once.len() as u128)
+        .saturating_add(u128::from(spec.clamp.is_some()));
+    budget.charge_transitions(reroll_passes.saturating_mul(s as u128))?;
+    budget.reserve_live(s)?;
 
     // Stage 1: Uniform base faces in ascending order. Every base face stays reachable
     // throughout Stage 2a and Stage 2b (even when a residual probability underflows `f64`).
@@ -763,16 +1128,18 @@ fn single_die_pre_explode(
     // Stage 2a: Unlimited rerolls (`MAX_REROLLS = 100` per modifier per die).
     for &cp in &spec.reroll_unlimited {
         let mut match_count = 0usize;
-        let mut p_match = 0.0_f64;
+        let mut p_match_sum = 0.0_f64;
+        let mut p_match_comp = 0.0_f64;
         for &(face, p) in &base_entries {
             if cp.matches(face) {
                 match_count += 1;
-                p_match += p;
+                neumaier_add(&mut p_match_sum, &mut p_match_comp, p);
             }
         }
         if match_count == 0 {
             continue;
         }
+        let p_match = (p_match_sum + p_match_comp).max(0.0);
 
         // Because every base face is reachable entering each Stage 2a modifier and `match_count > 0`,
         // rolling matching faces `MAX_REROLLS` times in a row is reachable in `eval.rs`.
@@ -781,7 +1148,7 @@ fn single_die_pre_explode(
         if match_count == s {
             // Every face matches (e.g. `1d6r>=1`): all 100 rerolls match and the 100th fresh
             // uniform draw stands across all `s` faces.
-            let total_mass = base_entries.iter().map(|&(_, p)| p).sum::<f64>();
+            let total_mass = neumaier_sum_entries(&base_entries);
             let uniform = total_mass / (s as f64);
             for entry in &mut base_entries {
                 entry.1 = canon_f64(uniform);
@@ -807,16 +1174,18 @@ fn single_die_pre_explode(
     // Stage 2b: Reroll once.
     for &cp in &spec.reroll_once {
         let mut match_count = 0usize;
-        let mut p_match = 0.0_f64;
+        let mut p_match_sum = 0.0_f64;
+        let mut p_match_comp = 0.0_f64;
         for &(face, p) in &base_entries {
             if cp.matches(face) {
                 match_count += 1;
-                p_match += p;
+                neumaier_add(&mut p_match_sum, &mut p_match_comp, p);
             }
         }
         if match_count == 0 {
             continue;
         }
+        let p_match = (p_match_sum + p_match_comp).max(0.0);
 
         let reroll_share = p_match / (s as f64);
         for entry in &mut base_entries {
@@ -825,33 +1194,50 @@ fn single_die_pre_explode(
         }
     }
 
-    // Stage 3: Clamp (`min <= max` guaranteed on parsed specs; checked defensively here too).
+    // Stage 3: Clamp over already-sorted `base_entries` using Neumaier compensated run-length summation.
     if let Some(clamp) = spec.clamp {
-        if let (Some(lo), Some(hi)) = (clamp.min, clamp.max)
-            && lo > hi
-        {
-            return Err(ExactAbort::Error(RollError::InvalidClampBounds {
-                min: lo,
-                max: hi,
-                byte_offset: 0,
-            }));
+        let first_v = apply_clamp_value(base_entries[0].0, clamp);
+        let last_v = apply_clamp_value(base_entries[base_entries.len() - 1].0, clamp);
+        if first_v == last_v {
+            drop(base_entries);
+            budget.release_live(s);
+            budget.reserve_live(1)?;
+            return Ok(Distribution::point(first_v));
         }
-        let mut clamped_map = Accum::sparse();
-        for (mut v, p) in base_entries {
-            if let Some(lo) = clamp.min
-                && v < lo
-            {
-                v = lo;
+
+        // Count distinct clamped values in sorted `base_entries` before allocating `clamped`.
+        let mut distinct = 1usize;
+        let mut prev_clamped = first_v;
+        for &(raw_v, _) in &base_entries[1..] {
+            let cv = apply_clamp_value(raw_v, clamp);
+            if cv != prev_clamped {
+                distinct += 1;
+                prev_clamped = cv;
             }
-            if let Some(hi) = clamp.max
-                && v > hi
-            {
-                v = hi;
-            }
-            clamped_map.add(v, p);
         }
-        Ok(clamped_map.into_distribution())
+
+        budget.reserve_live(distinct)?;
+        let mut clamped = Vec::with_capacity(distinct);
+        let mut cur_v = first_v;
+        let mut cur_sum = 0.0_f64;
+        let mut cur_comp = 0.0_f64;
+        for (raw_v, p) in base_entries {
+            let cv = apply_clamp_value(raw_v, clamp);
+            if cv == cur_v {
+                neumaier_add(&mut cur_sum, &mut cur_comp, p);
+            } else {
+                clamped.push((cur_v, canon_f64((cur_sum + cur_comp).max(0.0))));
+                cur_v = cv;
+                cur_sum = p;
+                cur_comp = 0.0;
+            }
+        }
+        clamped.push((cur_v, canon_f64((cur_sum + cur_comp).max(0.0))));
+        budget.release_live(s);
+        normalize_if_singleton(&mut clamped);
+        Ok(Distribution { entries: clamped })
     } else {
+        normalize_if_singleton(&mut base_entries);
         Ok(Distribution {
             entries: base_entries,
         })
@@ -864,14 +1250,61 @@ fn explosion_chain_sum_pmf(
     s: usize,
     rule: ExplosionRule,
     caps: &mut ModelledCaps,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let live_base = budget.live_states;
+    let res = explosion_chain_sum_pmf_inner(initial_dist, s, rule, caps, budget);
+    if res.is_err() {
+        budget.live_states = live_base;
+    }
+    res
+}
+
+fn explosion_chain_sum_pmf_inner(
+    initial_dist: &Distribution,
+    s: usize,
+    rule: ExplosionRule,
+    caps: &mut ModelledCaps,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
     let is_penetrate = rule.variant == ExplosionVariant::Penetrate;
+    budget.charge_transitions(s as u128)?;
+
+    // Tight `i128` span bound for `finished` so small/medium exploding dice (`1d6!`, `5d9!!>2kl2`)
+    // use dense `O(1)` storage while huge dice (`1d1000000!`) fall back to capped sparse storage.
+    let min_0 = i128::from(initial_dist.entries[0].0);
+    let max_0 = i128::from(initial_dist.entries[initial_dist.len() - 1].0);
+    let init_explodes = initial_dist
+        .entries
+        .iter()
+        .any(|&(raw_face, _)| rule.threshold.matches(raw_face));
+    let raw_explodes = (1..=s).any(|f| rule.threshold.matches(f as i64));
+    let max_bonus = if is_penetrate {
+        (s as i128 - 1).max(1)
+    } else {
+        s as i128
+    };
+    let max_chain = if !init_explodes {
+        max_0
+    } else if !raw_explodes {
+        max_0 + max_bonus
+    } else {
+        max_0 + i128::from(MAX_EXPLOSIONS) * max_bonus
+    };
+
+    let mut finished = if max_chain >= min_0
+        && ((max_chain - min_0 + 1) as u128) <= MAX_DENSE_SPAN
+        && let (Ok(lo_i64), Ok(hi_i64)) = (i64::try_from(min_0), i64::try_from(max_chain))
+    {
+        Accum::with_bounds(lo_i64, hi_i64, budget)?
+    } else {
+        Accum::Sparse(BTreeMap::new())
+    };
+
+    budget.reserve_live(s + 1)?;
     let p_raw = 1.0 / (s as f64);
     let raw_faces: Vec<(i64, f64)> = (1..=s).map(|f| (f as i64, p_raw)).collect();
-
-    let mut finished = BTreeMap::<i64, f64>::new();
     let mut accumulated: Vec<(i64, f64)> = vec![(0, 1.0)];
-    let mut total_work: u128 = 0;
 
     for depth in 0..=MAX_EXPLOSIONS {
         let step_faces: &[(i64, f64)] = if depth == 0 {
@@ -879,18 +1312,6 @@ fn explosion_chain_sum_pmf(
         } else {
             &raw_faces
         };
-
-        let step_work = (accumulated.len() as u128) * (step_faces.len() as u128);
-        total_work = total_work.saturating_add(step_work);
-        if total_work > (MAX_EXACT_STATES as u128)
-            || finished
-                .len()
-                .saturating_add(accumulated.len())
-                .saturating_add(step_faces.len())
-                > MAX_EXACT_STATES
-        {
-            return Err(ExactAbort::TooLarge);
-        }
 
         let min_eff = if is_penetrate && depth > 0 {
             (step_faces[0].0 - 1).max(1)
@@ -911,7 +1332,46 @@ fn explosion_chain_sum_pmf(
             .checked_add(max_eff)
             .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
 
-        let mut next_acc = Accum::with_bounds(min_next, max_next);
+        let exploding_faces = if depth == MAX_EXPLOSIONS {
+            0usize
+        } else {
+            step_faces
+                .iter()
+                .filter(|&&(raw_face, _)| rule.threshold.matches(raw_face))
+                .count()
+        };
+        let finishing_faces = step_faces.len() - exploding_faces;
+
+        // Pre-allocation bound check: at `depth == 0`, `accumulated == [(0, 1.0)]` and `step_faces`
+        // has strictly distinct keys, so `finishing_faces` distinct keys would be inserted.
+        if depth == 0 && finished.is_sparse() && finishing_faces > MAX_EXPLOSION_FINISHED_STATES {
+            return Err(ExactAbort::TooLarge);
+        }
+
+        let mut next_acc = if exploding_faces > 0 {
+            Some(Accum::with_bounds(min_next, max_next, budget)?)
+        } else {
+            None
+        };
+
+        let acc_len = accumulated.len() as u128;
+        let finish_weight = if finished.is_sparse() {
+            SPARSE_TRANSITION_WEIGHT
+        } else {
+            1
+        };
+        let finish_cost = acc_len
+            .saturating_mul(finishing_faces as u128)
+            .saturating_mul(finish_weight);
+        let next_weight = if next_acc.as_ref().is_some_and(Accum::is_sparse) {
+            SPARSE_TRANSITION_WEIGHT
+        } else {
+            1
+        };
+        let next_cost = acc_len
+            .saturating_mul(exploding_faces as u128)
+            .saturating_mul(next_weight);
+        budget.charge_transitions(finish_cost.saturating_add(next_cost))?;
 
         for &(acc_sum, acc_prob) in &accumulated {
             for &(raw_face, p_face) in step_faces {
@@ -931,25 +1391,37 @@ fn explosion_chain_sum_pmf(
                     if explodes {
                         caps.max_explosions = Some(MAX_EXPLOSIONS);
                     }
-                    *finished.entry(total).or_insert(0.0) += prod;
-                } else {
-                    next_acc.add(total, prod);
+                    finished.add_capped(total, prod, MAX_EXPLOSION_FINISHED_STATES, budget)?;
+                } else if let Some(ref mut acc) = next_acc {
+                    acc.add(total, prod, budget)?;
                 }
             }
         }
 
-        accumulated = next_acc.into_entries();
-        if accumulated.is_empty() {
-            break;
+        let old_acc_len = accumulated.len();
+        drop(accumulated);
+        budget.release_live(old_acc_len);
+
+        match next_acc {
+            Some(acc) => {
+                accumulated = acc.into_entries(budget)?;
+                if accumulated.is_empty() {
+                    break;
+                }
+            }
+            None => {
+                accumulated = Vec::new();
+                break;
+            }
         }
     }
 
-    Ok(Distribution {
-        entries: finished
-            .into_iter()
-            .map(|(k, p)| (k, canon_f64(p)))
-            .collect(),
-    })
+    let rem_acc_len = accumulated.len();
+    drop(accumulated);
+    drop(raw_faces);
+    budget.release_live(s + rem_acc_len);
+
+    finished.into_distribution(budget)
 }
 
 /// Stage 4 single-chain net-success expansion for exploding pools (`Standard` / `Penetrate` with empty `keep_drop`).
@@ -960,15 +1432,35 @@ fn explosion_chain_pool_pmf(
     cs: &[ComparePoint],
     cf: &[ComparePoint],
     caps: &mut ModelledCaps,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let live_base = budget.live_states;
+    let res = explosion_chain_pool_pmf_inner(initial_dist, s, rule, cs, cf, caps, budget);
+    if res.is_err() {
+        budget.live_states = live_base;
+    }
+    res
+}
+
+fn explosion_chain_pool_pmf_inner(
+    initial_dist: &Distribution,
+    s: usize,
+    rule: ExplosionRule,
+    cs: &[ComparePoint],
+    cf: &[ComparePoint],
+    caps: &mut ModelledCaps,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
     let is_penetrate = rule.variant == ExplosionVariant::Penetrate;
+    budget.charge_transitions(s as u128)?;
+    budget.reserve_live(s + 1)?;
+
     let p_raw = 1.0 / (s as f64);
     let raw_faces: Vec<(i64, f64)> = (1..=s).map(|f| (f as i64, p_raw)).collect();
 
     let bound = i64::from(MAX_EXPLOSIONS) + 1;
-    let mut finished = Accum::with_bounds(-bound, bound);
+    let mut finished = Accum::with_bounds(-bound, bound, budget)?;
     let mut accumulated: Vec<(i64, f64)> = vec![(0, 1.0)];
-    let mut total_work: u128 = 0;
 
     for depth in 0..=MAX_EXPLOSIONS {
         let step_faces: &[(i64, f64)] = if depth == 0 {
@@ -978,13 +1470,10 @@ fn explosion_chain_pool_pmf(
         };
 
         let step_work = (accumulated.len() as u128) * (step_faces.len() as u128);
-        total_work = total_work.saturating_add(step_work);
-        if total_work > (MAX_EXACT_STATES as u128) {
-            return Err(ExactAbort::TooLarge);
-        }
+        budget.charge_transitions(step_work)?;
 
         let depth_bound = i64::from(depth) + 1;
-        let mut next_acc = Accum::with_bounds(-depth_bound, depth_bound);
+        let mut next_acc = Accum::with_bounds(-depth_bound, depth_bound, budget)?;
 
         for &(acc_net, acc_prob) in &accumulated {
             for &(raw_face, p_face) in step_faces {
@@ -1002,26 +1491,38 @@ fn explosion_chain_pool_pmf(
                     if explodes {
                         caps.max_explosions = Some(MAX_EXPLOSIONS);
                     }
-                    finished.add(next_net, prod);
+                    finished.add(next_net, prod, budget)?;
                 } else {
-                    next_acc.add(next_net, prod);
+                    next_acc.add(next_net, prod, budget)?;
                 }
             }
         }
 
-        accumulated = next_acc.into_entries();
+        let old_acc_len = accumulated.len();
+        drop(accumulated);
+        budget.release_live(old_acc_len);
+
+        accumulated = next_acc.into_entries(budget)?;
         if accumulated.is_empty() {
             break;
         }
     }
 
-    Ok(finished.into_distribution())
+    let rem_acc_len = accumulated.len();
+    drop(accumulated);
+    drop(raw_faces);
+    budget.release_live(s + rem_acc_len);
+
+    finished.into_distribution(budget)
 }
 
-fn try_exact_dice(spec: &DiceSpec) -> Result<(Distribution, ModelledCaps), ExactAbort> {
+fn try_exact_dice(
+    spec: &DiceSpec,
+    budget: &mut ExactBudget,
+) -> Result<(Distribution, ModelledCaps), ExactAbort> {
     let count = spec.count.get() as usize;
     let mut node_caps = ModelledCaps::default();
-    let pre_explode = single_die_pre_explode(spec, &mut node_caps)?;
+    let pre_explode = single_die_pre_explode(spec, &mut node_caps, budget)?;
 
     // Determine effective single-die distribution after Stage 4, or handle multi-die explosion chains.
     let single_die_for_group = match spec.explode {
@@ -1033,9 +1534,14 @@ fn try_exact_dice(spec: &DiceSpec) -> Result<(Distribution, ModelledCaps), Exact
             let s = side_count(spec.sides);
             match rule.variant {
                 ExplosionVariant::Compound => {
-                    // Compound (`!!`) sums bonus rolls into the same die (`eval.rs:250-268`),
+                    // Compound (`!!`) sums bonus rolls into the same die (`eval.rs:302-320`),
                     // leaving exactly `count` i.i.d. dice drawn from `D_compound` before keep/drop and sum/pool!
-                    explosion_chain_sum_pmf(&pre_explode, s, rule, &mut node_caps)?
+                    let comp =
+                        explosion_chain_sum_pmf(&pre_explode, s, rule, &mut node_caps, budget)?;
+                    let pre_len = pre_explode.len();
+                    drop(pre_explode);
+                    budget.release_live(pre_len);
+                    comp
                 }
                 ExplosionVariant::Standard | ExplosionVariant::Penetrate => {
                     if !spec.keep_drop.is_empty() {
@@ -1044,13 +1550,26 @@ fn try_exact_dice(spec: &DiceSpec) -> Result<(Distribution, ModelledCaps), Exact
                     }
                     let chain_pmf = match &spec.mode {
                         ResultMode::Sum { .. } => {
-                            explosion_chain_sum_pmf(&pre_explode, s, rule, &mut node_caps)?
+                            explosion_chain_sum_pmf(&pre_explode, s, rule, &mut node_caps, budget)?
                         }
-                        ResultMode::Pool { cs, cf } => {
-                            explosion_chain_pool_pmf(&pre_explode, s, rule, cs, cf, &mut node_caps)?
-                        }
+                        ResultMode::Pool { cs, cf } => explosion_chain_pool_pmf(
+                            &pre_explode,
+                            s,
+                            rule,
+                            cs,
+                            cf,
+                            &mut node_caps,
+                            budget,
+                        )?,
                     };
-                    let total_dist = convolve_n(&chain_pmf, count)?;
+                    let pre_len = pre_explode.len();
+                    drop(pre_explode);
+                    budget.release_live(pre_len);
+
+                    let total_dist = convolve_n(&chain_pmf, count, budget)?;
+                    let chain_len = chain_pmf.len();
+                    drop(chain_pmf);
+                    budget.release_live(chain_len);
                     return Ok((total_dist, node_caps));
                 }
             }
@@ -1061,10 +1580,18 @@ fn try_exact_dice(spec: &DiceSpec) -> Result<(Distribution, ModelledCaps), Exact
     if !spec.keep_drop.is_empty() {
         let (l, r) = reduce_keep_drop_interval(count, &spec.keep_drop);
         if l == r {
+            let single_len = single_die_for_group.len();
+            drop(single_die_for_group);
+            budget.release_live(single_len);
+            budget.reserve_live(1)?;
             return Ok((Distribution::point(0), node_caps));
         }
         if l > 0 || r < count {
-            let dp_dist = order_statistic_dp(&single_die_for_group, count, l, r, &spec.mode)?;
+            let dp_dist =
+                order_statistic_dp(&single_die_for_group, count, l, r, &spec.mode, budget)?;
+            let single_len = single_die_for_group.len();
+            drop(single_die_for_group);
+            budget.release_live(single_len);
             return Ok((dp_dist, node_caps));
         }
         // `l == 0 && r == count`: all `count` dice are kept; fall through to fast `convolve_n`.
@@ -1073,16 +1600,24 @@ fn try_exact_dice(spec: &DiceSpec) -> Result<(Distribution, ModelledCaps), Exact
     let per_die_contribution = match &spec.mode {
         ResultMode::Sum { .. } => single_die_for_group,
         ResultMode::Pool { cs, cf } => {
-            let mut pool_acc = Accum::with_bounds(-1, 1);
+            budget.charge_transitions(single_die_for_group.len() as u128)?;
+            let mut pool_acc = Accum::with_bounds(-1, 1, budget)?;
             for &(v, p) in &single_die_for_group.entries {
                 let delta = i64::from(pool_die_delta(v, cs, cf));
-                pool_acc.add(delta, p);
+                pool_acc.add(delta, p, budget)?;
             }
-            pool_acc.into_distribution()
+            let pool_dist = pool_acc.into_distribution(budget)?;
+            let single_len = single_die_for_group.len();
+            drop(single_die_for_group);
+            budget.release_live(single_len);
+            pool_dist
         }
     };
 
-    let group_dist = convolve_n(&per_die_contribution, count)?;
+    let group_dist = convolve_n(&per_die_contribution, count, budget)?;
+    let contrib_len = per_die_contribution.len();
+    drop(per_die_contribution);
+    budget.release_live(contrib_len);
     Ok((group_dist, node_caps))
 }
 
@@ -1124,8 +1659,27 @@ fn order_statistic_dp(
     l: usize,
     r: usize,
     mode: &ResultMode,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let live_base = budget.live_states;
+    let res = order_statistic_dp_inner(single, n, l, r, mode, budget);
+    if res.is_err() {
+        budget.live_states = live_base;
+    }
+    res
+}
+
+fn order_statistic_dp_inner(
+    single: &Distribution,
+    n: usize,
+    l: usize,
+    r: usize,
+    mode: &ResultMode,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
     if l == r {
+        budget.charge_transitions(1)?;
+        budget.reserve_live(1)?;
         return Ok(Distribution::point(0));
     }
 
@@ -1133,6 +1687,9 @@ fn order_statistic_dp(
     let m = faces.len();
     debug_assert!(m >= 1);
 
+    let vals_slots = m.div_ceil(2);
+    budget.charge_transitions(m as u128)?;
+    budget.reserve_live(vals_slots)?;
     let vals: Vec<i64> = match mode {
         ResultMode::Sum { .. } => faces.iter().map(|&(v, _)| v).collect(),
         ResultMode::Pool { cs, cf } => faces
@@ -1153,31 +1710,40 @@ fn order_statistic_dp(
     let global_min_sum = bound_a.min(bound_b);
     let global_max_sum = bound_a.max(bound_b);
 
+    let dp_header_slots = n + 1;
+    budget.charge_transitions(dp_header_slots as u128)?;
+    budget.reserve_live(dp_header_slots + 1)?;
     let mut dp: Vec<Vec<(i64, f64)>> = vec![Vec::new(); n + 1];
     dp[0].push((0, 1.0));
+    let mut dp_states = 1usize;
 
-    let mut accumulated_work: u128 = 0;
+    let mut min_seen = vals[0];
+    let mut max_seen = vals[0];
 
     for (face_idx, &(_v_i, p_i)) in faces.iter().enumerate() {
-        // §5.2 Cost guard: accumulate inner transitions `sum_{j=0}^N |dp[j]| * (N - j + 1)` before step `i`.
-        let mut step_transitions: u128 = 0;
-        for (j, bucket) in dp.iter().enumerate() {
-            if !bucket.is_empty() {
-                step_transitions =
-                    step_transitions.saturating_add((bucket.len() as u128) * ((n - j + 1) as u128));
-            }
-        }
-        accumulated_work = accumulated_work.saturating_add(step_transitions);
-        if accumulated_work > (MAX_EXACT_STATES as u128) {
-            return Err(ExactAbort::TooLarge);
-        }
-
         let val_i = vals[face_idx];
+        min_seen = min_seen.min(val_i);
+        max_seen = max_seen.max(val_i);
         let is_last_face = face_idx + 1 == m;
 
         if is_last_face {
             // On the final face `m - 1`, all remaining `c = n - j` dice must land on `v_{m-1}` to reach `dp[n]`.
-            let mut final_acc = Accum::with_bounds(global_min_sum, global_max_sum);
+            let mut last_work: u128 = 0;
+            for (j, bucket) in dp.iter().enumerate() {
+                if !bucket.is_empty() {
+                    last_work = last_work
+                        .saturating_add(bucket.len() as u128)
+                        .saturating_add((n - j) as u128);
+                }
+            }
+            let mut final_acc = Accum::with_bounds(global_min_sum, global_max_sum, budget)?;
+            let weight = if final_acc.is_sparse() {
+                SPARSE_TRANSITION_WEIGHT
+            } else {
+                1
+            };
+            budget.charge_transitions(last_work.saturating_mul(weight))?;
+
             for (j, bucket) in dp.iter().enumerate() {
                 if bucket.is_empty() {
                     continue;
@@ -1198,12 +1764,27 @@ fn order_statistic_dp(
                     let next_sum = s
                         .checked_add(delta_sum)
                         .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
-                    final_acc.add(next_sum, prob * w);
+                    final_acc.add(next_sum, prob * w, budget)?;
                 }
             }
-            return Ok(final_acc.into_distribution());
+
+            drop(dp);
+            drop(vals);
+            budget.release_live(dp_states + dp_header_slots + vals_slots);
+            return final_acc.into_distribution(budget);
         }
 
+        // §5.2 Cost guard: charge inner transitions `sum_{j=0}^N |dp[j]| * (N - j + 1)` BEFORE step `i`.
+        let mut step_transitions: u128 = 0;
+        for (j, bucket) in dp.iter().enumerate() {
+            if !bucket.is_empty() {
+                step_transitions =
+                    step_transitions.saturating_add((bucket.len() as u128) * ((n - j + 1) as u128));
+            }
+        }
+        budget.charge_transitions(step_transitions)?;
+
+        budget.reserve_live(dp_header_slots)?;
         let mut next_acc: Vec<Option<Accum>> = (0..=n).map(|_| None).collect();
 
         for (j, bucket) in dp.iter().enumerate() {
@@ -1227,50 +1808,77 @@ fn order_statistic_dp(
                     .checked_mul(val_i)
                     .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
 
-                let target_acc = next_acc[next_j].get_or_insert_with(|| {
+                if next_acc[next_j].is_none() {
                     let kept_so_far = next_j.min(r).saturating_sub(l) as i64;
-                    let lo_a = kept_so_far.saturating_mul(min_val);
-                    let hi_a = kept_so_far.saturating_mul(max_val);
-                    Accum::with_bounds(lo_a.min(hi_a).min(0), lo_a.max(hi_a).max(0))
-                });
+                    let lo_a = kept_so_far.saturating_mul(min_seen);
+                    let hi_a = kept_so_far.saturating_mul(max_seen);
+                    next_acc[next_j] = Some(Accum::with_bounds(
+                        lo_a.min(hi_a).min(0),
+                        lo_a.max(hi_a).max(0),
+                        budget,
+                    )?);
+                }
+                let target_acc = next_acc[next_j].as_mut().expect("initialized");
+                if target_acc.is_sparse() {
+                    budget.charge_transitions(
+                        (bucket.len() as u128) * (SPARSE_TRANSITION_WEIGHT - 1),
+                    )?;
+                }
 
                 for &(s, prob) in bucket {
                     let next_sum = s
                         .checked_add(delta_sum)
                         .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
-                    target_acc.add(next_sum, prob * w);
+                    target_acc.add(next_sum, prob * w, budget)?;
                 }
             }
         }
 
-        let mut total_states = 0usize;
+        drop(dp);
+        budget.release_live(dp_states);
+
+        let mut next_dp_states = 0usize;
         let mut next_dp = Vec::with_capacity(n + 1);
         for slot in next_acc {
-            let entries = slot.map_or_else(Vec::new, Accum::into_entries);
-            total_states = total_states.saturating_add(entries.len());
-            if total_states > MAX_EXACT_STATES {
-                return Err(ExactAbort::TooLarge);
-            }
+            let entries = match slot {
+                Some(acc) => acc.into_entries(budget)?,
+                None => Vec::new(),
+            };
+            next_dp_states = next_dp_states.saturating_add(entries.len());
             next_dp.push(entries);
         }
+        budget.release_live(dp_header_slots);
+
         dp = next_dp;
+        dp_states = next_dp_states;
     }
 
-    Ok(Distribution {
-        entries: dp.pop().unwrap_or_default(),
-    })
+    let mut entries = dp.pop().unwrap_or_default();
+    let returned_len = entries.len();
+    drop(dp);
+    drop(vals);
+    budget.release_live(dp_states.saturating_sub(returned_len) + dp_header_slots + vals_slots);
+    normalize_if_singleton(&mut entries);
+    Ok(Distribution { entries })
 }
 
 // ─── §5.3 Distribution algebra & Monte Carlo fallback ────────────────────────
 
-fn negate_distribution(dist: &Distribution) -> Result<Distribution, ExactAbort> {
-    let mut out = Vec::with_capacity(dist.entries.len());
+fn negate_distribution(
+    dist: &Distribution,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let len = dist.entries.len();
+    budget.charge_transitions(len as u128)?;
+    budget.reserve_live(len)?;
+    let mut out = Vec::with_capacity(len);
     for &(v, p) in dist.entries.iter().rev() {
         let neg_v = v
             .checked_neg()
             .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
         out.push((neg_v, p));
     }
+    normalize_if_singleton(&mut out);
     Ok(Distribution { entries: out })
 }
 
@@ -1278,14 +1886,19 @@ fn shift_distribution_weighted(
     dist: &Distribution,
     offset: i64,
     weight: f64,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
-    let mut out = Vec::with_capacity(dist.entries.len());
+    let len = dist.entries.len();
+    budget.charge_transitions(len as u128)?;
+    budget.reserve_live(len)?;
+    let mut out = Vec::with_capacity(len);
     for &(v, p) in &dist.entries {
         let shifted = v
             .checked_add(offset)
             .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
         out.push((shifted, canon_f64(p * weight)));
     }
+    normalize_if_singleton(&mut out);
     Ok(Distribution { entries: out })
 }
 
@@ -1293,14 +1906,19 @@ fn subtract_scalar_weighted(
     dist: &Distribution,
     subtrahend: i64,
     weight: f64,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
-    let mut out = Vec::with_capacity(dist.entries.len());
+    let len = dist.entries.len();
+    budget.charge_transitions(len as u128)?;
+    budget.reserve_live(len)?;
+    let mut out = Vec::with_capacity(len);
     for &(v, p) in &dist.entries {
         let diff = v
             .checked_sub(subtrahend)
             .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
         out.push((diff, canon_f64(p * weight)));
     }
+    normalize_if_singleton(&mut out);
     Ok(Distribution { entries: out })
 }
 
@@ -1308,14 +1926,19 @@ fn subtract_from_scalar_weighted(
     minuend: i64,
     weight: f64,
     right: &Distribution,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
-    let mut out = Vec::with_capacity(right.entries.len());
+    let len = right.entries.len();
+    budget.charge_transitions(len as u128)?;
+    budget.reserve_live(len)?;
+    let mut out = Vec::with_capacity(len);
     for &(rv, rp) in right.entries.iter().rev() {
         let diff = minuend
             .checked_sub(rv)
             .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
         out.push((diff, canon_f64(weight * rp)));
     }
+    normalize_if_singleton(&mut out);
     Ok(Distribution { entries: out })
 }
 
@@ -1323,14 +1946,17 @@ fn scale_distribution_weighted(
     dist: &Distribution,
     factor: i64,
     weight: f64,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
     if factor == 0 {
-        let total_p: f64 = dist.entries.iter().map(|&(_, p)| p * weight).sum();
-        return Ok(Distribution {
-            entries: vec![(0, canon_f64(total_p))],
-        });
+        budget.charge_transitions(1)?;
+        budget.reserve_live(1)?;
+        return Ok(Distribution::point(0));
     }
-    let mut out = Vec::with_capacity(dist.entries.len());
+    let len = dist.entries.len();
+    budget.charge_transitions(len as u128)?;
+    budget.reserve_live(len)?;
+    let mut out = Vec::with_capacity(len);
     if factor > 0 {
         for &(v, p) in &dist.entries {
             let scaled = v
@@ -1346,6 +1972,7 @@ fn scale_distribution_weighted(
             out.push((scaled, canon_f64(p * weight)));
         }
     }
+    normalize_if_singleton(&mut out);
     Ok(Distribution { entries: out })
 }
 
@@ -1353,6 +1980,7 @@ fn divide_distribution_weighted(
     dist: &Distribution,
     divisor: i64,
     weight: f64,
+    budget: &mut ExactBudget,
 ) -> Result<Distribution, ExactAbort> {
     if divisor == 0 {
         return Err(ExactAbort::Error(RollError::DivisionByZero));
@@ -1360,19 +1988,30 @@ fn divide_distribution_weighted(
     let first_q = checked_div_floor(dist.entries[0].0, divisor).map_err(ExactAbort::Error)?;
     let last_q = checked_div_floor(dist.entries[dist.entries.len() - 1].0, divisor)
         .map_err(ExactAbort::Error)?;
-    let mut acc = Accum::with_bounds(first_q.min(last_q), first_q.max(last_q));
+    let mut acc = Accum::with_bounds(first_q.min(last_q), first_q.max(last_q), budget)?;
+    let cost = (dist.entries.len() as u128)
+        * if acc.is_sparse() {
+            SPARSE_TRANSITION_WEIGHT
+        } else {
+            1
+        };
+    budget.charge_transitions(cost)?;
     for &(v, p) in &dist.entries {
         let q = checked_div_floor(v, divisor).map_err(ExactAbort::Error)?;
-        acc.add(q, p * weight);
+        acc.add(q, p * weight, budget)?;
     }
-    Ok(acc.into_distribution())
+    acc.into_distribution(budget)
 }
 
-fn convolve(a: &Distribution, b: &Distribution) -> Result<Distribution, ExactAbort> {
+fn convolve(
+    a: &Distribution,
+    b: &Distribution,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
     let a_len = a.len() as u128;
     let b_len = b.len() as u128;
-    if a_len + b_len - 1 > (MAX_EXACT_STATES as u128) || a_len * b_len > (MAX_EXACT_STATES as u128)
-    {
+    let pairs = a_len * b_len;
+    if a_len + b_len - 1 > (MAX_EXACT_STATES as u128) || pairs > (MAX_EXACT_STATES as u128) {
         return Err(ExactAbort::TooLarge);
     }
 
@@ -1385,20 +2024,31 @@ fn convolve(a: &Distribution, b: &Distribution) -> Result<Distribution, ExactAbo
         .checked_add(b.entries[b.len() - 1].0)
         .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
 
-    let mut acc = Accum::with_bounds(min_sum, max_sum);
+    let mut acc = Accum::with_bounds(min_sum, max_sum, budget)?;
+    let cost = if acc.is_sparse() {
+        pairs.saturating_mul(SPARSE_TRANSITION_WEIGHT)
+    } else {
+        pairs
+    };
+    budget.charge_transitions(cost)?;
+
     for &(va, pa) in &a.entries {
         for &(vb, pb) in &b.entries {
-            acc.add(va + vb, pa * pb);
+            acc.add(va + vb, pa * pb, budget)?;
         }
     }
-    Ok(acc.into_distribution())
+    acc.into_distribution(budget)
 }
 
-fn subtract_distributions(a: &Distribution, b: &Distribution) -> Result<Distribution, ExactAbort> {
+fn subtract_distributions(
+    a: &Distribution,
+    b: &Distribution,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
     let a_len = a.len() as u128;
     let b_len = b.len() as u128;
-    if a_len + b_len - 1 > (MAX_EXACT_STATES as u128) || a_len * b_len > (MAX_EXACT_STATES as u128)
-    {
+    let pairs = a_len * b_len;
+    if a_len + b_len - 1 > (MAX_EXACT_STATES as u128) || pairs > (MAX_EXACT_STATES as u128) {
         return Err(ExactAbort::TooLarge);
     }
 
@@ -1411,41 +2061,191 @@ fn subtract_distributions(a: &Distribution, b: &Distribution) -> Result<Distribu
         .checked_sub(b.entries[0].0)
         .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
 
-    let mut acc = Accum::with_bounds(min_diff, max_diff);
+    let mut acc = Accum::with_bounds(min_diff, max_diff, budget)?;
+    let cost = if acc.is_sparse() {
+        pairs.saturating_mul(SPARSE_TRANSITION_WEIGHT)
+    } else {
+        pairs
+    };
+    budget.charge_transitions(cost)?;
+
     for &(va, pa) in &a.entries {
         for &(vb, pb) in &b.entries {
-            acc.add(va - vb, pa * pb);
+            acc.add(va - vb, pa * pb, budget)?;
         }
     }
-    Ok(acc.into_distribution())
+    acc.into_distribution(budget)
 }
 
-/// Convolves `single` `count` times using bounded binary exponentiation (`§5.3`).
-///
-/// Builds power-of-two doublings `2^k * single` while squaring fits within `MAX_EXACT_STATES`,
-/// and steps greedily by the largest chunk `2^k * single` whose product `|acc| * |chunk|` stays
-/// within `MAX_EXACT_STATES`. This runs in $O(\log N)$ convolutions on moderate supports and
-/// preserves exactness on wide cases like `100d100` where `32d100 * 32d100` (`3169^2 = 10.04M`)
-/// would narrowly exceed `10,000,000` while `48d100 * 16d100` (`4753 * 1585 = 7.53M`) stays under!
-fn convolve_n(single: &Distribution, count: usize) -> Result<Distribution, ExactAbort> {
+fn is_uniform_contiguous(single: &Distribution) -> bool {
+    let s = single.len();
+    if s < 2 {
+        return false;
+    }
+    let first_v = single.entries[0].0;
+    let last_v = single.entries[s - 1].0;
+    if i128::from(last_v) - i128::from(first_v) != (s - 1) as i128 {
+        return false;
+    }
+    let p_bits = single.entries[0].1.to_bits();
+    if single.entries[0].1 <= 0.0 {
+        return false;
+    }
+    single.entries[1..]
+        .iter()
+        .all(|&(_, p)| p.to_bits() == p_bits)
+}
+
+/// Subtraction-free block `suffix + prefix` windowed convolution for `count` i.i.d. uniform
+/// contiguous dice (`O(count^2 * s)` total transitions vs `O(count^2 * s^2)` pairwise convolution,
+/// with zero floating-point subtractions so extreme tails never suffer cancellation).
+fn convolve_n_uniform_contiguous(
+    single: &Distribution,
+    count: usize,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let s = single.len();
+    let count_i64 = count as i64;
+    let min_total = single.entries[0]
+        .0
+        .checked_mul(count_i64)
+        .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
+    let _max_total = single.entries[s - 1]
+        .0
+        .checked_mul(count_i64)
+        .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
+
+    let s_minus_1 = (s - 1) as u128;
+    let count_u128 = count as u128;
+    // Preserve §5.3 pairwise support-product guard (`|D_{count-1}| * |D_1| <= MAX_EXACT_STATES`,
+    // e.g. `12d1000` has `10,990 * 1,000 = 10,990,000 > MAX_EXACT_STATES` -> Monte Carlo).
+    let prev_len_u128 = (count_u128 - 1) * s_minus_1 + 1;
+    if prev_len_u128 * (s as u128) > (MAX_EXACT_STATES as u128) {
+        return Err(ExactAbort::TooLarge);
+    }
+    let final_len_u128 = count_u128 * s_minus_1 + 1;
+    if final_len_u128 > (MAX_EXACT_LIVE_STATES as u128) {
+        return Err(ExactAbort::TooLarge);
+    }
+    let final_len = final_len_u128 as usize;
+
+    // Exact transition count across steps `2..=count`: `sum_{k=2}^count (k * (s - 1) + 1)`.
+    let steps = count_u128 - 1;
+    let total_transitions = s_minus_1 * ((count_u128 + 2) * steps / 2) + steps;
+    budget.charge_transitions(total_transitions)?;
+
+    // Peak storage holds `curr`, `prefix`, `suffix`, and `next` (`4 * final_len` `f64`s = `2 * final_len` slots),
+    // and then `curr` (`final_len / 2` slots) + `entries` (`final_len` slots) <= `2 * final_len` slots.
+    let peak_slots = final_len.checked_mul(2).ok_or(ExactAbort::TooLarge)?;
+    budget.reserve_live(peak_slots)?;
+
+    let s_f64 = s as f64;
+    let p_init = canon_f64(1.0 / s_f64);
+    let mut curr: Vec<f64> = Vec::with_capacity(final_len);
+    curr.resize(s, p_init);
+    let mut prefix: Vec<f64> = vec![0.0; final_len];
+    let mut suffix: Vec<f64> = vec![0.0; final_len];
+    let mut next: Vec<f64> = Vec::with_capacity(final_len);
+
+    for _ in 2..=count {
+        let l = curr.len();
+        let out_len = l + s - 1;
+
+        let mut block_start = 0usize;
+        while block_start < l {
+            let block_end = (block_start + s).min(l);
+            let mut acc = 0.0_f64;
+            for i in block_start..block_end {
+                acc += curr[i];
+                prefix[i] = acc;
+            }
+            let mut rev_acc = 0.0_f64;
+            for i in (block_start..block_end).rev() {
+                rev_acc += curr[i];
+                suffix[i] = rev_acc;
+            }
+            block_start = block_end;
+        }
+
+        next.clear();
+        for out_idx in 0..out_len {
+            let a = out_idx.saturating_sub(s - 1);
+            let b = out_idx.min(l - 1);
+            let sum_window = if a / s < b / s {
+                suffix[a] + prefix[b]
+            } else if a % s == 0 {
+                prefix[b]
+            } else {
+                suffix[a]
+            };
+            // Divide by the exact integer `s_f64` instead of multiplying by `fl(1.0 / s_f64)`
+            // so `1/3`-ULP rounding in `1.0 / 6.0` never compounds systematically across 500 steps.
+            next.push(canon_f64(sum_window / s_f64));
+        }
+
+        core::mem::swap(&mut curr, &mut next);
+    }
+
+    drop(prefix);
+    drop(suffix);
+    drop(next);
+
+    let mut entries = Vec::with_capacity(final_len);
+    for (idx, prob) in curr.into_iter().enumerate() {
+        entries.push((min_total + (idx as i64), prob));
+    }
+    budget.release_live(peak_slots - final_len);
+    normalize_if_singleton(&mut entries);
+    Ok(Distribution { entries })
+}
+
+/// Convolves `single` `count` times (`§5.3`).
+fn convolve_n(
+    single: &Distribution,
+    count: usize,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let live_base = budget.live_states;
+    let res = convolve_n_inner(single, count, budget);
+    if res.is_err() {
+        budget.live_states = live_base;
+    }
+    res
+}
+
+fn convolve_n_inner(
+    single: &Distribution,
+    count: usize,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
     if count == 0 {
+        budget.charge_transitions(1)?;
+        budget.reserve_live(1)?;
         return Ok(Distribution::point(0));
     }
-    if count == 1 || single.len() == 1 {
-        if single.len() == 1 {
-            let v = single.entries[0]
-                .0
-                .checked_mul(count as i64)
-                .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
-            let p = powi_u32(single.entries[0].1, count as u32);
-            return Ok(Distribution {
-                entries: vec![(v, canon_f64(p))],
-            });
-        }
+    if single.len() == 1 {
+        let v = single.entries[0]
+            .0
+            .checked_mul(count as i64)
+            .ok_or(ExactAbort::Error(RollError::ArithmeticOverflow))?;
+        budget.charge_transitions(1)?;
+        budget.reserve_live(1)?;
+        return Ok(Distribution::point(v));
+    }
+    if count == 1 {
+        budget.charge_transitions(single.len() as u128)?;
+        budget.reserve_live(single.len())?;
         return Ok(single.clone());
     }
 
+    if count > 2 && is_uniform_contiguous(single) {
+        return convolve_n_uniform_contiguous(single, count, budget);
+    }
+
+    budget.charge_transitions(single.len() as u128)?;
+    budget.reserve_live(single.len())?;
     let mut powers: Vec<(usize, Distribution)> = vec![(1, single.clone())];
+
     loop {
         let &(step_n, ref last_dist) = powers.last().expect("non-empty");
         let Some(next_n) = step_n.checked_mul(2) else {
@@ -1453,19 +2253,30 @@ fn convolve_n(single: &Distribution, count: usize) -> Result<Distribution, Exact
         };
         if next_n > count {
             break;
-        }
+        };
         let len_u128 = last_dist.len() as u128;
         if len_u128 * len_u128 > (MAX_EXACT_STATES as u128)
             || 2 * len_u128 - 1 > (MAX_EXACT_STATES as u128)
         {
             break;
         }
-        let squared = convolve(last_dist, last_dist)?;
+        let squared = convolve(last_dist, last_dist, budget)?;
         powers.push((next_n, squared));
     }
 
-    let (top_n, top_dist) = powers.last().expect("non-empty").clone();
-    let mut acc = top_dist;
+    let top_n = powers.last().expect("non-empty").0;
+    if top_n == count {
+        let (_, acc) = powers.pop().expect("non-empty");
+        let rem_states: usize = powers.iter().map(|(_, d)| d.len()).sum();
+        drop(powers);
+        budget.release_live(rem_states);
+        return Ok(acc);
+    }
+
+    let top_len = powers.last().expect("non-empty").1.len();
+    budget.charge_transitions(top_len as u128)?;
+    budget.reserve_live(top_len)?;
+    let mut acc = powers.last().expect("non-empty").1.clone();
     let mut remaining = count - top_n;
 
     while remaining > 0 {
@@ -1484,15 +2295,28 @@ fn convolve_n(single: &Distribution, count: usize) -> Result<Distribution, Exact
         let Some(idx) = chosen_idx else {
             return Err(ExactAbort::TooLarge);
         };
-        acc = convolve(&acc, &powers[idx].1)?;
+        let next_acc = convolve(&acc, &powers[idx].1, budget)?;
+        let old_len = acc.len();
+        drop(acc);
+        budget.release_live(old_len);
+        acc = next_acc;
         remaining -= powers[idx].0;
     }
+
+    let powers_states: usize = powers.iter().map(|(_, d)| d.len()).sum();
+    drop(powers);
+    budget.release_live(powers_states);
 
     Ok(acc)
 }
 
-fn multiply_distributions(a: &Distribution, b: &Distribution) -> Result<Distribution, ExactAbort> {
-    if (a.len() as u128) * (b.len() as u128) > (MAX_EXACT_STATES as u128) {
+fn multiply_distributions(
+    a: &Distribution,
+    b: &Distribution,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
+    let pairs = (a.len() as u128) * (b.len() as u128);
+    if pairs > (MAX_EXACT_STATES as u128) {
         return Err(ExactAbort::TooLarge);
     }
 
@@ -1517,42 +2341,257 @@ fn multiply_distributions(a: &Distribution, b: &Distribution) -> Result<Distribu
     let min_prod = corners.iter().copied().min().unwrap_or(0);
     let max_prod = corners.iter().copied().max().unwrap_or(0);
 
-    let mut acc = Accum::with_bounds(min_prod, max_prod);
+    let mut acc = Accum::with_bounds(min_prod, max_prod, budget)?;
+    let cost = if acc.is_sparse() {
+        pairs.saturating_mul(SPARSE_TRANSITION_WEIGHT)
+    } else {
+        pairs
+    };
+    budget.charge_transitions(cost)?;
+
     for &(va, pa) in &a.entries {
         for &(vb, pb) in &b.entries {
-            acc.add(va * vb, pa * pb);
+            acc.add(va * vb, pa * pb, budget)?;
         }
     }
-    Ok(acc.into_distribution())
+    acc.into_distribution(budget)
 }
 
-fn divide_distributions(a: &Distribution, b: &Distribution) -> Result<Distribution, ExactAbort> {
+fn divide_distributions(
+    a: &Distribution,
+    b: &Distribution,
+    budget: &mut ExactBudget,
+) -> Result<Distribution, ExactAbort> {
     if b.is_reachable(0) {
         return Err(ExactAbort::Error(RollError::DivisionByZero));
     }
-    if (a.len() as u128) * (b.len() as u128) > (MAX_EXACT_STATES as u128) {
+
+    // Check extremal numerator/denominator corners so deterministic `i64::MIN / -1` overflow
+    // surfaces and bounded quotients can use `Accum::Dense`.
+    let a_extremes = [a.entries[0].0, a.entries[a.len() - 1].0];
+    let neg_end = b.entries.partition_point(|&(vb, _)| vb < 0);
+    let mut b_extremes = Vec::with_capacity(4);
+    if neg_end > 0 {
+        b_extremes.push(b.entries[0].0);
+        if neg_end > 1 {
+            b_extremes.push(b.entries[neg_end - 1].0);
+        }
+    }
+    if neg_end < b.entries.len() {
+        b_extremes.push(b.entries[neg_end].0);
+        if neg_end + 1 < b.entries.len() {
+            b_extremes.push(b.entries[b.entries.len() - 1].0);
+        }
+    }
+
+    let mut min_q = i64::MAX;
+    let mut max_q = i64::MIN;
+    for &va in &a_extremes {
+        for &vb in &b_extremes {
+            let q = checked_div_floor(va, vb).map_err(ExactAbort::Error)?;
+            min_q = min_q.min(q);
+            max_q = max_q.max(q);
+        }
+    }
+
+    let pairs = (a.len() as u128) * (b.len() as u128);
+    if pairs > (MAX_EXACT_STATES as u128) {
         return Err(ExactAbort::TooLarge);
     }
 
-    let mut acc = Accum::sparse();
+    let mut acc = Accum::with_bounds(min_q, max_q, budget)?;
+    let cost = if acc.is_sparse() {
+        pairs.saturating_mul(SPARSE_TRANSITION_WEIGHT)
+    } else {
+        pairs
+    };
+    budget.charge_transitions(cost)?;
+
     for &(va, pa) in &a.entries {
         for &(vb, pb) in &b.entries {
             let q = checked_div_floor(va, vb).map_err(ExactAbort::Error)?;
-            acc.add(q, pa * pb);
+            acc.add(q, pa * pb, budget)?;
         }
     }
-    Ok(acc.into_distribution())
+    acc.into_distribution(budget)
 }
 
 struct StreamDrawSource {
     rng: ChaCha12Rng,
+    draws: u64,
 }
 
 impl DrawSource for StreamDrawSource {
     #[inline]
     fn next_u64_word(&mut self) -> Result<u64, RollError> {
+        self.draws += 1;
         Ok(self.rng.next_u64())
     }
+}
+
+fn count_matching_range(lo: i64, hi: i64, cp: ComparePoint) -> u64 {
+    if lo > hi {
+        return 0;
+    }
+    match cp.op {
+        CompareOp::Eq => u64::from(cp.value >= lo && cp.value <= hi),
+        CompareOp::Gt => {
+            let start = cp.value.saturating_add(1).max(lo);
+            if start <= hi {
+                (hi - start + 1) as u64
+            } else {
+                0
+            }
+        }
+        CompareOp::Gte => {
+            let start = cp.value.max(lo);
+            if start <= hi {
+                (hi - start + 1) as u64
+            } else {
+                0
+            }
+        }
+        CompareOp::Lt => {
+            let end = cp.value.saturating_sub(1).min(hi);
+            if lo <= end { (end - lo + 1) as u64 } else { 0 }
+        }
+        CompareOp::Lte => {
+            let end = cp.value.min(hi);
+            if lo <= end { (end - lo + 1) as u64 } else { 0 }
+        }
+    }
+}
+
+#[inline]
+fn count_matching_faces(sides: DiceSides, cp: ComparePoint) -> u64 {
+    count_matching_range(sides.min_face(), sides.max_face(), cp)
+}
+
+/// Exact maximum `roll_single_die` invocations reachable by `expr` in `eval.rs` (excluding
+/// Lemire 64-bit rejection retries). If this exceeds `MAX_TOTAL_DRAWS`, `eval.rs` has a
+/// reachable `DrawBudgetExceeded` path that independent per-die convolution does not model.
+fn expr_max_die_rolls(expr: &Expr) -> u64 {
+    match expr {
+        Expr::Number(_) => 0,
+        Expr::UnaryNeg(inner) => expr_max_die_rolls(inner),
+        Expr::Binary { left, right, .. } => {
+            expr_max_die_rolls(left).saturating_add(expr_max_die_rolls(right))
+        }
+        Expr::Dice(spec) => {
+            let mut per_die: u64 = 1;
+            for &cp in &spec.reroll_unlimited {
+                if count_matching_faces(spec.sides, cp) > 0 {
+                    per_die = per_die.saturating_add(u64::from(MAX_REROLLS));
+                }
+            }
+            for &cp in &spec.reroll_once {
+                if count_matching_faces(spec.sides, cp) > 0 {
+                    per_die = per_die.saturating_add(1);
+                }
+            }
+            if let Some(rule) = spec.explode {
+                let raw_min = spec.sides.min_face();
+                let raw_max = spec.sides.max_face();
+                let (post_min, post_max) = match spec.clamp {
+                    Some(clamp) => (
+                        apply_clamp_value(raw_min, clamp),
+                        apply_clamp_value(raw_max, clamp),
+                    ),
+                    None => (raw_min, raw_max),
+                };
+                if count_matching_range(post_min, post_max, rule.threshold) > 0 {
+                    if count_matching_faces(spec.sides, rule.threshold) > 0 {
+                        per_die = per_die.saturating_add(u64::from(MAX_EXPLOSIONS));
+                    } else {
+                        per_die = per_die.saturating_add(1);
+                    }
+                }
+            }
+            u64::from(spec.count.get()).saturating_mul(per_die)
+        }
+    }
+}
+
+fn estimate_sort_work_per_sample(expr: &Expr) -> u64 {
+    match expr {
+        Expr::Number(_) => 0,
+        Expr::UnaryNeg(inner) => estimate_sort_work_per_sample(inner),
+        Expr::Binary { left, right, .. } => {
+            estimate_sort_work_per_sample(left).saturating_add(estimate_sort_work_per_sample(right))
+        }
+        Expr::Dice(spec) => {
+            if spec.keep_drop.is_empty() {
+                return 0;
+            }
+            let base = u64::from(spec.count.get());
+            let mut cur_len = match spec.explode {
+                Some(rule) if rule.variant != ExplosionVariant::Compound => {
+                    let s = side_count(spec.sides) as u64;
+                    let m = count_matching_faces(spec.sides, rule.threshold);
+                    let max_len = base.saturating_mul(u64::from(MAX_EXPLOSIONS) + 1);
+                    if m >= s {
+                        max_len
+                    } else if m > 0 {
+                        base.saturating_add(base.saturating_mul(m) / (s - m))
+                            .max(base.saturating_mul(2))
+                            .min(max_len)
+                    } else {
+                        base.saturating_mul(2)
+                    }
+                }
+                _ => base,
+            };
+            let mut work = 0u64;
+            for &op in &spec.keep_drop {
+                let log_term = u64::from(cur_len.max(2).ilog2());
+                work = work.saturating_add((cur_len.saturating_mul(log_term)) / 20);
+                cur_len = match op {
+                    KeepDropOp::KeepHighest(k) | KeepDropOp::KeepLowest(k) => {
+                        cur_len.min(u64::from(k)).max(1)
+                    }
+                    KeepDropOp::DropHighest(k) | KeepDropOp::DropLowest(k) => {
+                        cur_len.saturating_sub(u64::from(k)).max(1)
+                    }
+                };
+            }
+            work
+        }
+    }
+}
+
+fn monte_carlo_fallback(
+    expr: &Expr,
+    target_samples: u32,
+) -> Result<(Distribution, u32), RollError> {
+    let mut source = StreamDrawSource {
+        rng: ChaCha12Rng::from_seed(*MONTE_CARLO_DEFAULT_SEED),
+        draws: 0,
+    };
+    let mut scratch = EvalScratch::new();
+    let mut counts = BTreeMap::<i64, u32>::new();
+    let sort_work_per_sample = estimate_sort_work_per_sample(expr);
+    let mut completed: u32 = 0;
+
+    for _ in 0..target_samples {
+        let total = evaluate_total_with_source(expr, &mut source, &mut scratch)?;
+        *counts.entry(total).or_insert(0) += 1;
+        completed += 1;
+
+        let work = source
+            .draws
+            .saturating_add(u64::from(completed).saturating_mul(sort_work_per_sample));
+        if work >= MAX_MC_WORK {
+            break;
+        }
+    }
+
+    let denom = f64::from(completed.max(1));
+    let mut entries: Vec<(i64, f64)> = counts
+        .into_iter()
+        .map(|(v, c)| (v, canon_f64(f64::from(c) / denom)))
+        .collect();
+    normalize_if_singleton(&mut entries);
+    Ok((Distribution { entries }, completed))
 }
 
 /// Estimates the distribution of `expr` via `samples` trials on the continuous
@@ -1564,6 +2603,7 @@ impl DrawSource for StreamDrawSource {
 pub fn monte_carlo_distribution(expr: &Expr, samples: u32) -> Result<Distribution, RollError> {
     let mut source = StreamDrawSource {
         rng: ChaCha12Rng::from_seed(*MONTE_CARLO_DEFAULT_SEED),
+        draws: 0,
     };
     let mut scratch = EvalScratch::new();
     let mut counts = BTreeMap::<i64, u32>::new();
@@ -1573,11 +2613,12 @@ pub fn monte_carlo_distribution(expr: &Expr, samples: u32) -> Result<Distributio
         *counts.entry(total).or_insert(0) += 1;
     }
 
-    let inv_samples = 1.0 / f64::from(samples);
-    let entries = counts
+    let denom = f64::from(samples);
+    let mut entries: Vec<(i64, f64)> = counts
         .into_iter()
-        .map(|(v, c)| (v, canon_f64(f64::from(c) * inv_samples)))
+        .map(|(v, c)| (v, canon_f64(f64::from(c) / denom)))
         .collect();
+    normalize_if_singleton(&mut entries);
     Ok(Distribution { entries })
 }
 
@@ -1705,4 +2746,382 @@ pub fn run_prefix_tape_oracle(
         tail_mass: canon_f64(st.tail_mass),
         leaves: st.leaves,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::boxed::Box;
+    use alloc::vec::Vec;
+    use core::num::NonZeroU32;
+    use rand_chacha::ChaCha12Rng;
+    use rand_core::{Rng, SeedableRng};
+
+    use crate::ast::{
+        BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSides, DiceSpec, ExplosionRule,
+        ExplosionVariant, Expr, KeepDropOp, ResultMode, SortOrder,
+    };
+    use crate::error::RollError;
+    use crate::eval::{EvalScratch, evaluate_total_with_source, evaluate_with_source};
+    use crate::parser::parse;
+    use crate::rng::{DrawSource, RollRng};
+
+    /// Recording `DrawSource` beginning with adversarial Lemire rejection-retry boundary words
+    /// (`0`, `1`, `u64::MAX`, `u64::MAX - 1`, `0x8000_0000_0000_0000`, ...) followed by a
+    /// deterministic `ChaCha12Rng` stream so every retry branch in `sample_lemire_u64` is exercised.
+    struct AdversarialRetrySource {
+        prefix: &'static [u64],
+        cursor: usize,
+        fallback: ChaCha12Rng,
+        draws: Vec<u64>,
+    }
+
+    impl AdversarialRetrySource {
+        fn new(prefix: &'static [u64], seed: [u8; 32]) -> Self {
+            Self {
+                prefix,
+                cursor: 0,
+                fallback: ChaCha12Rng::from_seed(seed),
+                draws: Vec::new(),
+            }
+        }
+    }
+
+    impl DrawSource for AdversarialRetrySource {
+        fn next_u64_word(&mut self) -> Result<u64, RollError> {
+            let word = if let Some(&w) = self.prefix.get(self.cursor) {
+                self.cursor += 1;
+                w
+            } else {
+                self.fallback.next_u64()
+            };
+            self.draws.push(word);
+            Ok(word)
+        }
+    }
+
+    fn gen_random_compare_point(rng: &mut ChaCha12Rng, lo: i64, hi: i64) -> ComparePoint {
+        let op = match rng.next_u32() % 5 {
+            0 => CompareOp::Eq,
+            1 => CompareOp::Gt,
+            2 => CompareOp::Gte,
+            3 => CompareOp::Lt,
+            _ => CompareOp::Lte,
+        };
+        let span = (hi - lo + 1) as u64;
+        let value = lo + ((rng.next_u64() % span) as i64);
+        ComparePoint { op, value }
+    }
+
+    fn gen_random_dice_spec(rng: &mut ChaCha12Rng) -> DiceSpec {
+        let count = NonZeroU32::new(1 + (rng.next_u32() % 6)).expect("non-zero");
+        let sides = match rng.next_u32() % 5 {
+            0 => DiceSides::Fate,
+            1 => DiceSides::Percentile,
+            _ => {
+                let s = 1 + (rng.next_u32() % 20);
+                DiceSides::Standard(NonZeroU32::new(s).expect("non-zero"))
+            }
+        };
+        let (lo, hi) = (sides.min_face() - 1, sides.max_face() + 1);
+
+        let r_len = (rng.next_u32() % 3) as usize;
+        let reroll_unlimited = (0..r_len)
+            .map(|_| gen_random_compare_point(rng, lo, hi))
+            .collect();
+
+        let ro_len = (rng.next_u32() % 3) as usize;
+        let reroll_once = (0..ro_len)
+            .map(|_| gen_random_compare_point(rng, lo, hi))
+            .collect();
+
+        let clamp = match rng.next_u32() % 4 {
+            0 => None,
+            1 => Some(ClampBounds {
+                min: Some(lo + ((rng.next_u32() % 6) as i64)),
+                max: None,
+            }),
+            2 => Some(ClampBounds {
+                min: None,
+                max: Some(hi - ((rng.next_u32() % 6) as i64)),
+            }),
+            _ => {
+                let a = lo + ((rng.next_u32() % 6) as i64);
+                let b = a + ((rng.next_u32() % 6) as i64);
+                Some(ClampBounds {
+                    min: Some(a),
+                    max: Some(b),
+                })
+            }
+        };
+
+        let explode = if sides == DiceSides::Fate || (rng.next_u32() & 1) == 0 {
+            None
+        } else {
+            let variant = match rng.next_u32() % 3 {
+                0 => ExplosionVariant::Standard,
+                1 => ExplosionVariant::Compound,
+                _ => ExplosionVariant::Penetrate,
+            };
+            let threshold = gen_random_compare_point(rng, 1, sides.max_face() + 1);
+            Some(ExplosionRule { variant, threshold })
+        };
+
+        let kd_len = (rng.next_u32() % 3) as usize;
+        let keep_drop = (0..kd_len)
+            .map(|_| {
+                let k = rng.next_u32() % 8;
+                match rng.next_u32() % 4 {
+                    0 => KeepDropOp::KeepHighest(k),
+                    1 => KeepDropOp::KeepLowest(k),
+                    2 => KeepDropOp::DropHighest(k),
+                    _ => KeepDropOp::DropLowest(k),
+                }
+            })
+            .collect();
+
+        let mode = if (rng.next_u32() & 1) == 0 {
+            ResultMode::Sum {
+                crit_success_max: (rng.next_u32() & 1) != 0,
+                crit_failure_min: (rng.next_u32() & 2) != 0,
+            }
+        } else {
+            let cs_len = 1 + (rng.next_u32() % 2) as usize;
+            let cf_len = (rng.next_u32() % 2) as usize;
+            ResultMode::Pool {
+                cs: (0..cs_len)
+                    .map(|_| gen_random_compare_point(rng, lo, hi))
+                    .collect(),
+                cf: (0..cf_len)
+                    .map(|_| gen_random_compare_point(rng, lo, hi))
+                    .collect(),
+            }
+        };
+
+        let sort = match rng.next_u32() % 3 {
+            0 => None,
+            1 => Some(SortOrder::Asc),
+            _ => Some(SortOrder::Desc),
+        };
+
+        DiceSpec {
+            count,
+            sides,
+            reroll_unlimited,
+            reroll_once,
+            clamp,
+            explode,
+            keep_drop,
+            mode,
+            sort,
+        }
+    }
+
+    fn gen_random_expr(rng: &mut ChaCha12Rng, depth: u32) -> Expr {
+        if depth == 0 {
+            return if (rng.next_u32() & 3) == 0 {
+                let v = (rng.next_u64() % 41) as i64 - 20;
+                Expr::Number(v)
+            } else {
+                Expr::Dice(gen_random_dice_spec(rng))
+            };
+        }
+        match rng.next_u32() % 6 {
+            0 => Expr::UnaryNeg(Box::new(gen_random_expr(rng, depth - 1))),
+            1..=4 => {
+                let op = match rng.next_u32() % 4 {
+                    0 => BinaryOp::Add,
+                    1 => BinaryOp::Sub,
+                    2 => BinaryOp::Mul,
+                    _ => BinaryOp::DivFloor,
+                };
+                Expr::Binary {
+                    op,
+                    left: Box::new(gen_random_expr(rng, depth - 1)),
+                    right: Box::new(gen_random_expr(rng, depth - 1)),
+                }
+            }
+            _ => Expr::Dice(gen_random_dice_spec(rng)),
+        }
+    }
+
+    #[test]
+    fn evaluate_total_with_source_matches_evaluate_with_source_on_totals_errors_and_draws() {
+        const CURATED: &[&str] = &[
+            "0",
+            "42",
+            "-9223372036854775808",
+            "-(-9223372036854775808)",
+            "1d1",
+            "1d6",
+            "3d20",
+            "2d%",
+            "4dF",
+            "-(2d6-7)",
+            "1d6r=7",
+            "3d4r<2",
+            "2d6r=1r=2",
+            "1d6r>=1",
+            "2dFr=-1",
+            "2d6ro=1",
+            "2d6ro<=2ro=3",
+            "3dFro<0",
+            "2d6min2",
+            "2d6max5",
+            "4d8min3max6",
+            "2dFmin0max1",
+            "1d4max3!",
+            "1d4max3!>=3",
+            "1d6min7!>=7",
+            "2d6!",
+            "2d6!!",
+            "2d6!p",
+            "1d6!>=1",
+            "1d6!!>=1",
+            "1d6!p>=1",
+            "1d1!p=1",
+            "2d6min6!p>=5",
+            "4d6kh3",
+            "4d6kl1",
+            "4d6dh1",
+            "4d6dl1",
+            "5d6dl1dh1kh2",
+            "4d6kh0",
+            "6d2dl2kh2",
+            "4d6!kh3",
+            "4d6!!kh3",
+            "4d6!pkh3",
+            "4d6sa",
+            "4d6kh3sd",
+            "5d10cs>=8cf<=1",
+            "5d10cs>=5cf<=6",
+            "5d10cs>8cf<3",
+            "4d6!cs>=5cf<=1",
+            "4d6!pcs>=5cf<=1",
+            "4d6!!kh2cs>=6cf<=2",
+            "3d4r=1dh1cs>=3cf<=1",
+            "2d20cscf",
+            "3dFcscf",
+            "(2d6-8)/3",
+            "(2d6-8)/-3",
+            "(2d3ro=1-4)*(1dF)+(5d2kh3)/2",
+            // Short-circuiting runtime errors (verify `right` consumes zero draws when `left` fails):
+            "1d6/0+3d6",
+            "1d6/(1d2-1)+3d6",
+            "(-9223372036854775808)/-1+2d6",
+            "(1d2+9223372036854775806)+3d6",
+            "(1d2+9223372036854775805)*2+3d6",
+            "1d2!!>=1+9223372036854775800",
+        ];
+
+        const RETRY_PREFIX: &[u64] = &[
+            0,
+            1,
+            u64::MAX,
+            u64::MAX - 1,
+            u64::MAX - 2,
+            0x8000_0000_0000_0000,
+            0xFFFF_FFFF_FFFF_FFFE,
+            123_456_789,
+            0,
+            0,
+            u64::MAX,
+        ];
+
+        // Reuse one `EvalScratch` across the entire differential suite to stress buffer clearing.
+        let mut shared_scratch = EvalScratch::new();
+        let mut total_runs = 0usize;
+        let mut error_runs = 0usize;
+
+        for (expr_idx, &expr_str) in CURATED.iter().enumerate() {
+            let expr = parse(expr_str).expect("valid curated expression");
+
+            for seed_idx in 0..128u64 {
+                let mut seed = [0u8; 32];
+                seed[..8].copy_from_slice(&(expr_idx as u64).to_le_bytes());
+                seed[8..16].copy_from_slice(&seed_idx.to_le_bytes());
+
+                let mut rng_full = RollRng::from_raw_seed(seed);
+                let mut rng_total = RollRng::from_raw_seed(seed);
+
+                let full_res = evaluate_with_source(&expr, &mut rng_full).map(|o| o.total);
+                let total_res =
+                    evaluate_total_with_source(&expr, &mut rng_total, &mut shared_scratch);
+
+                assert_eq!(
+                    total_res, full_res,
+                    "result mismatch on '{expr_str}' seed={seed_idx}"
+                );
+                assert_eq!(
+                    rng_total.draws(),
+                    rng_full.draws(),
+                    "draw sequence mismatch on '{expr_str}' seed={seed_idx}"
+                );
+                if total_res.is_err() {
+                    error_runs += 1;
+                }
+                total_runs += 1;
+            }
+
+            // Adversarial Lemire rejection-retry tape check:
+            let retry_seed = [expr_idx as u8; 32];
+            let mut src_full = AdversarialRetrySource::new(RETRY_PREFIX, retry_seed);
+            let mut src_total = AdversarialRetrySource::new(RETRY_PREFIX, retry_seed);
+            let full_retry = evaluate_with_source(&expr, &mut src_full).map(|o| o.total);
+            let total_retry =
+                evaluate_total_with_source(&expr, &mut src_total, &mut shared_scratch);
+            assert_eq!(
+                total_retry, full_retry,
+                "retry-tape result mismatch on '{expr_str}'"
+            );
+            assert_eq!(
+                src_total.draws, src_full.draws,
+                "retry-tape draws mismatch on '{expr_str}'"
+            );
+            if total_retry.is_err() {
+                error_runs += 1;
+            }
+            total_runs += 1;
+        }
+
+        // Randomly generated multi-stage ASTs × deterministic seeds:
+        let mut ast_gen = ChaCha12Rng::from_seed(*b"roll.v3.diff_test.ast_generator!");
+        for ast_idx in 0..250u64 {
+            let expr = gen_random_expr(&mut ast_gen, 2);
+            for seed_idx in 0..64u64 {
+                let mut seed = [0xA5u8; 32];
+                seed[..8].copy_from_slice(&ast_idx.to_le_bytes());
+                seed[8..16].copy_from_slice(&seed_idx.to_le_bytes());
+
+                let mut rng_full = RollRng::from_raw_seed(seed);
+                let mut rng_total = RollRng::from_raw_seed(seed);
+
+                let full_res = evaluate_with_source(&expr, &mut rng_full).map(|o| o.total);
+                let total_res =
+                    evaluate_total_with_source(&expr, &mut rng_total, &mut shared_scratch);
+
+                assert_eq!(
+                    total_res,
+                    full_res,
+                    "random AST #{ast_idx} ({}) mismatch on seed {seed_idx}",
+                    expr.to_canonical_string()
+                );
+                assert_eq!(
+                    rng_total.draws(),
+                    rng_full.draws(),
+                    "random AST #{ast_idx} ({}) draw mismatch on seed {seed_idx}",
+                    expr.to_canonical_string()
+                );
+                if total_res.is_err() {
+                    error_runs += 1;
+                }
+                total_runs += 1;
+            }
+        }
+
+        assert_eq!(total_runs, CURATED.len() * 129 + 250 * 64);
+        assert!(
+            error_runs > 500,
+            "expected error paths exercised, got {error_runs}"
+        );
+    }
 }

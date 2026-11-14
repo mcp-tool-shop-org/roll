@@ -1,18 +1,19 @@
 # roll: how it works
 
-Mapped at 2026-11-14 from commit 2742ebb by Atlas 1.26.0.
+Mapped at 2026-11-14 from commit 461e2c4 by Atlas 1.26.0.
 
 ## What this is
 
 8 parts, mostly TypeScript (58 files), Rust (23), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).
 
-## What changed since 2026-11-14 (f5002bc)
+## What changed since 2026-11-14 (2742ebb)
 
-Nothing structural changed since 2026-11-14; 1 file added and 26 changed content.
+- CI now also runs crates/roll-core/src/analyze.rs.
+- 9 files changed content, across 3 parts.
 
 ## What comes in
 
-1. **CI.** On a pull request; on a push touching 15 paths; or by hand. Runs crates/roll-cli/src/main.rs, src/bin.ts, crates/roll-cli/tests/ and 35 more; builds src/; checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
+1. **CI.** On a pull request; on a push touching 15 paths; or by hand. Runs crates/roll-cli/src/main.rs, src/bin.ts, crates/roll-cli/tests/ and 36 more; builds src/; checks crates/roll-cli/src/lib.rs and crates/roll-core/src/lib.rs.
 2. **Release.** When a tag matching `v*` is pushed; or by hand. Runs tests/; builds src/.
 3. **Deploy site to GitHub Pages.** On a push to main touching 2 paths; or by hand. Runs site/astro.config.mjs and site/src/.
 4. **roll** (a command built from crates/roll-cli, which nothing ships, from crates/roll-cli/Cargo.toml). Runs crates/roll-cli/src/main.rs.
@@ -23,7 +24,7 @@ Nothing structural changed since 2026-11-14; 1 file added and 26 changed content
 
 ## What happens through CI
 
-1. The workflow runs crates/roll-cli/src/main.rs and crates/roll-cli/tests/ in roll-cli, crates/roll-core/tests/ in roll-core, src/bin.ts in src, and tests/ in tests; it builds src/ in src; it checks crates/roll-cli/src/lib.rs in roll-cli and crates/roll-core/src/lib.rs in roll-core.
+1. The workflow runs crates/roll-cli/src/main.rs and crates/roll-cli/tests/ in roll-cli, crates/roll-core/src/analyze.rs and crates/roll-core/tests/ in roll-core, src/bin.ts in src, and tests/ in tests; it builds src/ in src; it checks crates/roll-cli/src/lib.rs in roll-cli and crates/roll-core/src/lib.rs in roll-core.
 2. It uploads coverage to Codecov.
 
 ## Who reads the results
