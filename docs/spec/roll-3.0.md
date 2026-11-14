@@ -56,6 +56,8 @@ pub enum RollError {
     ArithmeticOverflow,
     DivisionByZero,
     AnalysisBudgetExceeded { total_dice: u64, max: u64 },
+    AnalysisTooExpensive { samples_affordable: u32, min_samples: u32 },
+    DivisorUnchecked { divisors: u32 },
     InvalidProbability { given: String },
     InvalidAddress { field: &'static str, reason: &'static str },
     TableNotFound { table_id: String },
@@ -231,10 +233,11 @@ pub struct ModelledCaps {
     pub max_rerolls: Option<u32>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AnalysisMethod {
     Exact { caps: Option<ModelledCaps> },
-    MonteCarlo { samples: u32 },
+    // `ci95_half_width = 1.96 * sqrt(0.25 / samples)`; min, max and percentiles are observed values.
+    MonteCarlo { samples: u32, ci95_half_width: f64 },
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -627,13 +630,13 @@ Eliminate the separate context-guessing `tokenize()` pass. The parser scans `&st
 Among the 15 modifier prefixes, only two pairs share a strict prefix: `("r", "ro")` and `("!", "!!", "!p")`.
 - No modifier keyword begins with `'o'` or `'p'`. Therefore, bare `"r"` followed by any valid subsequent modifier (`r`, `min`, `max`, `kh`, `kl`, `dh`, `dl`, `cs`, `cf`, `sa`, `sd`, `!`, `!!`, `!p`) never begins with `"ro"`, and bare `"!"` followed by any valid non-explosion modifier never begins with `"!p"` or `"!!"`. (Multiple explosion modifiers on one dice group are forbidden; see Section 4.2.)
 - Every other modifier keyword has fixed length 2 (`kh`, `kl`, `dh`, `dl`, `cs`, `cf`, `sa`, `sd`) or 3 followed by mandatory digits (`min`, `max`).
-- Thus `1d20cscf` parses deterministically as `1d20` + `cs` + `cf`; `4d6khsa` parses as `4d6` + `kh(1)` + `sa`; `2d6rsa` parses as `2d6` + `r(=1)` + `sa`; and `parse(expr.to_canonical_string()) == Ok(expr)` holds for **every** constructible `Expr`.
+- Thus `1d20cscf` parses deterministically as `1d20` + `cs` + `cf`; `4d6khsa` parses as `4d6` + `kh(1)` + `sa`; `2d6rsa` parses as `2d6` + `r(=1)` + `sa`; and `parse(expr.to_canonical_string()) == Ok(expr)` holds for **every** constructible `Expr` whose canonical form is within `MAX_EXPRESSION_BYTES` and nests at most `MAX_NESTING_DEPTH` levels (a deeper one is refused with `ExpressionTooDeep`, never another error).
 
 ### 4.2 Typed canonical stage slots and parse-time validation
 
 Instead of `modifiers: DiceModifier[]` (`src/parser/ast.ts:42`), which permitted engine and analyzer helpers to inspect modifiers in inconsistent orders (`src/engine/pipeline.ts:131-147` vs `256a911` `src/analyze/distribution.ts:256-290`), `parse()` populates the typed `DiceSpec` stage slots (Section 1.2) and validates all static invariants before returning `Ok(Expr)`:
 
-1. **Expression byte cap:** `input.len() <= MAX_EXPRESSION_BYTES` (`1_000` bytes, matching `src/parser/parser.ts:24`). Nesting is capped too: parentheses and unary operators deeper than `MAX_NESTING_DEPTH = 64` are refused with `RollError::ExpressionTooDeep { depth, max, byte_offset }`, set low enough that parsing, evaluation and analysis cannot overflow the stack in a debug build. Without it, about 450 nested parentheses (under the byte cap) overflow the stack in release.
+1. **Expression byte cap:** `input.len() <= MAX_EXPRESSION_BYTES` (`1_000` bytes, matching `src/parser/parser.ts:24`). Nesting is capped too: parentheses and unary operators deeper than `MAX_NESTING_DEPTH = 64` are refused with `RollError::ExpressionTooDeep { depth, max, byte_offset }`, set low enough that parsing, evaluation and analysis cannot overflow the stack in a debug build. Depth is counted on the input as written, including parentheses the canonical form drops, and a unary minus directly over a number literal counts two levels (its canonical form is `-(5)`). The check runs before the operand is read, so at the limit it is reported ahead of an overflowing literal. Without it, about 450 nested parentheses (under the byte cap) overflow the stack in release.
 2. **Per-group & AST-wide dice budgets:**
    - Every `DiceSpec.count` must be `1..=MAX_DICE_PER_GROUP` (`10_000`; **`0d6` is rejected** at parse time, closing `src/parser/parser.ts:153,180`).
    - Die sides must be `1..=MAX_DIE_SIDES` (`1_000_000`).
@@ -747,22 +750,84 @@ Roll 2.x's `enumerateKeepDrop` (`src/analyze/distribution.ts:424-490`) enumerate
 - **Method & caps tag (`AnalysisMethod`):**
   - `AnalysisMethod::Exact { caps: None }` when closed-form exact with no loop cap exercised (`2d6`, `4d6ro=1kh3`).
   - `AnalysisMethod::Exact { caps: Some(ModelledCaps { max_explosions, max_rerolls }) }` whenever an exact distribution exercises `MAX_EXPLOSIONS = 100` and/or `MAX_REROLLS = 100` (populated only for caps actually reached, matching `src/analyze/distribution.ts:265,568-570,757-761`).
-  - `AnalysisMethod::MonteCarlo { samples }` when `try_exact` returns `None` or hits `ExactTooLarge`, sampled from a single continuous `ChaCha12Rng::from_seed(*b"roll.v3.montecarlo.default.seed!")` stream (`src/analyze/montecarlo.ts:31-37`). `samples` is the number of completed trials: at most `DEFAULT_MONTE_CARLO_SAMPLES = 100_000`, and fewer when the work ceiling `MAX_MC_WORK = 28_000_000` is reached first. The ceiling counts RNG draws, the per-die `r`/`ro` scans and keep/drop sort work, so every input under the 1,000-byte expression limit analyzes in under 1 second in a release build. The tag always reports the real count, and each probability is a count divided by `samples`.
+  - `AnalysisMethod::MonteCarlo { samples, ci95_half_width }` when `try_exact` returns `None` or hits `ExactTooLarge`, sampled from a single continuous `ChaCha12Rng::from_seed(*b"roll.v3.montecarlo.default.seed!")` stream (`src/analyze/montecarlo.ts:31-37`). `samples` is the number of completed trials: at most `DEFAULT_MONTE_CARLO_SAMPLES = 100_000`, and fewer when the work ceiling of §5.3.1 is reached first. The tag always reports the real count, each probability is a count divided by `samples`, `ci95_half_width = 1.96 * sqrt(0.25 / samples)` is the worst-case 95% half-width of any one probability, and `min`, `max` and percentiles are observed values.
+  - **Sample floor (Director, 2026-11-14).** When fewer than `MIN_MONTE_CARLO_SAMPLES = 10_000` samples fit the ceiling, `analyze` and `compare` return `Err(RollError::AnalysisTooExpensive { samples_affordable, min_samples })` ("simplify the expression, or roll it instead") instead of a low-sample distribution. `analyze_with_min_samples(expr, n)` and `compare_with_min_samples(left, right, n)` lower the floor explicitly (clamped to `1..=100_000`); nothing else returns fewer samples.
 - **Binary algebra & `compare`:**
   - `+`, `-`, unary `-`: exact shift/scale/convolution (using binary exponentiation by squaring in `convolve_n` to cut $N$-fold convolution steps from $N$ to $\lceil \log_2 N \rceil$).
   - `*`: exact `scale_distribution` when either side is a point mass, **plus** exact `multiply_distributions(left, right)` when the `left.len() * right.len()` products fit the AST-wide exact budget (§5.3; products over a range wider than the dense span `MAX_DENSE_SPAN = 1_048_576` are charged at a higher weight) (upgrading `(1d6)*(1d6)` from 2.x's MC fallback at `src/analyze/distribution.ts:942` to `"exact"`).
   - `compare(left, right)`: wraps `convolve(left, negate(right))` inside the `ExactTooLarge` handler — if the `A - B` convolution does not fit the margin budget (e.g. `compare("100d100", "100d100")`, $9901^2 > 10^7$ pairs), `compare` computes exact `p_left_greater`, `p_equal`, `p_right_greater` in $O(|A| + |B|)$ via a **two-pointer linear scan** over the sorted supports of $A$ and $B$ (setting `margin: None`, `method: Exact`) instead of crashing with uncaught `ExactTooLargeError` (`src/analyze/distribution.ts:996-1012` / `src/bridge/handler.ts:295`).
+
+#### 5.3.1 Monte Carlo cost model (normative)
+
+This model is part of the cross-language contract: for the same expression, Rust and the TypeScript port must return the same refusal, the same `samples_affordable` and the same Monte Carlo sample count. Source of truth: `crates/roll-core/src/analyze.rs` (`MAX_ANALYSIS_WORK` and the `MC_WORK_PER_*` constants, `dice_sample_cost`, `sample_cost`, `monte_carlo_fallback`, `compare_with_min_samples`).
+
+**Not yet complete.** The exact-work charge `exact_work` below depends on the exact transitions `T` the exact phase spends, and the transition weights behind `T` (the §5.3 budget's per-operation charges) are not yet specified here. So a refusal or a sample count that follows exact work is not yet portable to another implementation, pending a decision; only an expression whose exact phase spends nothing is fully portable today.
+
+**Arithmetic.** Every quantity in the per-sample charge and the stopping rule is an unsigned 64-bit integer, and every operation saturates **step by step, in the order written**: at `u64::MAX` on overflow, and at `0` on subtraction. `/` is integer division rounding down, except `ceil(a / b)`, which is integer division rounding up (`a.div_ceil(b)`). `ilog2(x)` is the integer `floor(log2(x))` (never a floating-point logarithm). The face and clamp arithmetic inside `distinct` (and the clamp in certain draws) is signed 64-bit; a clamp range wholly outside the faces maps every face to the one bound it crosses, so `[lo, hi]` is a single value and `hi - lo + 1 = 1`.
+
+**Constants.** `MAX_ANALYSIS_WORK = 3_710_000_000`, `EXACT_TRANSITION_WORK = 40`, `MIN_MONTE_CARLO_SAMPLES = 10_000`, `DEFAULT_MONTE_CARLO_SAMPLES = 100_000`, and the per-sample weights:
+
+| weight | value | weight | value |
+|---|---:|---|---:|
+| `MC_WORK_PER_SAMPLE` | 628 | `MC_WORK_PER_CHILD` | 1 |
+| `MC_WORK_PER_NODE` | 54 | `MC_WORK_PER_KEEP_OP` | 124 |
+| `MC_WORK_PER_GROUP` | 23 | `MC_WORK_PER_LARGE_SORT` | 8,800 |
+| `MC_WORK_PER_DRAW` | 38 | `MC_WORK_PER_COLLECTED_DIE` | 3 |
+| `MC_WORK_PER_REROLL_SCAN` | 5 | `MC_WORK_PER_RECOLLECTED_DIE` | 9 |
+| `MC_WORK_PER_REROLL_ONCE_SCAN` | 3 | `MC_WORK_PER_SORT_STEP` | 3 |
+| `MC_WORK_PER_CLAMPED_DIE` | 36 | `MC_WORK_PER_WIDE_SORT_STEP` | 13 |
+| `MC_WORK_PER_EXPLODING_DIE` | 15 | `MC_WORK_PER_MIXED_DIE` | 18 |
+| `MC_WORK_PER_UNPREDICTABLE_TEST` | 28 | `MC_WORK_PER_POOL_TEST` | 23 |
+| `MC_WORK_PER_UNPREDICTABLE_REROLL` | 6 | | |
+
+**Exact work counts against the ceiling.** The exact phase of one expression charges `T * EXACT_TRANSITION_WORK`, where `T` is the exact transitions it spent: those of the §5.4 exact divisor rounds plus those of the main `try_exact` pass (both as counted by the §5.3 budget). `analyze` samples under `ceiling = MAX_ANALYSIS_WORK - exact_work`.
+
+**`compare`.** `compare` is exactly two `analyze` calls with one shared refusal rule:
+- Both sides run their exact phase first; errors in the order left exact phase, right exact phase.
+- Then, before any sample is drawn: if either side needs sampling and has unchecked divisions (§5.4 item 4), `compare` returns `DivisorUnchecked { divisors }` with `divisors` the **sum over the sides that need sampling**.
+- Then each side that needs sampling is sampled, left first, exactly as `analyze` would sample it: under `ceiling = MAX_ANALYSIS_WORK - exact_work` of **that side**, with the same floor. An expression `analyze` refuses is refused inside `compare` too.
+- The method tag: two exact sides give `Exact` with their caps merged; one sampled side gives that side's `samples` and `ci95_half_width`; two sampled sides give `min(samples_left, samples_right)`.
+- Both sides sample from the same seed, `MONTE_CARLO_DEFAULT_SEED`, each from its start, so their sampling errors are not independent.
+
+**Static per-sample work `fixed(expr)`** sums `MC_WORK_PER_NODE` over every AST node (`Number`, `Dice`, `UnaryNeg`, `Binary`) plus, for every dice group with `n = count` and `s` faces (`s = 100` for `d%`, `3` for `dF`):
+- `pool_len`: `n` without an explosion or for compound `!!`; for `!` and `!p`, with `m` the raw faces the threshold matches, `n * (MAX_EXPLOSIONS + 1)` if `m >= s`, else `min(n + n * m / (s - m), n * (MAX_EXPLOSIONS + 1))`.
+- `distinct`: with `[lo, hi]` the clamp of `[min_face, max_face]`, `hi - lo + 1` without an explosion, `s * (MAX_EXPLOSIONS + 1)` for `!!`, and `max(hi - lo + 1, s)` for `!` and `!p`.
+- `MC_WORK_PER_GROUP`, plus `n * (MC_WORK_PER_REROLL_SCAN * |r| + MC_WORK_PER_REROLL_ONCE_SCAN * |ro| + MC_WORK_PER_CLAMPED_DIE * [clamp] + MC_WORK_PER_EXPLODING_DIE * [explosion])`, plus `MC_WORK_PER_CHILD * (pool_len - n)`.
+- For every `r` and `ro` compare point, `MC_WORK_PER_UNPREDICTABLE_REROLL * u(m)`, and for the explosion threshold `MC_WORK_PER_UNPREDICTABLE_TEST * u(m)`, where `m` is the raw faces the point matches and `u(m) = n * 4 * m * (s - m) / (s * s)` (evaluated left to right).
+- For the keep/drop modifiers in order, starting from `kept = pool_len`: `depth = ilog2(max(min(kept, distinct), 2))`, `steps = kept * depth`; charge `MC_WORK_PER_KEEP_OP`, plus `MC_WORK_PER_LARGE_SORT` if `kept > 20`, plus `pool_len * MC_WORK_PER_COLLECTED_DIE` (plus `pool_len * MC_WORK_PER_RECOLLECTED_DIE` for every modifier after the first), plus `MC_WORK_PER_SORT_STEP * steps`, plus `MC_WORK_PER_WIDE_SORT_STEP * steps` if `distinct > 16`. Then `kept` becomes `min(kept, k)` for `kh k`/`kl k` and `kept - k` (saturating) for `dh k`/`dl k`, and the modifier also charges `MC_WORK_PER_MIXED_DIE * (4 * kept * (pool_len - kept) / pool_len)`.
+- In `Pool` mode, `MC_WORK_PER_POOL_TEST * pool_len * (|cs| + |cf|)`.
+
+**Certain draws** `certain(expr)` sums, for every dice group, `n * d` with `d = 1`, plus `MAX_REROLLS` for every `r` whose compare point matches all `s` faces, plus `1` for every such `ro`, plus, when the explosion threshold matches every value of the clamped range `[lo, hi]`, `MAX_EXPLOSIONS` if it also matches all `s` raw faces and `1` otherwise.
+
+**Sampling under `ceiling` with floor `f`** (`f` clamped to `1..=100_000`). Let `per_sample = MC_WORK_PER_SAMPLE + fixed(expr)` and `lower_bound = max(per_sample + MC_WORK_PER_DRAW * certain(expr), 1)`. Samples are evaluated one at a time on the stream above; an evaluation error is returned at once. After the `c`-th completed sample, with `D` the RNG words taken so far, `work = MC_WORK_PER_DRAW * D + c * per_sample`:
+1. If `work >= ceiling`, stop with `c` samples.
+2. Otherwise, only when `c == 1` and `f > 1`: if `work + (f - 2) * lower_bound >= ceiling`, return `AnalysisTooExpensive { samples_affordable: min(1 + ceil((ceiling - work) / lower_bound), f - 1), min_samples: f }`.
+3. Stop at `c = DEFAULT_MONTE_CARLO_SAMPLES`.
+
+If sampling stopped with `c < f`, return `AnalysisTooExpensive { samples_affordable: c, min_samples: f }`; otherwise the distribution of the `c` samples. The first sample always runs, so an error every evaluation raises (`DrawBudgetExceeded`) is still that error. `04_exact_analysis.json` carries one refusal case with its `samples_affordable` and `min_samples`.
+
+**Calibration note (not part of the contract).** The weights were fitted on the reference machine (Intel Core Ultra 9 285K, `x86_64-pc-windows-msvc`, `rustc 1.98.1`) so that one work unit is about a quarter nanosecond of release-build time. Against the slowest of three differently linked release builds, charged work tracked measured time within about 3x across 95 shapes; on a single build an independent tester measured about 5.8x over sampled runs (7.9x counting one refusal). A run to the ceiling takes about 1 s for `analyze` and about 2 s for `compare` there. These figures describe the calibration, not a guarantee: other machines, toolchains and code layouts run faster or slower, and the counts above stay the same.
 
 ### 5.4 Exact reachability and the divide-by-zero contract
 
 In PR #11 (`src/analyze/distribution.ts:270,403,561,677`), JS products that underflow `f64` to `0.0` (e.g. $(20^{-101})^3 \approx 6.1 \times 10^{-395} < 5 \times 10^{-324}$) were clamped to `Number.MIN_VALUE` so `(right.get(0) ?? 0) > 0` stayed true on `1d6/(5d20r=1-5)`. In Roll 3.0, `Distribution` stores every **reachable** integer outcome as an entry `(value, prob_f64)` in its sorted `Vec<(i64, f64)>`: an entry is inserted iff it has $\ge 1$ valid execution path with non-zero rational probability, **even if `pa * pb` underflows IEEE-754 `f64` to `0.0`**, without fabricating `5e-324` mass. Thus `dist.is_reachable(0)` (`entries.binary_search_by_key(&0, |&(v, _)| v).is_ok()`) is **mathematically exact** at arbitrary depth.
 
 **Divide-by-zero contract (`BinaryOp::DivFloor`, matching PR #11 `src/analyze/distribution.ts:705-718, 831-871`):**
-1. Before the main pass, analyze every `DivFloor` divisor subtree under a budget reserved for divisors (`MAX_DIVISOR_PREPASS_STATES = 20_000_000` transitions in total) and separate from the main budget (§5.3). Divisors are taken cheapest first by a static upper bound on their exact cost computed from the parsed dice counts and sides, ties broken by source byte offset, so one expensive divisor cannot starve a cheap one. Every exact divisor is checked for a reachable `0` before the pre-pass returns any other error.
-2. If a divisor is exact under that budget and `is_reachable(0)` is `true` (i.e. true $P(\text{divisor} = 0) > 0$), **return `Err(RollError::DivisionByZero)`**, however large the other operands are and in whatever order siblings are visited (e.g. `500d1000/(5d20-5)` and `(1d999990*0+1d999990*0+1d999990*0+1d999990*0+1d999899*0+1/1)+1d6/(5d20-5)` both error deterministically).
-3. Isolate `ExactTooLarge` on each operand separately, so an exact error inside one operand (e.g. `ArithmeticOverflow` in `(9223372036854775807+1d2)+500d1000`) still propagates when the other operand is too large for the exact budget. Reachable zero divisors are already caught by the pre-pass (items 1 and 2), so `(1d6/(5d20-5))+500d1000` errors there.
-4. If a divisor is non-exact (too large for the divisor budget, or `try_exact` returns `None`, e.g. `1d6/(5d20!kh4-4)`), fall back to `monte_carlo_distribution` (up to `100_000` `evaluate` trials, fewer when `MAX_MC_WORK` is reached, §5.3): if any trial rolls a `0` divisor (`1d6/(4d6!kh3-12)`), `evaluate` returns `Err(RollError::DivisionByZero)`; if a rare zero outcome is not hit, the report is tagged `AnalysisMethod::MonteCarlo { samples }` with the real trial count, **never** `Exact`. A rare zero can be missed only when its divisor is too large to analyze exactly.
-5. **Error precedence.** When more than one error is reachable (e.g. `(1d6/(1d2-1))+(9223372036854775807+1d2)` can raise both `DivisionByZero` and `ArithmeticOverflow`), a reachable zero from an exact divisor wins, because divisors are checked first. The TypeScript port reproduces this rule. A single `evaluate` raises whichever error its draw order reaches first.
+
+A division raises `DivisionByZero` in the engine exactly when evaluation reaches it with the dividend and the divisor both evaluated successfully and the divisor equal to `0` (`evaluate` evaluates the left operand, then the right, then the operator, and stops at the first error). Before the main pass, the analyzer classifies every division by two three-valued facts, *reached* and *zero*, which depend only on the expression, never on a budget a sibling could exhaust:
+1. **Support pass.** For every subexpression, the set of values it can produce without an error is held as a subset (`must`) and a superset (`may`) of interval sets (at most 128 intervals each; a `may` set merges gaps, a `must` set drops intervals), walked in evaluation order with no probabilities. Every dice group has a non-empty `must` set (an exploding keep/drop group whose every face explodes gets a concrete witness execution). *zero* is `Yes` when `0` is in the divisor's `must` set and `No` when it is not in its `may` set; *reached* is `Yes` when everything evaluated before the division, and the dividend, has a known success value, and `No` when one of them can never succeed, including when the draws every evaluation certainly takes up to that point (the certain-draw rule of §5.3.1) exceed `MAX_TOTAL_DRAWS`, so that every evaluation raises `DrawBudgetExceeded` first. Rerolls keep every face, a clamp maps the face interval, keep/drop over a fixed pool of `n` dice keeps any multiset of the kept count, and explosion chains are followed to `MAX_EXPLOSIONS`, so sums of contiguous dice, `200d6kh100-100` and `4d6!kh3-12` are decided exactly. When the whole expression can make more than `MAX_EXACT_DIE_ROLLS` die rolls, no division counts as reached (the draw budget may end an evaluation first).
+2. **Exact rounds.** Divisions still *zero* = `Maybe` (and not *reached* = `No`) get exact divisor passes: identical divisors are merged, and each round gives **every** pending divisor the same cap, `1 << 16`, then `1 << 20`, then `MAX_EXACT_STATES`. The first two rounds always run for every pending divisor, however many there are, so no sibling can keep a cheaper divisor from being decided. The last round runs only when all pending divisors fit what is left of `MAX_DIVISOR_PREPASS_STATES = 20_000_000`. As soon as a round shows a reachable zero in a division with *reached* = `Yes`, the answer is `DivisionByZero`.
+3. A division with *reached* = `Yes` and *zero* = `Yes` returns **`Err(RollError::DivisionByZero)`**, however large the other operands are and in whatever order siblings are visited (e.g. `500d1000/(5d20-5)`, `(1d999990*0+1d999990*0+1d999990*0+1d999990*0+1d999899*0+1/1)+1d6/(5d20-5)`, and `1d6/(1d3000+1d50000)+1d6/(1d3000+1d50001)+1d6/(1d3000+1d50000-2)` in all six orders). A division with *reached* = `No` or *zero* = `No` cannot raise it. Every other division is **unchecked** (item 4). A rare zero is therefore never silently missed: `1d6/(5d20!kh4-4)` (`P(0) = 20^-5`) returns `DivisionByZero`.
+   **Not yet guaranteed.** The answer is an error, never a value, in every case below, but the error kind may differ from the engine's precedence (item 6), and sibling order can change it:
+   - an earlier operand whose success is undecided: it overflows on some executions, and its support set has no proven success value;
+   - nested operands whose draws together approach the draw budget (prefix draws are not threaded through the exact pass, and certain draws are only a lower bound);
+   - the third divisor round, which keeps an all-or-nothing reserve shared by the pending divisors.
+
+   For example, `1/(1d2-1)+((1d999+1)*(1d999+1)-250000)*1000000000000000` returns `DivisionByZero`, and the same two terms in the other order return `ArithmeticOverflow`.
+4. **An undecided divisor is an error, never a sampled result.** When an expression needs the Monte Carlo fallback and any division is unchecked (item 3), `analyze` returns `Err(RollError::DivisorUnchecked { divisors })` with the number of unchecked divisions, and no sample is drawn. `compare` checks both sides first and reports the sum over the sides that need sampling, before either side draws a sample (§5.3.1). A non-exact divisor no longer falls back to sampling (`1d6/(5d20!kh4-4)` is `DivisionByZero` from the support pass; `1/(1d1000000*1d1000000-1000003)`, whose divisor is never `0` but cannot be shown so, is `DivisorUnchecked`). An exact main pass still decides an unchecked division exactly.
+5. **Errors are the engine's.** In the main pass an error found in a right operand (evaluated first for a division, or after a left operand too large to analyze) is reported only when the left operand can succeed (and its certain draws do not exceed `MAX_TOTAL_DRAWS`); otherwise the left operand is evaluated and its error, which the engine meets first, is reported. So `1d6/(9223372036854775807+1d2)+1d6/(1d2-1)` and `(9223372036854775807+1d2)+1d6/(1d2-1)` return `ArithmeticOverflow`, because every evaluation overflows before reaching the zero, while `(9223372036854775807+1d2)+500d1000` still returns `ArithmeticOverflow` when the other operand is too large for the exact budget.
+6. **Error precedence.** When more than one error is reachable by the engine (e.g. `(1d6/(1d2-1))+(9223372036854775807+1d2)` can raise both `DivisionByZero` and `ArithmeticOverflow`), a reachable zero wins, because divisions are checked first. The TypeScript port reproduces this rule. A single `evaluate` raises whichever error its draw order reaches first.
+   **Not yet guaranteed** in the cases listed under item 3 (an undecided earlier operand, nested operands near the draw budget, and the shared round-3 reserve). There the analyzer still returns an error, never a value, but it may return `ArithmeticOverflow` where a reachable zero should win, or `DivisionByZero` where the engine raises `DrawBudgetExceeded`.
 
 ---
 

@@ -803,6 +803,45 @@ fn canonical_round_trip_and_receipt_verification_at_nesting_depths_63_64_and_ref
             &format!("{}5", "- ".repeat(64)),
             126,
         );
+
+        // 6. Depth is counted on the input as written (fix-1 review F1). Redundant parentheses
+        //    count even though the canonical form drops them, so these inputs are refused although
+        //    their canonical forms (`-(-1)`, `-(5)`) parse.
+        assert_refused_at_65(
+            "redundant_parens_over_minus_lit_d65",
+            &format!("{}--1{}", "(".repeat(63), ")".repeat(63)),
+            63,
+        );
+        assert_refused_at_65(
+            "redundant_parens_over_spaced_minus_lit_d65",
+            &format!("{}- 5{}", "(".repeat(63), ")".repeat(63)),
+            63,
+        );
+        assert_refused_at_65(
+            "minus_run_over_paren_spaced_minus_lit_d65",
+            &format!("{}(- 5)", "-".repeat(62)),
+            63,
+        );
+        assert_refused_at_65(
+            "one_minus_chain_over_minus_lit_d65",
+            &format!("{}--5{}", "(1-".repeat(63), ")".repeat(63)),
+            189,
+        );
+        assert_round_trip_and_receipt_ok("canonical_of_redundant_minus_lit", "-(-1)");
+        assert_round_trip_and_receipt_ok("canonical_of_redundant_spaced_lit", "-(5)");
+
+        // 7. At the limit the depth check runs before the literal is read (fix-1 review F2), so an
+        //    overflowing literal under 65 minuses reports `ExpressionTooDeep`, not `ArithmeticOverflow`.
+        assert_refused_at_65(
+            "depth_wins_over_overflowing_literal_d65",
+            &format!("{}9223372036854775809", "-".repeat(65)),
+            63,
+        );
+        assert_eq!(
+            parse(&format!("{}9223372036854775809", "-".repeat(2))),
+            Err(RollError::ArithmeticOverflow),
+            "below the limit the same literal still overflows"
+        );
     };
 
     check_all();

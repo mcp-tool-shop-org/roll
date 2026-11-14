@@ -46,7 +46,7 @@
   "changes": {
     "fileCounts": {
       "added": 0,
-      "changed": 15,
+      "changed": 7,
       "moved": 0,
       "parts": 3,
       "removed": 0
@@ -54,17 +54,32 @@
     "items": [
       {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-11-14; 15 files changed content.",
+        "sentence": "Nothing structural changed since 2026-11-14; 7 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "35824c7fbb913b053be7c19f89e3ac17c9e2df0e",
-      "generatedAt": "2026-11-14T15:38:03.732Z"
+      "commit": "41d6093ca661815acd69e8d0112b1c12591d5349",
+      "generatedAt": "2026-11-14T19:36:02.681Z"
     },
     "unchanged": true
   },
   "changesTogether": [
+    {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/src/lib.rs",
+      "either": 6,
+      "partLabels": [
+        "roll-core",
+        "roll-core"
+      ],
+      "parts": [
+        "roll-core",
+        "roll-core"
+      ],
+      "relation": "inside",
+      "shared": 6
+    },
     {
       "a": "src/bin.ts",
       "b": "src/mcp/server.ts",
@@ -96,49 +111,34 @@
       "shared": 6
     },
     {
-      "a": "src/bin.ts",
-      "b": "src/bridge/handler.ts",
-      "either": 8,
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/src/conformance.rs",
+      "either": 6,
       "partLabels": [
-        "src",
-        "src"
+        "roll-core",
+        "roll-core"
       ],
       "parts": [
-        "src",
-        "src"
-      ],
-      "relation": "inside",
-      "shared": 6
-    },
-    {
-      "a": "src/bin.ts",
-      "b": "src/display/format.ts",
-      "either": 8,
-      "partLabels": [
-        "src",
-        "src"
-      ],
-      "parts": [
-        "src",
-        "src"
+        "roll-core",
+        "roll-core"
       ],
       "relation": "inside",
       "shared": 5
     },
     {
-      "a": "src/bridge/handler.ts",
-      "b": "src/display/format.ts",
-      "either": 7,
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/tests/properties.rs",
+      "either": 6,
       "partLabels": [
-        "src",
-        "src"
+        "roll-core",
+        "roll-core"
       ],
       "parts": [
-        "src",
-        "src"
+        "roll-core",
+        "roll-core"
       ],
       "relation": "inside",
-      "shared": 4
+      "shared": 5
     }
   ],
   "changesTogetherNote": [
@@ -146,9 +146,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "1b4e83a4cb2599da5f907d913ed481f328b5ff79",
+  "commit": "7b58b2a3197a0de3bd3041af66b0007e1c845d2d",
   "defaultBranch": "main",
-  "derived": "8 parts, mostly TypeScript (58 files), Rust (23), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).",
+  "derived": "8 parts, mostly TypeScript (58 files), Rust (24), CSS (2), Astro (1) and JavaScript (1). Work enters through 8 doors; the busiest is CI, which reaches 4 parts. It publishes to npm. It deploys a site to GitHub Pages. People run roll, roll-bridge and roll-mcp. People import @mcptoolshop/roll. roll is a command built from crates/roll-cli (nothing ships it).",
   "doors": [
     {
       "builds": [
@@ -174,7 +174,7 @@
         {
           "boundary": "roll-core",
           "depth": 0,
-          "files": 20
+          "files": 21
         },
         {
           "boundary": "src",
@@ -192,11 +192,12 @@
         "src/bin.ts",
         "crates/roll-cli/tests/",
         "crates/roll-core/src/analyze.rs",
+        "crates/roll-core/src/support.rs",
         "crates/roll-core/tests/",
         "tests/"
       ],
-      "runsCount": 6,
-      "runsMore": 36,
+      "runsCount": 7,
+      "runsMore": 37,
       "sends": [
         "uploads coverage to Codecov"
       ],
@@ -297,7 +298,7 @@
         {
           "boundary": "roll-core",
           "depth": 2,
-          "files": 11
+          "files": 12
         }
       ],
       "runs": [
@@ -434,7 +435,7 @@
   ],
   "engine": "1.26.0",
   "generated": [],
-  "generatedAt": "2026-11-14T17:03:09.216Z",
+  "generatedAt": "2026-11-14T20:46:30.683Z",
   "limits": [
     "3 writes and 2 reads go to a path their caller passes, not to this repository.",
     "1 file belongs to no part: docs/spec/roll-3.0.md.",
@@ -472,10 +473,10 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 39,
+  "testFiles": 40,
   "testedBy": {
     "roll-cli": 1,
-    "roll-core": 10,
+    "roll-core": 11,
     "src": 27
   },
   "testedCodeParts": 3,

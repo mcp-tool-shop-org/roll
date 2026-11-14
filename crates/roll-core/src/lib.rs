@@ -23,12 +23,15 @@ pub mod math;
 pub mod parser;
 pub mod receipt;
 pub mod rng;
+mod support;
 
 pub use analyze::{
     AnalysisMethod, AnalysisReport, ComparisonReport, DEFAULT_MONTE_CARLO_SAMPLES, Distribution,
-    DistributionStats, EXACT_DRAW_RETRY_MARGIN, MAX_ANALYZE_DICE, MAX_DIVISOR_PREPASS_STATES,
-    MAX_EXACT_DIE_ROLLS, MAX_EXACT_LIVE_STATES, MAX_EXACT_STATES, MONTE_CARLO_DEFAULT_SEED,
-    ModelledCaps, PrefixOracleResult, TargetDirection, analyze, compare, compute_stats,
+    DistributionStats, EXACT_DRAW_RETRY_MARGIN, EXACT_TRANSITION_WORK, MAX_ANALYSIS_WORK,
+    MAX_ANALYZE_DICE, MAX_DIVISOR_PREPASS_STATES, MAX_EXACT_DIE_ROLLS, MAX_EXACT_LIVE_STATES,
+    MAX_EXACT_STATES, MIN_MONTE_CARLO_SAMPLES, MODE_TIE_RELATIVE_TOLERANCE,
+    MONTE_CARLO_DEFAULT_SEED, ModelledCaps, PrefixOracleResult, TargetDirection, analyze,
+    analyze_with_min_samples, compare, compare_with_min_samples, compute_stats,
     lemire_witness_word, monte_carlo_distribution, reduce_keep_drop_interval,
     run_prefix_tape_oracle,
 };

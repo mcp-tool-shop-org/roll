@@ -9,7 +9,7 @@
       "externals": 0,
       "files": [
         {
-          "hash": "b6639b57d703e3b45d2a27a323749f74333fdb601ae522dcbb1e467ad4bd81ff",
+          "hash": "f3ab6a5d40d75fe23bc7ccdec1649fed0dc37e84098bf1ea7b9f2a0186c74c7d",
           "path": ".github/workflows/ci.yml"
         },
         {
@@ -52,11 +52,11 @@
           "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
         },
         {
-          "hash": "877633c517ac81225611bfc5ac2ce35cc3d9c0e6ba57e1c7360bbf7516d1024c",
+          "hash": "385c0ebac23f38b4bbc7813a4bdf816cc1f400bb0a35c5d367b642d464127835",
           "path": "fixtures/conformance/v3/04_exact_analysis.json"
         },
         {
-          "hash": "e8ae39428b7fd1e73e19f368fca2cdb979c43deac0c714da1eef7a4386d4ef25",
+          "hash": "ec184aa7f5a3da36fe2d9c3000e734358546331654c340771836bf2c614f8054",
           "path": "fixtures/conformance/v3/MANIFEST.sha256"
         }
       ],
@@ -236,8 +236,12 @@
         {
           "exports": [
             "analyze",
+            "analyze_with_min_samples",
+            "certain_draws_per_die",
             "compare",
+            "compare_with_min_samples",
             "compute_stats",
+            "exact_phase",
             "lemire_witness_word",
             "monte_carlo_distribution",
             "reduce_keep_drop_interval",
@@ -247,256 +251,282 @@
             {
               "in": "prob_exactly",
               "kind": "match-err",
-              "line": 325
+              "line": 404
             },
             {
               "in": "target_for_probability",
               "kind": "err",
-              "line": 372
+              "line": 451
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "err",
-              "line": 539
+              "line": 645
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "match-err",
-              "line": 561
+              "line": 666
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "err",
-              "line": 561
+              "line": 666
             },
             {
-              "in": "analyze",
+              "in": "exact_phase",
               "kind": "match-err",
-              "line": 562
+              "line": 667
             },
             {
-              "in": "compare",
-              "kind": "match-err",
-              "line": 654
-            },
-            {
-              "in": "compare",
+              "in": "sampling_phase",
               "kind": "err",
-              "line": 654
+              "line": 684
             },
             {
-              "in": "compare",
+              "in": "compare_with_min_samples",
+              "kind": "err",
+              "line": 769
+            },
+            {
+              "in": "compare_with_min_samples",
               "kind": "match-err",
-              "line": 655
+              "line": 857
+            },
+            {
+              "in": "compare_with_min_samples",
+              "kind": "err",
+              "line": 857
+            },
+            {
+              "in": "compare_with_min_samples",
+              "kind": "match-err",
+              "line": 858
             },
             {
               "in": "charge_transitions",
               "kind": "err",
-              "line": 770
+              "line": 973
             },
             {
               "in": "reserve_live",
               "kind": "err",
-              "line": 780
+              "line": 983
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 961
-            },
-            {
-              "in": "precheck_divisors",
-              "kind": "match-err",
-              "line": 964
+              "line": 1066
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 965
+              "line": 1108
             },
             {
               "in": "precheck_divisors",
               "kind": "match-err",
-              "line": 967
+              "line": 1112
             },
             {
               "in": "precheck_divisors",
               "kind": "match-err",
-              "line": 974
+              "line": 1113
             },
             {
               "in": "precheck_divisors",
               "kind": "err",
-              "line": 979
+              "line": 1121
             },
             {
               "in": "add_capped",
               "kind": "err",
-              "line": 1047
+              "line": 1192
             },
             {
               "in": "finish_node_frame",
               "kind": "match-err",
-              "line": 1146
+              "line": 1293
             },
             {
               "in": "finish_node_frame",
               "kind": "err",
-              "line": 1148
+              "line": 1295
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1160
+              "line": 1323
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1162
-            },
-            {
-              "in": "combine_binary_exact",
-              "kind": "match-err",
-              "line": 1171
-            },
-            {
-              "in": "combine_binary_exact",
-              "kind": "err",
-              "line": 1173
+              "line": 1328
             },
             {
               "in": "combine_binary_exact",
               "kind": "match-err",
-              "line": 1178
+              "line": 1341
             },
             {
               "in": "combine_binary_exact",
               "kind": "err",
-              "line": 1180
+              "line": 1343
+            },
+            {
+              "in": "combine_binary_exact",
+              "kind": "match-err",
+              "line": 1348
+            },
+            {
+              "in": "combine_binary_exact",
+              "kind": "err",
+              "line": 1350
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1263
+              "line": 1434
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1263
+              "line": 1434
             },
             {
               "in": "try_exact",
               "kind": "match-err",
-              "line": 1273
+              "line": 1448
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1275
+              "line": 1452
             },
             {
               "in": "try_exact",
               "kind": "err",
-              "line": 1285
+              "line": 1465
+            },
+            {
+              "in": "try_exact",
+              "kind": "match-err",
+              "line": 1473
+            },
+            {
+              "in": "try_exact",
+              "kind": "err",
+              "line": 1473
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1391
+              "line": 1579
             },
             {
               "in": "single_die_pre_explode",
               "kind": "err",
-              "line": 1400
+              "line": 1588
             },
             {
               "in": "explosion_chain_sum_pmf_inner",
               "kind": "err",
-              "line": 1677
+              "line": 1865
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1861
+              "line": 2049
             },
             {
               "in": "try_exact_dice",
               "kind": "err",
-              "line": 1878
+              "line": 2066
             },
             {
               "in": "divide_distribution_weighted",
               "kind": "err",
-              "line": 2315
+              "line": 2503
             },
             {
               "in": "convolve",
               "kind": "err",
-              "line": 2450
+              "line": 2638
             },
             {
               "in": "subtract_distributions",
               "kind": "err",
-              "line": 2491
+              "line": 2679
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2567
+              "line": 2755
             },
             {
               "in": "convolve_n_uniform_contiguous",
               "kind": "err",
-              "line": 2571
+              "line": 2759
             },
             {
               "in": "convolve_n_inner",
               "kind": "err",
-              "line": 2744
+              "line": 2932
             },
             {
               "in": "multiply_distributions",
               "kind": "err",
-              "line": 2768
+              "line": 2956
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2814
+              "line": 3002
             },
             {
               "in": "divide_distributions",
               "kind": "err",
-              "line": 2847
+              "line": 3035
+            },
+            {
+              "in": "monte_carlo_fallback",
+              "kind": "err",
+              "line": 3397
+            },
+            {
+              "in": "monte_carlo_fallback",
+              "kind": "err",
+              "line": 3406
             },
             {
               "in": "next_u64_word",
               "kind": "err",
-              "line": 3121
+              "line": 3478
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3173
+              "line": 3530
             },
             {
               "in": "walk",
               "kind": "match-err",
-              "line": 3176
+              "line": 3533
             },
             {
               "in": "walk",
               "kind": "err",
-              "line": 3176
+              "line": 3533
             }
           ],
-          "hash": "61277c261f2eb765522ceb3d33cd3bd2f5de280974e33c29c6b38c8477e6fd55",
+          "hash": "440ff64881894c6ad042e8a3ca001998f9a8022d08acefc71f390751a1878398",
           "importOrder": [
             "crates/roll-core/src/ast.rs",
             "crates/roll-core/src/error.rs",
             "crates/roll-core/src/eval.rs",
             "crates/roll-core/src/math.rs",
             "crates/roll-core/src/rng.rs",
+            "crates/roll-core/src/support.rs",
             "crates/roll-core/src/parser.rs"
           ],
           "importsFiles": [
@@ -505,13 +535,14 @@
             "crates/roll-core/src/eval.rs",
             "crates/roll-core/src/math.rs",
             "crates/roll-core/src/parser.rs",
-            "crates/roll-core/src/rng.rs"
+            "crates/roll-core/src/rng.rs",
+            "crates/roll-core/src/support.rs"
           ],
           "path": "crates/roll-core/src/analyze.rs",
           "testsInside": true
         },
         {
-          "hash": "a4fb234c6c0c4b8d7d38c3cbfcd44fe003b74e84440e13ee0f85d7dd76907810",
+          "hash": "e0f4f10a9576683f900711d83ae4da123c15700243368b0085f9f5afd4c79bcd",
           "path": "crates/roll-core/src/ast.rs"
         },
         {
@@ -585,30 +616,30 @@
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 903
+              "line": 909
             },
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 911
+              "line": 917
             },
             {
               "in": "build_02_grammar_and_ast",
               "kind": "match-err",
-              "line": 919
+              "line": 925
             },
             {
               "in": "build_draw_budget_cases",
               "kind": "match-err",
-              "line": 1121
+              "line": 1127
             },
             {
               "in": "build_draw_budget_cases",
               "kind": "match-err",
-              "line": 1138
+              "line": 1144
             }
           ],
-          "hash": "f3d9378431c4fdfd566e0e43c00acda1b203491b05ea1231ee40c564141219a1",
+          "hash": "d15a68a010c1df659a304676b26de9063a103945277e3bcee41388296914da58",
           "importsFiles": [
             "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
@@ -623,7 +654,7 @@
           "path": "crates/roll-core/src/conformance.rs"
         },
         {
-          "hash": "64921262cccf212812dd2b6847ea65192005761c4e510b05b506f490a50f83ca",
+          "hash": "d945aebbaee725864bec875a2906bb6cf54ad0f37a04bc0e05c32e60d1c7e0ad",
           "path": "crates/roll-core/src/error.rs"
         },
         {
@@ -656,7 +687,7 @@
           "path": "crates/roll-core/src/eval.rs"
         },
         {
-          "hash": "8af1ae38b7a3f7f50b28d94754a8d0f1793bcf38405933a00063996b520c355c",
+          "hash": "95ec9deb02f2a48155ac6b7e6a7fc05598da9635f78ddbda3714b6c0cd8e3377",
           "importsFiles": [
             "crates/roll-core/src/analyze.rs",
             "crates/roll-core/src/ast.rs",
@@ -668,7 +699,8 @@
             "crates/roll-core/src/math.rs",
             "crates/roll-core/src/parser.rs",
             "crates/roll-core/src/receipt.rs",
-            "crates/roll-core/src/rng.rs"
+            "crates/roll-core/src/rng.rs",
+            "crates/roll-core/src/support.rs"
           ],
           "path": "crates/roll-core/src/lib.rs"
         },
@@ -1026,7 +1058,29 @@
           "path": "crates/roll-core/src/rng.rs"
         },
         {
-          "hash": "44696614d371464a24825ae55c9b51ff5f907cae7016bcccc3329ac2d0459249",
+          "exports": [
+            "can_succeed",
+            "certain_draws",
+            "walk"
+          ],
+          "hash": "0e7a5d7b60c7b3f2a0d7cb9a3f96d88a6e832485683f7eb3d7d79f13cf4987af",
+          "importOrder": [
+            "crates/roll-core/src/ast.rs",
+            "crates/roll-core/src/eval.rs",
+            "crates/roll-core/src/analyze.rs",
+            "crates/roll-core/src/parser.rs"
+          ],
+          "importsFiles": [
+            "crates/roll-core/src/analyze.rs",
+            "crates/roll-core/src/ast.rs",
+            "crates/roll-core/src/eval.rs",
+            "crates/roll-core/src/parser.rs"
+          ],
+          "path": "crates/roll-core/src/support.rs",
+          "testsInside": true
+        },
+        {
+          "hash": "384c08945e9dec8edb3c81a2e1ad412f08df96e321d2b985a82c5745cad4af85",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -1054,7 +1108,7 @@
           "testsInside": true
         },
         {
-          "hash": "a6e7b308b913affbe6de0b04144251a9ac5c0059a447319c10ac06f142f72221",
+          "hash": "483eac9de50715e7b05beb3e382c40e600f90bd2641e7f1ee20716a6ceec3ca1",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs"
@@ -1082,7 +1136,7 @@
           "testsInside": true
         },
         {
-          "hash": "ebf2d145f9bb03640df306aa883e21aaec3be9fb978f47ed91b4aff8ed52cfad",
+          "hash": "b2fbf758e94e0e475aff8f8f11f108cee2a31fda21879fcd9d32da32d535fcec",
           "importOrder": [
             "crates/roll-core/src/lib.rs",
             "crates/roll-core/src/analyze.rs",
@@ -1111,7 +1165,7 @@
           "testsInside": true
         },
         {
-          "hash": "35acc691b107ea158e2b38865ca030e755e88d23dbb8ae69864674f6d408a0d6",
+          "hash": "327a0f8b4ae1e8b851f058976db86eda734dea9f4a169a54ec5176f4aba13f9c",
           "importsFiles": [
             "crates/roll-core/src/conformance.rs"
           ],
@@ -1140,7 +1194,7 @@
       "testRunners": [
         "cargo test"
       ],
-      "testedBy": 10,
+      "testedBy": 11,
       "unresolvedSites": 0
     },
     {
@@ -1160,7 +1214,7 @@
           "path": ".gitignore"
         },
         {
-          "hash": "046b90e30c1a348d76a277a25e70c45313e0fce8a349342dfd73e2a5e11061cc",
+          "hash": "184ad809bc8c12f40a07105b54b9bae40b5ad3e3d86a63cb71a9077c36a08d17",
           "path": "CHANGELOG.md"
         },
         {
@@ -7174,6 +7228,15 @@
           "programs": [
             "cargo"
           ],
+          "step": "Build (native release analyzer bounds)"
+        },
+        {
+          "dir": "",
+          "job": "rust",
+          "programs": [
+            "cargo",
+            "ulimit"
+          ],
           "step": "Test (native release analyzer bounds)"
         },
         {
@@ -7327,7 +7390,7 @@
         {
           "boundary": "roll-core",
           "depth": 0,
-          "files": 20
+          "files": 21
         },
         {
           "boundary": "src",
@@ -7377,6 +7440,13 @@
           "via": "cargo check"
         },
         {
+          "job": "rust",
+          "matched": true,
+          "path": "crates/roll-core/src/support.rs",
+          "runKind": "executes",
+          "via": "cargo test"
+        },
+        {
           "directory": true,
           "job": "rust",
           "matched": true,
@@ -7407,7 +7477,7 @@
           "via": "tsc tsconfig.test.json"
         }
       ],
-      "runsCount": 9,
+      "runsCount": 10,
       "secrets": [],
       "sends": {
         "deploysPages": false,
@@ -7433,7 +7503,7 @@
           ]
         },
         {
-          "files": 10,
+          "files": 11,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (native)"
@@ -7442,10 +7512,16 @@
           "files": 1,
           "job": "rust",
           "runner": "cargo test",
+          "step": "Build (native release analyzer bounds)"
+        },
+        {
+          "files": 1,
+          "job": "rust",
+          "runner": "cargo test",
           "step": "Test (native release analyzer bounds)"
         },
         {
-          "files": 10,
+          "files": 11,
           "job": "rust",
           "runner": "cargo test",
           "step": "Test (wasm32-wasip1)"
@@ -7885,7 +7961,7 @@
             "file": "crates/roll-core/src/conformance.rs",
             "from": "crates/roll-cli/src/lib.rs"
           },
-          "files": 11
+          "files": 12
         }
       ],
       "readers": [],
@@ -8106,8 +8182,8 @@
   ],
   "engine": "1.26.0",
   "generatedFrom": {
-    "commit": "1b4e83a4cb2599da5f907d913ed481f328b5ff79",
-    "tracked": 128
+    "commit": "7b58b2a3197a0de3bd3041af66b0007e1c845d2d",
+    "tracked": 129
   },
   "landings": [
     {
@@ -8357,10 +8433,10 @@
   "overlaps": [],
   "submodules": [],
   "symlinks": [],
-  "testFiles": 39,
+  "testFiles": 40,
   "unassigned": [
     {
-      "hash": "a76d7c0ae2f05d4b5c34e291561b97a578ff34080e5804e98fbad07960ea8474",
+      "hash": "66f14d746b47286d812b5955139bd0fd08ccdfbb05c1fb57ccd835e4d5ce76aa",
       "path": "docs/spec/roll-3.0.md"
     }
   ]

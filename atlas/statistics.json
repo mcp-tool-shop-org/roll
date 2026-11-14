@@ -49,7 +49,7 @@
       "confidence": "low",
       "highWater": null,
       "name": "roll-cli",
-      "qualifyingSourceCommits": 2,
+      "qualifyingSourceCommits": 1,
       "rebaseline": null
     },
     {
@@ -62,12 +62,12 @@
           "roll-cli"
         ]
       },
-      "cohesion": null,
+      "cohesion": 1,
       "cohesionDropped": false,
       "confidence": "low",
       "highWater": null,
       "name": "roll-core",
-      "qualifyingSourceCommits": 4,
+      "qualifyingSourceCommits": 7,
       "rebaseline": null
     },
     {
@@ -146,8 +146,8 @@
         "path": ".gitattributes"
       },
       {
-        "commits": 19,
-        "lines": 451,
+        "commits": 20,
+        "lines": 453,
         "path": ".github/workflows/ci.yml"
       },
       {
@@ -166,8 +166,8 @@
         "path": ".gitignore"
       },
       {
-        "commits": 22,
-        "lines": 206,
+        "commits": 25,
+        "lines": 226,
         "path": "CHANGELOG.md"
       },
       {
@@ -236,8 +236,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 17,
-        "lines": 518,
+        "commits": 18,
+        "lines": 530,
         "path": "atlas/README.md"
       },
       {
@@ -246,18 +246,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 17,
-        "lines": 2140,
+        "commits": 18,
+        "lines": 2177,
         "path": "atlas/page.json"
       },
       {
-        "commits": 17,
-        "lines": 3657,
+        "commits": 18,
+        "lines": 3930,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 17,
-        "lines": 22743,
+        "commits": 18,
+        "lines": 23403,
         "path": "atlas/structure.json"
       },
       {
@@ -291,13 +291,13 @@
         "path": "crates/roll-core/Cargo.toml"
       },
       {
-        "commits": 4,
-        "lines": 5506,
+        "commits": 7,
+        "lines": 7230,
         "path": "crates/roll-core/src/analyze.rs"
       },
       {
-        "commits": 6,
-        "lines": 1177,
+        "commits": 8,
+        "lines": 1193,
         "path": "crates/roll-core/src/ast.rs"
       },
       {
@@ -311,13 +311,13 @@
         "path": "crates/roll-core/src/codec.rs"
       },
       {
-        "commits": 6,
-        "lines": 4614,
+        "commits": 9,
+        "lines": 4640,
         "path": "crates/roll-core/src/conformance.rs"
       },
       {
-        "commits": 6,
-        "lines": 652,
+        "commits": 8,
+        "lines": 693,
         "path": "crates/roll-core/src/error.rs"
       },
       {
@@ -326,8 +326,8 @@
         "path": "crates/roll-core/src/eval.rs"
       },
       {
-        "commits": 7,
-        "lines": 178,
+        "commits": 10,
+        "lines": 202,
         "path": "crates/roll-core/src/lib.rs"
       },
       {
@@ -336,13 +336,13 @@
         "path": "crates/roll-core/src/math.rs"
       },
       {
-        "commits": 5,
-        "lines": 1826,
+        "commits": 6,
+        "lines": 1889,
         "path": "crates/roll-core/src/parser.rs"
       },
       {
-        "commits": 3,
-        "lines": 798,
+        "commits": 4,
+        "lines": 808,
         "path": "crates/roll-core/src/receipt.rs"
       },
       {
@@ -351,38 +351,43 @@
         "path": "crates/roll-core/src/rng.rs"
       },
       {
-        "commits": 3,
-        "lines": 1356,
+        "commits": 1,
+        "lines": 838,
+        "path": "crates/roll-core/src/support.rs"
+      },
+      {
+        "commits": 7,
+        "lines": 2217,
         "path": "crates/roll-core/tests/analyzer.rs"
       },
       {
-        "commits": 1,
-        "lines": 368,
+        "commits": 2,
+        "lines": 484,
         "path": "crates/roll-core/tests/draw_budget.rs"
       },
       {
-        "commits": 5,
-        "lines": 1482,
+        "commits": 7,
+        "lines": 1801,
         "path": "crates/roll-core/tests/grammar_and_eval.rs"
       },
       {
-        "commits": 3,
-        "lines": 457,
+        "commits": 4,
+        "lines": 459,
         "path": "crates/roll-core/tests/oracle.rs"
       },
       {
-        "commits": 7,
-        "lines": 1759,
+        "commits": 9,
+        "lines": 2045,
         "path": "crates/roll-core/tests/properties.rs"
       },
       {
-        "commits": 5,
-        "lines": 880,
+        "commits": 6,
+        "lines": 900,
         "path": "crates/roll-core/tests/receipts.rs"
       },
       {
-        "commits": 7,
-        "lines": 62,
+        "commits": 9,
+        "lines": 66,
         "path": "crates/roll-core/tests/reproducibility.rs"
       },
       {
@@ -392,7 +397,7 @@
       },
       {
         "commits": 3,
-        "lines": 1088,
+        "lines": 1125,
         "path": "docs/spec/roll-3.0.md"
       },
       {
@@ -411,13 +416,13 @@
         "path": "fixtures/conformance/v3/03_rolls_and_receipts.json"
       },
       {
-        "commits": 4,
-        "lines": 14643,
+        "commits": 6,
+        "lines": 14659,
         "path": "fixtures/conformance/v3/04_exact_analysis.json"
       },
       {
-        "commits": 7,
-        "lines": 21,
+        "commits": 9,
+        "lines": 25,
         "path": "fixtures/conformance/v3/MANIFEST.sha256"
       },
       {
@@ -741,9 +746,9 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-11-14T17:03:09.216Z",
+  "generatedAt": "2026-11-14T20:46:30.683Z",
   "generatedFrom": {
-    "commit": "1b4e83a4cb2599da5f907d913ed481f328b5ff79"
+    "commit": "7b58b2a3197a0de3bd3041af66b0007e1c845d2d"
   },
   "pairs": [
     {
@@ -817,6 +822,202 @@
       "strength": 1
     },
     {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/src/conformance.rs",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/src/lib.rs",
+      "either": 6,
+      "shared": 6,
+      "strength": 1
+    },
+    {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/tests/analyzer.rs",
+      "either": 7,
+      "shared": 5,
+      "strength": 0.714286
+    },
+    {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/tests/properties.rs",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "crates/roll-core/tests/reproducibility.rs",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "fixtures/conformance/v3/04_exact_analysis.json",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/analyze.rs",
+      "b": "fixtures/conformance/v3/MANIFEST.sha256",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/conformance.rs",
+      "b": "crates/roll-core/src/lib.rs",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/conformance.rs",
+      "b": "crates/roll-core/tests/analyzer.rs",
+      "either": 7,
+      "shared": 4,
+      "strength": 0.571429
+    },
+    {
+      "a": "crates/roll-core/src/conformance.rs",
+      "b": "crates/roll-core/tests/properties.rs",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "crates/roll-core/src/conformance.rs",
+      "b": "crates/roll-core/tests/reproducibility.rs",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "crates/roll-core/src/conformance.rs",
+      "b": "fixtures/conformance/v3/04_exact_analysis.json",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "crates/roll-core/src/conformance.rs",
+      "b": "fixtures/conformance/v3/MANIFEST.sha256",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "crates/roll-core/src/lib.rs",
+      "b": "crates/roll-core/tests/analyzer.rs",
+      "either": 7,
+      "shared": 5,
+      "strength": 0.714286
+    },
+    {
+      "a": "crates/roll-core/src/lib.rs",
+      "b": "crates/roll-core/tests/properties.rs",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/lib.rs",
+      "b": "crates/roll-core/tests/reproducibility.rs",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/lib.rs",
+      "b": "fixtures/conformance/v3/04_exact_analysis.json",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/src/lib.rs",
+      "b": "fixtures/conformance/v3/MANIFEST.sha256",
+      "either": 6,
+      "shared": 5,
+      "strength": 0.833333
+    },
+    {
+      "a": "crates/roll-core/tests/analyzer.rs",
+      "b": "crates/roll-core/tests/properties.rs",
+      "either": 7,
+      "shared": 4,
+      "strength": 0.571429
+    },
+    {
+      "a": "crates/roll-core/tests/analyzer.rs",
+      "b": "crates/roll-core/tests/reproducibility.rs",
+      "either": 7,
+      "shared": 4,
+      "strength": 0.571429
+    },
+    {
+      "a": "crates/roll-core/tests/analyzer.rs",
+      "b": "fixtures/conformance/v3/04_exact_analysis.json",
+      "either": 7,
+      "shared": 4,
+      "strength": 0.571429
+    },
+    {
+      "a": "crates/roll-core/tests/analyzer.rs",
+      "b": "fixtures/conformance/v3/MANIFEST.sha256",
+      "either": 7,
+      "shared": 4,
+      "strength": 0.571429
+    },
+    {
+      "a": "crates/roll-core/tests/properties.rs",
+      "b": "crates/roll-core/tests/reproducibility.rs",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "crates/roll-core/tests/properties.rs",
+      "b": "fixtures/conformance/v3/04_exact_analysis.json",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "crates/roll-core/tests/properties.rs",
+      "b": "fixtures/conformance/v3/MANIFEST.sha256",
+      "either": 6,
+      "shared": 4,
+      "strength": 0.666667
+    },
+    {
+      "a": "crates/roll-core/tests/reproducibility.rs",
+      "b": "fixtures/conformance/v3/04_exact_analysis.json",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "crates/roll-core/tests/reproducibility.rs",
+      "b": "fixtures/conformance/v3/MANIFEST.sha256",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
+      "a": "fixtures/conformance/v3/04_exact_analysis.json",
+      "b": "fixtures/conformance/v3/MANIFEST.sha256",
+      "either": 5,
+      "shared": 5,
+      "strength": 1
+    },
+    {
       "a": "package-lock.json",
       "b": "package.json",
       "either": 11,
@@ -867,7 +1068,7 @@
     }
   ],
   "parameters": {
-    "appliedChangesetLimit": 35.25,
+    "appliedChangesetLimit": 33.5,
     "changeset": 50,
     "changesetFraction": 0.25,
     "cohesionDrop": 0.2,
@@ -876,16 +1077,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-11-14T10:38:07-05:00",
-    "inScopeFiles": 141,
+    "headDate": "2026-11-14T14:36:17-05:00",
+    "inScopeFiles": 134,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 50,
+    "qualifyingCommits": 52,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-05-18T15:38:07.000Z",
+    "since": "2026-05-18T19:36:17.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",

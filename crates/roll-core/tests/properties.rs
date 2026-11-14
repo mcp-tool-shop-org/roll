@@ -897,7 +897,7 @@ fn wrap_with_unary_and_parens(mut expr: String, steps: &[u8]) -> String {
 }
 
 /// Generates raw Roll 3.0 expression strings bounded within the parser's byte (`<= 1,000`) and
-/// dice (`<= 10,000`) limits, exercising shallow through boundary (`60..=66`) unary/parenthesis
+/// dice (`<= 10,000`) limits, exercising shallow through boundary (`60..=65`) unary/parenthesis
 /// nesting depths across contiguous minuses, spaced minuses, negative literals, shorthands, and
 /// binary operator chains.
 fn arb_parser_bounded_expr_string() -> impl Strategy<Value = String> {
@@ -958,4 +958,117 @@ fn arb_parser_bounded_expr_string() -> impl Strategy<Value = String> {
         }
         out
     })
+}
+
+/// Nesting depth the parser counts on `expr.to_canonical_string()`: one level per `(` the canonical
+/// writer emits and one per unary `-` (`crates/roll-core/src/ast.rs`, `write_canonical`).
+fn canonical_nesting(expr: &Expr) -> usize {
+    const fn precedence(e: &Expr) -> u8 {
+        match e {
+            Expr::Binary { op, .. } => match op {
+                BinaryOp::Add | BinaryOp::Sub => 1,
+                BinaryOp::Mul | BinaryOp::DivFloor => 2,
+            },
+            Expr::UnaryNeg(_) => 3,
+            Expr::Number(v) if *v < 0 => 3,
+            Expr::Number(_) | Expr::Dice(_) => 4,
+        }
+    }
+    match expr {
+        Expr::Number(_) | Expr::Dice(_) => 0,
+        Expr::UnaryNeg(operand) => {
+            let parens = precedence(operand) < 3 || matches!(operand.as_ref(), Expr::Number(_));
+            1 + usize::from(parens) + canonical_nesting(operand)
+        }
+        Expr::Binary { left, right, .. } => {
+            let prec = precedence(expr);
+            let l = usize::from(precedence(left) < prec) + canonical_nesting(left);
+            let r = usize::from(precedence(right) <= prec) + canonical_nesting(right);
+            l.max(r)
+        }
+    }
+}
+
+/// ASTs built directly (not parsed), nested up to 90 steps around a leaf (half of them unary
+/// minuses), so their canonical forms span both sides of `MAX_NESTING_DEPTH`.
+fn arb_deep_ast() -> impl Strategy<Value = Expr> {
+    let leaf = || {
+        prop_oneof![
+            prop_oneof![
+                Just(i64::MIN),
+                Just(i64::MAX),
+                Just(-1i64),
+                Just(0i64),
+                Just(1i64),
+                -9i64..=9,
+                any::<i64>(),
+            ]
+            .prop_map(Expr::Number),
+            arb_dice_spec(3).prop_map(Expr::Dice),
+        ]
+    };
+    let op = prop_oneof![
+        Just(BinaryOp::Add),
+        Just(BinaryOp::Sub),
+        Just(BinaryOp::Mul),
+        Just(BinaryOp::DivFloor),
+    ];
+    let small = prop_oneof![
+        4 => (-9i64..=9).prop_map(Expr::Number),
+        1 => leaf(),
+    ];
+    (leaf(), prop::collection::vec((0u8..4, op, small), 0..=90)).prop_map(|(mut expr, steps)| {
+        for (kind, op, other) in steps {
+            expr = match kind {
+                0 | 1 => Expr::UnaryNeg(Box::new(expr)),
+                2 => Expr::Binary {
+                    op,
+                    left: Box::new(expr),
+                    right: Box::new(other),
+                },
+                _ => Expr::Binary {
+                    op,
+                    left: Box::new(other),
+                    right: Box::new(expr),
+                },
+            };
+        }
+        expr
+    })
+}
+
+proptest! {
+    #![proptest_config(proptest_cfg())]
+
+    /// Reverse round trip: every canonical string the writer produces parses back to its AST,
+    /// as long as its nesting is within `MAX_NESTING_DEPTH`, and is refused as too deep (never
+    /// with any other error) beyond it.
+    #[test]
+    fn prop_every_canonical_string_within_limits_parses_back(expr in arb_deep_ast()) {
+        let canonical = expr.to_canonical_string();
+        prop_assume!(canonical.len() <= roll_core::MAX_EXPRESSION_BYTES);
+        let depth = canonical_nesting(&expr);
+        let parsed = parse(&canonical);
+        if depth <= roll_core::MAX_NESTING_DEPTH {
+            prop_assert_eq!(
+                parsed.as_ref(),
+                Ok(&expr),
+                "canonical {:?} (nesting {}) did not parse back",
+                canonical,
+                depth
+            );
+            prop_assert_eq!(parsed.unwrap().to_canonical_string(), canonical);
+        } else {
+            prop_assert!(
+                matches!(
+                    parsed,
+                    Err(RollError::ExpressionTooDeep { depth: 65, max: 64, .. })
+                ),
+                "canonical {:?} (nesting {}) gave {:?}",
+                canonical,
+                depth,
+                parsed
+            );
+        }
+    }
 }
