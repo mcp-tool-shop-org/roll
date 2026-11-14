@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Exact analysis for combined dice modifiers** — `tryExact` now composes Stage 1 (roll), Stage 2 (`reroll` / `reroll_once`), and Stage 3 (`min` / `max`) per die before Stage 4 (`explode` / `compound` / `penetrate`), Stage 5 (`keep` / `drop`), or Stage 8 (`sum` / `success_count`), matching `executePipeline` instead of routing to single-family strategies that silently dropped earlier modifiers (`2d6r=1!`, `2d6min2!`, `2d6r=1min3`, `2d4ro=1min2!`, `3d4ro=1kh2`). Combinations that add variable dice counts before keep/drop or success counting fall back to Monte Carlo (`method: "monte-carlo"`).
+- **Division-by-zero parity between `roll()` and `analyze()`** — `divideDistribution` and `tryExact` now throw `ParseError("Division by zero")` whenever a divisor is `0` or its distribution has positive probability of rolling `0` (e.g. `1d6/0`, `1d6/(1d2-1)`, `1d6/(4d20-4)`), matching `evaluate()`.
+
 ## 2.1.1
 
 ### Added
