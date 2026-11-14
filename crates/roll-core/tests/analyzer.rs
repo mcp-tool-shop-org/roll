@@ -769,3 +769,303 @@ fn regression_flaky_proptest_5d9_compound_keep_lowest_returns_monte_carlo() {
         rep.stats.max
     );
 }
+
+#[test]
+fn divisor_prepass_catches_reachable_zero_regardless_of_sibling_order_or_budget() {
+    // 1. Exact 73-byte input from the #18 review (both operands of `+` contain a division, and the
+    //    left operand spends ~5M transitions before `1d6/(5d20-5)`, or ~10M with 10 knobs).
+    let left_heavy_73 = "(1d999990*0+1d999990*0+1d999990*0+1d999990*0+1d999899*0+1/1)+1d6/(5d20-5)";
+    assert_eq!(left_heavy_73.len(), 73);
+    assert_eq!(
+        analyze(&parse(left_heavy_73).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+
+    // 2. Mirror: budget-heavy sibling on the right, both sides containing a division (73 B).
+    let right_heavy_73 =
+        "1d6/(5d20-5)+(1d999990*0+1d999990*0+1d999990*0+1d999990*0+1d999899*0+1/1)";
+    assert_eq!(right_heavy_73.len(), 73);
+    assert_eq!(
+        analyze(&parse(right_heavy_73).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+
+    // 3. Zero divisor sitting deep inside the budget-heavy side (with divisions on both branches
+    //    at every `+` level AND with 10 `1d999990*0` terms exhausting the full 10M main budget).
+    let deep_79 = "((1/1+1d999990*0+1d999990*0+1d999990*0+1d999990*0+1d999899*0)+1d6/(5d20-5))+1/1";
+    assert_eq!(deep_79.len(), 79);
+    assert_eq!(
+        analyze(&parse(deep_79).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+
+    let ten_knobs = ["1d999990*0"; 10].join("+");
+    let deep_10m = format!("(((1/1+{ten_knobs})+1d6/(5d20-5))+{ten_knobs})+1/1");
+    assert!(deep_10m.len() <= roll_core::MAX_EXPRESSION_BYTES);
+    assert_eq!(
+        analyze(&parse(&deep_10m).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+}
+
+#[test]
+fn divisor_prepass_orders_cheapest_first_breaks_ties_by_byte_offset_and_prioritizes_zero_over_other_errors()
+ {
+    // 1. Cheapest-first by static cost bound (`§5.4` item 1):
+    //    11 copies of `1/(1d1000*1d1000)` (`2,002,000` actual transitions each -> `22,022,000 > MAX_DIVISOR_PREPASS_STATES = 20,000,000`)
+    //    appear BEFORE `1/(5d20-5)` in source order. Without cheapest-first ordering, the 11 non-zero
+    //    divisors would exhaust `MAX_DIVISOR_PREPASS_STATES` (and `MAX_EXACT_STATES` in the main pass),
+    //    forcing MC (`P(0) = 20^-5`, missed by `MONTE_CARLO_DEFAULT_SEED`). With cheapest-first ordering,
+    //    `5d20-5` runs first and returns `Err(RollError::DivisionByZero)`.
+    let eleven_heavy_divisors = ["1/(1d1000*1d1000)"; 11].join("+");
+    let cheapest_first_expr = format!("{eleven_heavy_divisors}+1/(5d20-5)");
+    assert!(cheapest_first_expr.len() <= roll_core::MAX_EXPRESSION_BYTES);
+    assert_eq!(
+        analyze(&parse(&cheapest_first_expr).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+
+    // 2. Tie-breaking by source byte offset (`§5.4` item 1):
+    //    `1d1000*1d1000-998001` (`998,001 = 999 * 999`, reachable `0` with `P(0) = 1e-6`, missed by MC)
+    //    and 10 copies of `1d1000*1d1000-999999` (`999,999 = 999 * 1001`, unreachable `0`, `2,002,010`
+    //    transitions each -> `> 20,000,000` total) have identical dice counts, sides, and operators, so
+    //    they tie on `divisor_static_cost_bound`. Breaking ties by ascending source byte offset checks
+    //    the first divisor (`-998001`) before the 10 `-999999` divisors exhaust the pre-pass budget.
+    let ten_tied_nonzero = ["1/(1d1000*1d1000-999999)"; 10].join("+");
+    let tie_break_expr = format!("1/(1d1000*1d1000-998001)+{ten_tied_nonzero}");
+    assert!(tie_break_expr.len() <= roll_core::MAX_EXPRESSION_BYTES);
+    assert_eq!(
+        analyze(&parse(&tie_break_expr).unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+
+    // 3. Every exact divisor is checked for a reachable `0` before returning any other pre-pass error
+    //    (`§5.4` items 1 & 5):
+    //    a) Cheaper divisor (`9223372036854775807+1`) raises `ArithmeticOverflow` first; later exact
+    //       divisor (`5d20-5`) has reachable `0` -> `DivisionByZero` wins.
+    assert_eq!(
+        analyze(&parse("1/(9223372036854775807+1)+1/(5d20-5)").unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+    //    b) Tied static cost bound, earlier byte offset (`9223372036854775807+1d6`) raises
+    //       `ArithmeticOverflow`, later byte offset (`1d6-1`) has reachable `0` -> `DivisionByZero` wins.
+    assert_eq!(
+        analyze(&parse("1/(9223372036854775807+1d6)+1/(1d6-1)").unwrap()),
+        Err(RollError::DivisionByZero)
+    );
+    //    c) When NO exact divisor has a reachable `0`, the deferred divisor error still surfaces
+    //       even alongside an oversized sibling (`500d1000`).
+    assert_eq!(
+        analyze(&parse("1/(9223372036854775807+1d6)+1/(1d6+1)+500d1000").unwrap()),
+        Err(RollError::ArithmeticOverflow)
+    );
+}
+
+#[test]
+fn monte_carlo_scan_budget_keeps_q1_inputs_15_to_19_under_one_second() {
+    use std::time::{Duration, Instant};
+
+    let bound = if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
+        Duration::from_secs(1)
+    } else {
+        Duration::from_secs(60)
+    };
+
+    let q1_15 = format!("996d6!kh995{}", "r=7".repeat(240));
+    let q1_16 = format!("996d6!kh995{}", "ro=7".repeat(240));
+    let q1_17 = format!("1000d6!>=7{}kh999", "ro=7".repeat(240));
+    let q1_18 = format!("1000d6{}{}", "r=1".repeat(20), "ro=1".repeat(99));
+    assert_eq!(q1_15.len(), 731);
+    assert_eq!(q1_16.len(), 971);
+    assert_eq!(q1_17.len(), 975);
+    assert_eq!(q1_18.len(), 462);
+
+    for (label, expr_str) in [
+        ("q1_15_996d6_explode_kh995_240_r7", q1_15.as_str()),
+        ("q1_16_996d6_explode_kh995_240_ro7", q1_16.as_str()),
+        ("q1_17_1000d6_explode7_240_ro7_kh999", q1_17.as_str()),
+        ("q1_18_1000d6_20_r1_99_ro1", q1_18.as_str()),
+    ] {
+        let expr = parse(expr_str).unwrap();
+        let t0 = Instant::now();
+        let rep = analyze(&expr).unwrap();
+        let elapsed = t0.elapsed();
+        assert!(
+            elapsed < bound,
+            "{label} exceeded time bound {:?}: {:?}",
+            bound,
+            elapsed
+        );
+        match rep.method {
+            AnalysisMethod::MonteCarlo { samples } => {
+                assert!(
+                    (50..DEFAULT_MONTE_CARLO_SAMPLES).contains(&samples),
+                    "{label} unexpected sample count {samples}"
+                );
+            }
+            other => panic!("{label} expected MonteCarlo, got {other:?}"),
+        }
+        let mass = sum_pmf_compensated(&rep.distribution);
+        assert_close(mass, 1.0, 1e-12, label);
+    }
+
+    // Q1 #19: `compare(#15, #15)` must also complete well under 1 second in release.
+    let expr_15 = parse(&q1_15).unwrap();
+    let t_cmp = Instant::now();
+    let cmp_rep = compare(&expr_15, &expr_15).unwrap();
+    let elapsed_cmp = t_cmp.elapsed();
+    assert!(
+        elapsed_cmp < bound,
+        "q1_19 compare(#15, #15) exceeded time bound {:?}: {:?}",
+        bound,
+        elapsed_cmp
+    );
+    match cmp_rep.method {
+        AnalysisMethod::MonteCarlo { samples } => {
+            assert!((50..DEFAULT_MONTE_CARLO_SAMPLES).contains(&samples));
+        }
+        other => panic!("q1_19 expected MonteCarlo, got {other:?}"),
+    }
+    assert_eq!(cmp_rep.p_left_greater, cmp_rep.p_right_greater);
+    assert_close(
+        cmp_rep.p_left_greater + cmp_rep.p_equal + cmp_rep.p_right_greater,
+        1.0,
+        1e-12,
+        "q1_19 compare total mass",
+    );
+}
+
+#[test]
+fn restored_exact_expressions_and_draw_gate_retry_margin() {
+    use roll_core::{EXACT_DRAW_RETRY_MARGIN, MAX_EXACT_DIE_ROLLS, MAX_TOTAL_DRAWS};
+    use std::time::{Duration, Instant};
+
+    assert_eq!(EXACT_DRAW_RETRY_MARGIN, 80_000);
+    assert_eq!(
+        MAX_EXACT_DIE_ROLLS,
+        u64::from(MAX_TOTAL_DRAWS) - EXACT_DRAW_RETRY_MARGIN
+    );
+    assert_eq!(MAX_EXACT_DIE_ROLLS, 2_020_000);
+
+    let bound = if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
+        Duration::from_secs(1)
+    } else {
+        Duration::from_secs(60)
+    };
+
+    let sum_200_5d6 = format!("{}1", "5d6+".repeat(200));
+    let sum_100_10d6 = format!("{}1", "10d6+".repeat(100));
+    assert_eq!(sum_200_5d6.len(), 801);
+    assert_eq!(sum_100_10d6.len(), 501);
+
+    let reroll_cap = Some(ModelledCaps {
+        max_explosions: None,
+        max_rerolls: Some(100),
+    });
+
+    type RestoredCase<'a> = (&'a str, Option<ModelledCaps>, i64, i64, Option<usize>, f64);
+
+    // All 9 restored Problem 3 expressions return `AnalysisMethod::Exact` within budget and `< 1 s`.
+    let restored_cases: &[RestoredCase<'_>] = &[
+        ("1000d6r=1", reroll_cap, 1_000, 6_000, Some(5_001), 4_000.0),
+        (
+            "1000d6ro=1",
+            None,
+            1_000,
+            6_000,
+            Some(5_001),
+            1_000.0 * (23.5 / 6.0),
+        ),
+        (
+            "300d20ro=1",
+            None,
+            300,
+            6_000,
+            Some(5_701),
+            300.0 * (19.0 * 11.0 + 10.5) / 20.0,
+        ),
+        (
+            "100d100ro=1",
+            None,
+            100,
+            10_000,
+            Some(9_901),
+            100.0 * (99.0 * 51.0 + 50.5) / 100.0,
+        ),
+        ("1000d20min2", None, 2_000, 20_000, Some(18_001), 10_550.0),
+        (&sum_200_5d6, None, 1_001, 6_001, Some(5_001), 3_501.0),
+        (&sum_100_10d6, None, 1_001, 6_001, Some(5_001), 3_501.0),
+        ("1d1000*1d1000", None, 1, 1_000_000, None, 250_500.25),
+        (
+            "1d6+1d1000000",
+            None,
+            2,
+            1_000_006,
+            Some(1_000_005),
+            500_004.0,
+        ),
+    ];
+
+    for &(expr_str, expected_caps, min_v, max_v, expected_len, expected_mean) in restored_cases {
+        let expr = parse(expr_str).unwrap();
+        let t0 = Instant::now();
+        let rep = analyze(&expr).unwrap();
+        let elapsed = t0.elapsed();
+        assert!(
+            elapsed < bound,
+            "restored exact case '{expr_str}' exceeded bound {:?}: {:?}",
+            bound,
+            elapsed
+        );
+        assert_eq!(
+            rep.method,
+            AnalysisMethod::Exact {
+                caps: expected_caps
+            },
+            "'{expr_str}' must be Exact"
+        );
+        assert_eq!(rep.stats.min, min_v, "'{expr_str}' min");
+        assert_eq!(rep.stats.max, max_v, "'{expr_str}' max");
+        if let Some(len) = expected_len {
+            assert_eq!(rep.distribution.len(), len, "'{expr_str}' support len");
+        }
+        assert_close(
+            rep.stats.mean,
+            expected_mean,
+            1e-12 * expected_mean.abs().max(1.0),
+            expr_str,
+        );
+        assert_close(sum_pmf_compensated(&rep.distribution), 1.0, 1e-12, expr_str);
+    }
+
+    // Problem 3 #10 (`1000d6` + 20 × `r=1` + 99 × `ro=1`): `expr_max_die_rolls == 2,100,000 == MAX_TOTAL_DRAWS`,
+    // where a single 64-bit Lemire rejection retry (`2^64 mod 6 == 4 != 0`) triggers `DrawBudgetExceeded`
+    // in `eval.rs`. Because `2,100,000 > MAX_EXACT_DIE_ROLLS (2,020,000)`, it stays `MonteCarlo`.
+    let p3_10 = format!("1000d6{}{}", "r=1".repeat(20), "ro=1".repeat(99));
+    let rep_10 = analyze(&parse(&p3_10).unwrap()).unwrap();
+    assert!(
+        matches!(rep_10.method, AnalysisMethod::MonteCarlo { .. }),
+        "2,100,000 max die rolls leaves 0 retry margin and must not claim Exact"
+    );
+
+    // Exact draw-gate boundary check (`2,020,000` -> `Exact`, `2,020,001` -> `MonteCarlo`):
+    let at_gate = format!("1000d6{}{}", "r=1".repeat(20), "ro=1".repeat(19));
+    let rep_at_gate = analyze(&parse(&at_gate).unwrap()).unwrap();
+    assert_eq!(
+        rep_at_gate.method,
+        AnalysisMethod::Exact { caps: reroll_cap }
+    );
+
+    let one_over_gate = format!(
+        "999d6{}{}+1d6{}{}",
+        "r=1".repeat(20),
+        "ro=1".repeat(19),
+        "r=1".repeat(20),
+        "ro=1".repeat(20)
+    );
+    let rep_over_gate = analyze(&parse(&one_over_gate).unwrap()).unwrap();
+    assert!(matches!(
+        rep_over_gate.method,
+        AnalysisMethod::MonteCarlo { .. }
+    ));
+}

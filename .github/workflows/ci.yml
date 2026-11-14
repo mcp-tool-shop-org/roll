@@ -183,6 +183,8 @@ jobs:
         run: cargo check -p roll-core --no-default-features --target wasm32-unknown-unknown
       - name: Test (native)
         run: cargo test --workspace < /dev/null
+      - name: Test (native release analyzer bounds)
+        run: cargo test --release -p roll-core --test analyzer < /dev/null
       - name: Test (wasm32-wasip1)
         env:
           CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime run --dir=.

@@ -6,7 +6,7 @@ use rand_chacha::ChaCha12Rng;
 use rand_core::{Rng, SeedableRng};
 use sha2::{Digest, Sha256};
 
-use crate::ast::Expr;
+use crate::ast::{Expr, MAX_TOTAL_DRAWS};
 use crate::canonical_json::to_canonical_json;
 use crate::codec::{encode_hex_lower, encode_u64_hex};
 use crate::error::{ReceiptVerifyError, RollError};
@@ -154,6 +154,14 @@ pub fn verify_receipt(receipt: &RollReceipt) -> Result<(), RollError> {
         return Err(RollError::ReceiptInvalid(
             ReceiptVerifyError::UnsupportedRulesVersion {
                 found: receipt.rules_version.clone(),
+            },
+        ));
+    }
+    if receipt.raw_draws.len() > MAX_TOTAL_DRAWS as usize {
+        return Err(RollError::ReceiptInvalid(
+            ReceiptVerifyError::DrawBudgetExceeded {
+                total: receipt.raw_draws.len(),
+                limit: MAX_TOTAL_DRAWS,
             },
         ));
     }
