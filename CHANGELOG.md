@@ -14,6 +14,10 @@
 - **Subnormal IEEE-754 underflow guard in `reroll_once`** — `singleDieWithReroll` preserves positive subnormal mass when `pMatch * pFace` would flush to `0` (`1d2000r=1ro=1` retains bucket `1` with `stats.min === 1`, and `1d6/(1d2000r=1ro=1-1)` throws `ParseError("Division by zero")` matching `roll()`).
 - **Zero-dice `caps` metadata** — `tryExact` short-circuits `count === 0` (`0d6!`, `0d6r=1`) to `{0: 1}` before per-die cap modelling so `caps` is omitted when zero dice are rolled.
 
+### Changed
+
+- Monte Carlo analysis counts draws per sample instead of per draw, and the dice pipeline skips work for groups with no modifiers; seeded results are unchanged.
+
 ### Behaviour change
 
 - `roll()` throws `ParseError("Explosion roll limit of 10000 exceeded")` when one dice group's explosions pass `MAX_EXPLOSION_ROLLS = 10,000`. The CLI and the MCP `roll_dice` tool refuse a request, including a single roll, whose estimated dice work times `--times`/`times` exceeds 1,000,000. `analyze()` throws `ParseError("Expression too complex to analyze…")` when the estimated work exceeds its budget. Before 2.1.3 these inputs could take seconds, use gigabytes of memory, or crash the process.
