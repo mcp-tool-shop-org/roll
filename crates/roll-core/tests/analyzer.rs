@@ -843,9 +843,10 @@ fn divisor_prepass_catches_reachable_zero_regardless_of_sibling_order_or_budget(
 fn divisor_prepass_orders_cheapest_first_breaks_ties_by_byte_offset_and_prioritizes_zero_over_other_errors()
  {
     // 1. Cheapest-first by static cost bound (`§5.4` item 1):
-    //    11 copies of `1/(1d1000*1d1000)` (`2,002,000` actual transitions each -> `22,022,000 > MAX_DIVISOR_PREPASS_STATES = 20,000,000`)
+    //    11 copies of `1/(1d1000*1d1000)` (`2,002,000` actual transitions each -> `22,022,000`, over the
+    //    shared 20,000,000 reserve the divisor check had then; it was removed with the per-item rounds)
     //    appear BEFORE `1/(5d20-5)` in source order. Without cheapest-first ordering, the 11 non-zero
-    //    divisors would exhaust `MAX_DIVISOR_PREPASS_STATES` (and `MAX_EXACT_STATES` in the main pass),
+    //    divisors would exhaust that reserve (and `MAX_EXACT_STATES` in the main pass),
     //    forcing MC (`P(0) = 20^-5`, missed by `MONTE_CARLO_DEFAULT_SEED`). With cheapest-first ordering,
     //    `5d20-5` runs first and returns `Err(RollError::DivisionByZero)`.
     let eleven_heavy_divisors = ["1/(1d1000*1d1000)"; 11].join("+");
@@ -1519,29 +1520,54 @@ fn mode_on_a_subnormal_mass_sum_is_not_silently_the_first_entry() {
     assert_eq!(compute_stats(&d).mode, 2);
 }
 
-proptest::proptest! {
-    // 256 cases in native release (the capped CI step); 24 in debug and wasm, where a sampled
-    // case is about 20x slower.
-    #![proptest_config(proptest::test_runner::Config {
-        cases: if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) { 256 } else { 24 },
+/// #21 fix 1, item 8: random parsed expressions with large multipliers and nested products
+/// analyze within the quick bound, and never panic (debug has overflow checks). Run under the
+/// 2 GiB memory cap (CI: `ulimit -v` on the release analyzer step).
+///
+/// 256 cases in native release (the capped CI step); 24 in debug and wasm, where a sampled case
+/// is about 20x slower. The test writes its case count to stderr directly (not through the
+/// captured `eprintln!`), so the CI log shows how many cases ran and how long they took.
+#[test]
+fn prop_large_products_analyze_quickly_without_panic() {
+    use proptest::strategy::Strategy;
+    use std::io::Write;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    const LEAVES: [&str; 12] = [
+        "(10d100-500)",
+        "(d257-129)",
+        "(1d6-3)",
+        "(2d6!-7)",
+        "1d2",
+        "(1d6min6!kh1)",
+        "99999999999999999",
+        "4611686018427387904",
+        "9223372036854775807",
+        "1000000000",
+        "(1d1000000-500000)",
+        "(3d4!>=1kl2-2)",
+    ];
+    const OPS: [&str; 4] = ["*", "*", "+", "-"];
+    let config = proptest::test_runner::Config {
+        cases: if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
+            256
+        } else {
+            24
+        },
         failure_persistence: None,
         ..proptest::test_runner::Config::default()
-    })]
-
-    /// #21 fix 1, item 8: random parsed expressions with large multipliers and nested products
-    /// analyze within the quick bound, and never panic (debug has overflow checks). Run under the
-    /// 2 GiB memory cap (CI: `ulimit -v` on the release analyzer step).
-    #[test]
-    fn prop_large_products_analyze_quickly_without_panic(
-        terms in proptest::collection::vec((0usize..12, 0usize..4, 0usize..3), 2..7),
-        divide in 0usize..3,
-    ) {
-        const LEAVES: [&str; 12] = [
-            "(10d100-500)", "(d257-129)", "(1d6-3)", "(2d6!-7)", "1d2", "(1d6min6!kh1)",
-            "99999999999999999", "4611686018427387904", "9223372036854775807", "1000000000",
-            "(1d1000000-500000)", "(3d4!>=1kl2-2)",
-        ];
-        const OPS: [&str; 4] = ["*", "*", "+", "-"];
+    };
+    let planned = config.cases;
+    let ran = AtomicU32::new(0);
+    let started = std::time::Instant::now();
+    let strategy = (
+        proptest::collection::vec((0usize..12, 0usize..4, 0usize..3), 2..7),
+        0usize..3,
+    )
+        .boxed();
+    let mut runner = proptest::test_runner::TestRunner::new(config);
+    let result = runner.run(&strategy, |(terms, divide)| {
+        ran.fetch_add(1, Ordering::Relaxed);
         let mut src = String::new();
         let mut open = 0;
         for (i, &(leaf, op, paren)) in terms.iter().enumerate() {
@@ -1568,6 +1594,16 @@ proptest::proptest! {
         let elapsed = t0.elapsed();
         // A hang guard (`sampled_bound`): a case may sample up to the work ceiling.
         proptest::prop_assert!(elapsed < sampled_bound(), "{} took {:?}", src, elapsed);
+        Ok(())
+    });
+    let _ = writeln!(
+        std::io::stderr(),
+        "prop_large_products_analyze_quickly_without_panic: {} cases run ({planned} planned) in {:?}",
+        ran.load(Ordering::Relaxed),
+        started.elapsed()
+    );
+    if let Err(e) = result {
+        panic!("{e}");
     }
 }
 
@@ -1618,4 +1654,322 @@ fn mode_is_the_smallest_outcome_within_relative_tolerance_of_the_maximum() {
     let gap = 0.25 * (1.0 + 4.0 * MODE_TIE_RELATIVE_TOLERANCE);
     let d = dist(&[(1, 0.5 - gap), (6, 0.25), (12, gap)]);
     assert_eq!(compute_stats(&d).mode, 12);
+}
+
+/// The `§5.4` cases where the analyzer returned the wrong kind of error (the error-kind card).
+/// Each returns what the engine raises, with a reachable zero winning (`§5.4` item 6); the
+/// engine answers were checked by complete enumeration (cases 1 and 2) and by the draw count
+/// (cases 3 to 5a).
+#[test]
+fn analyzer_error_kind_is_the_engines() {
+    let zero = Err(RollError::DivisionByZero);
+    let budget = Err(RollError::DrawBudgetExceeded {
+        limit: roll_core::MAX_TOTAL_DRAWS,
+    });
+    // 1. The left operand overflows on most rolls but is 0 at (499, 499), and then the zero is
+    // reached: overflow-tolerant reachability, in both orders.
+    let x = "((1d999+1)*(1d999+1)-250000)*1000000000000000";
+    assert_quick(&format!("1/(1d2-1)+{x}"), &zero);
+    assert_quick(&format!("{x}+1/(1d2-1)"), &zero);
+    // 2. The divisor is 0 for (10, 10), (5, 20) and (20, 5) and overflows for most rolls.
+    assert_quick("1d4/((1d20*1d20-100)*4611686018427387904)", &zero);
+    // 3 and 4. 150 x 10,001 + 70 x 10,001 = 2,200,220 draws in every run, before the inner
+    // operand: the prefix draws of the outer sum count.
+    let r100 = "r>=1".repeat(100);
+    assert_quick(&format!("150d4{r100}+(70d4{r100}+1/0)"), &budget);
+    assert_quick(
+        &format!("150d4{r100}+(70d4{r100}+(9223372036854775807+1))"),
+        &budget,
+    );
+    // 5. At least 2,090,209 + 9,009 + 777 + 4 + 2 = 2,100,001 draws: `1d4ro<=2ro>=3` always
+    // rolls twice, one more than the certain-draw rule of `§5.3.1` counts.
+    let tail = format!("+9d4{}+7d4r>=1{}", "r>=1".repeat(10), "ro>=1".repeat(10));
+    let c5 = format!("(209d4{r100}{tail}+4d4+1d4ro<=2ro>=3)+1/0");
+    assert_eq!(c5.len(), 531);
+    assert_quick(&c5, &budget);
+    // 5a. With `3d4` the cheapest run takes exactly 2,100,000 draws, which the engine allows, and
+    // then reaches `1/0`; runs where the last die rolls three times exceed the budget. Both are
+    // reachable, so the zero wins.
+    assert_quick(&c5.replace("+4d4+", "+3d4+"), &zero);
+}
+
+#[test]
+fn every_pending_divisor_gets_every_exact_round() {
+    // `z` needs the third round (about 2M transitions); `s` is too large for every round, after
+    // about 8M transitions of work. At ff303ad the third round ran only when every pending divisor
+    // fit what was left of a shared 20M reserve: `z` and `z + s` returned `DivisionByZero`, and
+    // `s + z` returned `DivisorUnchecked { divisors: 2 }` (the main pass spent its budget on `s`
+    // first). Each divisor now gets every round on its own budget.
+    let z = "1/(1d1000*1d1000-998001)";
+    let s = format!("1/({}-7)", ["(1d1000*1d1000)"; 4].join("*"));
+    assert_quick(z, &Err(RollError::DivisionByZero));
+    // Native only: under wasmtime `s` takes about 7 times its debug time (0.6 s), and the CI job
+    // has a 25-minute limit.
+    if cfg!(target_arch = "wasm32") {
+        return;
+    }
+    assert_quick(&format!("{z}+{s}"), &Err(RollError::DivisionByZero));
+    assert_quick(&format!("{s}+{z}"), &Err(RollError::DivisionByZero));
+    assert_quick(&s, &Err(RollError::DivisorUnchecked { divisors: 1 }));
+}
+
+#[test]
+fn exact_rounds_review_findings_of_23() {
+    // M2: the left operand of the undecided `Big + Ov` is too large for every round, but `Ov`
+    // (`(p - 999983) * i64::MAX`) never succeeds: no product of two d1000 faces is 999982, 999983
+    // or 999984. So the sum never succeeds, the zero is never reached, and every run overflows
+    // (as on `main`; the first version of #23 returned `DivisorUnchecked { divisors: 1 }`).
+    assert_quick(
+        "((1d10000*1d10000)+(1d1000*1d1000-999983)*9223372036854775807)+1/(1d2-1)",
+        &Err(RollError::ArithmeticOverflow),
+    );
+    // M3: `M` appears twice. `(1/M)+K1` fits the third round only by reusing `M`'s support,
+    // whichever copy of `M` is added first; the zero is reached in both orders (`M` is 502 and
+    // `K1` is 0 when every `M` die shows 1000 and both `K1` dice 999). The first version returned
+    // `DivisorUnchecked { divisors: 1 }` in the second order. This is also the memo-reuse test.
+    let z = "((1d1000*1d1000)/1000000)";
+    let m = format!("({z}+{z}+(1d1000*1d1000-999500))");
+    let k1 = "(1d1000*1d1000-998001)";
+    assert_quick(
+        &format!("1/((1/{m})+{k1})+1/{m}"),
+        &Err(RollError::DivisionByZero),
+    );
+    assert_quick(
+        &format!("1/{m}+1/((1/{m})+{k1})"),
+        &Err(RollError::DivisionByZero),
+    );
+}
+
+#[test]
+fn exact_rounds_review_findings_of_23_round_2() {
+    // Each held to the hang guard; the heaviest takes about 0.8 s in debug here.
+    let check = |src: &str, ok: &dyn Fn(&Result<(), RollError>) -> bool| {
+        let t0 = std::time::Instant::now();
+        let got = analyze(&parse(src).unwrap()).map(|_| ());
+        assert!(t0.elapsed() < sampled_bound(), "{src}: {:?}", t0.elapsed());
+        assert!(ok(&got), "{src}: {got:?}");
+    };
+    let overflow = |r: &Result<(), RollError>| *r == Err(RollError::ArithmeticOverflow);
+    let zero = |r: &Result<(), RollError>| *r == Err(RollError::DivisionByZero);
+    // F1: `O` never fits (no product of two d1000 faces is 999981..=999984), so every run
+    // overflows; the class of `O` has no success value, whichever copy is registered first. The
+    // first fix returned `DivisorUnchecked { divisors: 1 }` for `T2' + T1'`.
+    let o = "((1d1000*1d1000-999983)*4611686018427387904)";
+    let t2 = format!("((((1d10000*1d10000)+{o})+1/(1d2-1))*4611686018427387900)+1/(1d2-1)");
+    let t1 = format!("1/{o}");
+    check(&format!("{t2}+{t1}"), &overflow);
+    check(&format!("{t1}+{t2}"), &overflow);
+    // Native only below: under wasmtime these take about 7 times their debug time.
+    if cfg!(target_arch = "wasm32") {
+        return;
+    }
+    // F2: `M` inside the divisor sits under `/1000000`, not an item; every node has a class, so it
+    // reuses `M`'s support in both orders (the zero is reached: every `M` die 1000, both `K1` dice
+    // 999). The first fix returned `DivisorUnchecked { divisors: 1 }` in both orders.
+    let z = "((1d1000*1d1000)/1000000)";
+    let m = format!("({z}+{z}+(1d1000*1d1000-999500))");
+    let k1 = "(1d1000*1d1000-998001)";
+    check(&format!("1/(({m}/1000000)+{k1})+1/{m}"), &zero);
+    check(&format!("1/{m}+1/(({m}/1000000)+{k1})"), &zero);
+    // Wrong error kind: a divisor that stays undecided (`zero` is `Maybe`) may be `0` (faces 2,
+    // 3, 1, ..., 1 make `P4 - 6` zero), so the certain overflow after it is not the answer.
+    let p4 = ["(1d1000*1d1000)"; 4].join("*");
+    check(&format!("1/({p4}-6)+(9223372036854775807+1d2)"), &|r| {
+        matches!(r, Err(RollError::DivisorUnchecked { .. }))
+    });
+    // The same with the memo full of `A`'s supports (4 x 750,000 = MAX_EXACT_LIVE_STATES): the
+    // engine reaches the zero in `B2`, so `ArithmeticOverflow` is not allowed.
+    let a = format!(
+        "({})",
+        (0..4)
+            .map(|i| format!("1/(1d2*1d500000-{})", 999_999 - 2 * i))
+            .collect::<Vec<_>>()
+            .join("+")
+    );
+    let b2 = format!("(1/((1/{m})+{k1})+(9223372036854775807+1d2))");
+    check(&format!("{a}+{b2}"), &|r| {
+        matches!(
+            r,
+            Err(RollError::DivisorUnchecked { .. } | RollError::DivisionByZero)
+        )
+    });
+}
+
+/// Primes from 999,000 up: none is a product of two faces of a d1000.
+fn primes_from_999000(n: usize) -> Vec<u64> {
+    (999_000_u64..)
+        .filter(|k| (2..).take_while(|d| d * d <= *k).all(|d| k % d != 0))
+        .take(n)
+        .collect()
+}
+
+/// `terms` joined by `+`, as many as fit the input cap.
+fn sum_within_cap(terms: impl Iterator<Item = String>) -> String {
+    let mut src = String::new();
+    for t in terms {
+        if src.len() + t.len() + 1 > roll_core::MAX_EXPRESSION_BYTES {
+            break;
+        }
+        if !src.is_empty() {
+            src.push('+');
+        }
+        src.push_str(&t);
+    }
+    src
+}
+
+#[test]
+fn exact_rounds_stay_bounded_on_many_items() {
+    // Native only: under wasmtime these take about 7 times their debug time (about 12 s in all),
+    // and the CI job has a 25-minute limit.
+    if cfg!(target_arch = "wasm32") {
+        return;
+    }
+    // The most expensive inputs found for the per-item rounds (`precheck_divisors` bounds), held
+    // to the hang guard: about 0.6 s and 0.7 s in release here, 2.5 s and 2.6 s in debug.
+    let p4 = ["(1d1000*1d1000)"; 4].join("*");
+    let many = sum_within_cap(
+        primes_from_999000(60)
+            .into_iter()
+            .map(|p| format!("1/(1d1000*1d1000-{p})")),
+    );
+    let heavy = sum_within_cap(
+        primes_from_999000(40)
+            .into_iter()
+            .map(|p| format!("1/({p4}-{p})")),
+    );
+    for (src, want) in [
+        (
+            many.as_str(),
+            Err(RollError::AnalysisTooExpensive {
+                samples_affordable: 1,
+                min_samples: MIN_MONTE_CARLO_SAMPLES,
+            }),
+        ),
+        (
+            heavy.as_str(),
+            Err(RollError::DivisorUnchecked { divisors: 13 }),
+        ),
+    ] {
+        let t0 = std::time::Instant::now();
+        let got = analyze(&parse(src).unwrap()).map(|_| ());
+        assert!(t0.elapsed() < sampled_bound(), "{src}: {:?}", t0.elapsed());
+        assert_eq!(got, want, "{src}");
+    }
+    // One expensive operand under a long spine of divisions: its prefixes are separate items, and
+    // the rounds do the operand's work once (12 s in debug before that, 0.2 s after).
+    let toolarge = format!("({p4}-7)*4611686018427387904");
+    for (base, step, want) in [
+        (
+            "(1d1000*1d1000-999983)*4611686018427387904",
+            "/(1d2-1)",
+            Err(RollError::ArithmeticOverflow),
+        ),
+        (
+            "((1d1000*1d1000-999983)*4611686018427387904)",
+            "*1000000000000000/(1d2-1)",
+            Err(RollError::ArithmeticOverflow),
+        ),
+        (
+            toolarge.as_str(),
+            // `/(1d3-2)` keeps every prefix a separate item (the dividend's hull holds `i64::MIN`
+            // and the divisor `-1`, so the division is not split), and the memo's too-large
+            // shortcut cuts each one short after the first.
+            "/(1d3-2)",
+            Err(RollError::DivisorUnchecked { divisors: 114 }),
+        ),
+    ] {
+        let mut src = String::from(base);
+        while src.len() + step.len() <= roll_core::MAX_EXPRESSION_BYTES {
+            src.push_str(step);
+        }
+        assert_quick(&src, &want);
+    }
+}
+
+/// Kind of an analysis result: `Ok`, or the error's variant name.
+fn result_kind(r: &Result<roll_core::AnalysisReport, RollError>) -> String {
+    match r {
+        Ok(_) => "Ok".into(),
+        Err(e) => {
+            let s = format!("{e:?}");
+            s.split([' ', '{', '('])
+                .next()
+                .unwrap_or_default()
+                .to_owned()
+        }
+    }
+}
+
+/// Division terms with small values: zero divisors (one needing the third exact round, one
+/// masked by overflow), overflow-prone operands that succeed on some rolls, and two draw-heavy
+/// terms (1,040,520 draws each, so both together exceed `MAX_EXACT_DIE_ROLLS` but fit
+/// `MAX_TOTAL_DRAWS`). No term errors on every roll and no sum of them overflows, so the
+/// engine's answer does not depend on their order.
+const ORDER_TERMS: [&str; 12] = [
+    "1/(1d2-1)",
+    "1d4/((1d20*1d20-100)*4611686018427387904)",
+    "(((1d999+1)*(1d999+1)-250000)*1000000000000000)/1000000000000000",
+    "((d257-129)*99999999999999999)/1d6",
+    "1d6/(1d20+1d20)",
+    "1/(1d1000*1d1000-998001)",
+    "1/(1d1000*1d1000-999983)",
+    "(1d6min6!kh1)/1d2",
+    "(520d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1)/1d2",
+    "(520d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1)/(1d2-1)",
+    // A divisor repeated inside another one (the fix-1 review's M3 shape): `M` is never 0, and the
+    // second term's divisor is 0 when every `M` die shows 1000 and both `K1` dice 999.
+    "1/(((1d1000*1d1000)/1000000)+((1d1000*1d1000)/1000000)+(1d1000*1d1000-999500))",
+    "1/((1/(((1d1000*1d1000)/1000000)+((1d1000*1d1000)/1000000)+(1d1000*1d1000-999500)))+(1d1000*1d1000-998001))",
+];
+
+fn permutations(n: usize) -> Vec<Vec<usize>> {
+    if n == 0 {
+        return vec![vec![]];
+    }
+    let mut out = Vec::new();
+    for p in permutations(n - 1) {
+        for i in 0..=p.len() {
+            let mut q = p.clone();
+            q.insert(i, n - 1);
+            out.push(q);
+        }
+    }
+    out
+}
+
+proptest::proptest! {
+    // Each case analyzes every permutation of its terms (up to 24): 24 cases in native release,
+    // 4 in native debug, 1 in wasm (about 7 times the debug time under wasmtime).
+    #![proptest_config(proptest::test_runner::Config {
+        cases: if cfg!(target_arch = "wasm32") {
+            1
+        } else if cfg!(debug_assertions) {
+            4
+        } else {
+            24
+        },
+        failure_persistence: None,
+        ..proptest::test_runner::Config::default()
+    })]
+
+    /// The error-kind card, item 5: for sums of division terms, every permutation returns the
+    /// same kind of result. Each analysis is held to the hang guard.
+    #[test]
+    fn prop_division_sums_return_one_kind_in_every_order(
+        picks in proptest::sample::subsequence((0..ORDER_TERMS.len()).collect::<Vec<_>>(), 2..=4),
+    ) {
+        let terms: Vec<&str> = picks.iter().map(|&i| ORDER_TERMS[i]).collect();
+        let mut first: Option<(String, String)> = None;
+        for perm in permutations(terms.len()) {
+            let src = perm.iter().map(|&i| terms[i]).collect::<Vec<_>>().join("+");
+            let t0 = std::time::Instant::now();
+            let kind = result_kind(&analyze(&parse(&src).unwrap()));
+            proptest::prop_assert!(t0.elapsed() < sampled_bound(), "{} took {:?}", src, t0.elapsed());
+            match &first {
+                None => first = Some((src, kind)),
+                Some((src0, kind0)) => proptest::prop_assert_eq!(kind0, &kind, "{} vs {}", src0, src),
+            }
+        }
+    }
 }
