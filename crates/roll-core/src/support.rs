@@ -1260,11 +1260,20 @@ mod tests {
                 src.push_str(OPS[rng.next(5) as usize]);
                 src.push_str(&format!("{}", 1 + rng.next(sides)));
             }
-            if rng.next(3) == 0 {
-                src.push_str(&format!("min{}", 1 + rng.next(sides)));
+            match rng.next(4) {
+                0 => src.push_str(&format!("min{}", 1 + rng.next(sides))),
+                1 => src.push_str(&format!("max{}", 1 + rng.next(sides))),
+                _ => {}
             }
             if rng.next(2) == 0 {
-                src.push_str(&format!("!>{}", 1 + rng.next(sides)));
+                // `!`, `!p` or `!!`; `>=1` explodes on every face, so the chain runs
+                // `MAX_EXPLOSIONS` children (past the 5-face tapes).
+                src.push_str(["!", "!p", "!!"][rng.next(3) as usize]);
+                if rng.next(4) == 0 {
+                    src.push_str(">=1");
+                } else {
+                    src.push_str(&format!(">{}", rng.next(sides + 1)));
+                }
             }
             let Ok(expr) = parse(&src) else { continue };
             let Expr::Dice(spec) = &expr else {

@@ -843,9 +843,10 @@ fn divisor_prepass_catches_reachable_zero_regardless_of_sibling_order_or_budget(
 fn divisor_prepass_orders_cheapest_first_breaks_ties_by_byte_offset_and_prioritizes_zero_over_other_errors()
  {
     // 1. Cheapest-first by static cost bound (`§5.4` item 1):
-    //    11 copies of `1/(1d1000*1d1000)` (`2,002,000` actual transitions each -> `22,022,000 > MAX_DIVISOR_PREPASS_STATES = 20,000,000`)
+    //    11 copies of `1/(1d1000*1d1000)` (`2,002,000` actual transitions each -> `22,022,000`, over the
+    //    shared 20,000,000 reserve the divisor check had then; it was removed with the per-item rounds)
     //    appear BEFORE `1/(5d20-5)` in source order. Without cheapest-first ordering, the 11 non-zero
-    //    divisors would exhaust `MAX_DIVISOR_PREPASS_STATES` (and `MAX_EXACT_STATES` in the main pass),
+    //    divisors would exhaust that reserve (and `MAX_EXACT_STATES` in the main pass),
     //    forcing MC (`P(0) = 20^-5`, missed by `MONTE_CARLO_DEFAULT_SEED`). With cheapest-first ordering,
     //    `5d20-5` runs first and returns `Err(RollError::DivisionByZero)`.
     let eleven_heavy_divisors = ["1/(1d1000*1d1000)"; 11].join("+");
@@ -1677,6 +1678,33 @@ fn every_pending_divisor_gets_every_exact_round() {
     assert_quick(&s, &Err(RollError::DivisorUnchecked { divisors: 1 }));
 }
 
+#[test]
+fn exact_rounds_review_findings_of_23() {
+    // M2: the left operand of the undecided `Big + Ov` is too large for every round, but `Ov`
+    // (`(p - 999983) * i64::MAX`) never succeeds: no product of two d1000 faces is 999982, 999983
+    // or 999984. So the sum never succeeds, the zero is never reached, and every run overflows
+    // (as on `main`; the first version of #23 returned `DivisorUnchecked { divisors: 1 }`).
+    assert_quick(
+        "((1d10000*1d10000)+(1d1000*1d1000-999983)*9223372036854775807)+1/(1d2-1)",
+        &Err(RollError::ArithmeticOverflow),
+    );
+    // M3: `M` appears twice. `(1/M)+K1` fits the third round only by reusing `M`'s support,
+    // whichever copy of `M` is added first; the zero is reached in both orders (`M` is 502 and
+    // `K1` is 0 when every `M` die shows 1000 and both `K1` dice 999). The first version returned
+    // `DivisorUnchecked { divisors: 1 }` in the second order. This is also the memo-reuse test.
+    let z = "((1d1000*1d1000)/1000000)";
+    let m = format!("({z}+{z}+(1d1000*1d1000-999500))");
+    let k1 = "(1d1000*1d1000-998001)";
+    assert_quick(
+        &format!("1/((1/{m})+{k1})+1/{m}"),
+        &Err(RollError::DivisionByZero),
+    );
+    assert_quick(
+        &format!("1/{m}+1/((1/{m})+{k1})"),
+        &Err(RollError::DivisionByZero),
+    );
+}
+
 /// Primes from 999,000 up: none is a product of two faces of a d1000.
 fn primes_from_999000(n: usize) -> Vec<u64> {
     (999_000_u64..)
@@ -1754,7 +1782,10 @@ fn exact_rounds_stay_bounded_on_many_items() {
         ),
         (
             toolarge.as_str(),
-            "/(1d2-1)",
+            // `/(1d3-2)` keeps every prefix a separate item (the dividend's hull holds `i64::MIN`
+            // and the divisor `-1`, so the division is not split), and the memo's too-large
+            // shortcut cuts each one short after the first.
+            "/(1d3-2)",
             Err(RollError::DivisorUnchecked { divisors: 114 }),
         ),
     ] {
@@ -1785,7 +1816,7 @@ fn result_kind(r: &Result<roll_core::AnalysisReport, RollError>) -> String {
 /// terms (1,040,520 draws each, so both together exceed `MAX_EXACT_DIE_ROLLS` but fit
 /// `MAX_TOTAL_DRAWS`). No term errors on every roll and no sum of them overflows, so the
 /// engine's answer does not depend on their order.
-const ORDER_TERMS: [&str; 10] = [
+const ORDER_TERMS: [&str; 12] = [
     "1/(1d2-1)",
     "1d4/((1d20*1d20-100)*4611686018427387904)",
     "(((1d999+1)*(1d999+1)-250000)*1000000000000000)/1000000000000000",
@@ -1796,6 +1827,10 @@ const ORDER_TERMS: [&str; 10] = [
     "(1d6min6!kh1)/1d2",
     "(520d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1)/1d2",
     "(520d2r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1r>=1)/(1d2-1)",
+    // A divisor repeated inside another one (the fix-1 review's M3 shape): `M` is never 0, and the
+    // second term's divisor is 0 when every `M` die shows 1000 and both `K1` dice 999.
+    "1/(((1d1000*1d1000)/1000000)+((1d1000*1d1000)/1000000)+(1d1000*1d1000-999500))",
+    "1/((1/(((1d1000*1d1000)/1000000)+((1d1000*1d1000)/1000000)+(1d1000*1d1000-999500)))+(1d1000*1d1000-998001))",
 ];
 
 fn permutations(n: usize) -> Vec<Vec<usize>> {

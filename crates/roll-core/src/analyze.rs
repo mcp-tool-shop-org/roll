@@ -1029,17 +1029,87 @@ enum Want {
 /// Exact success supports of items (divisors, undecided operands) by overflow-tolerant exact
 /// rounds: every item gets every round of [`DIVISOR_ROUND_CAPS`], each on its own budget, so no
 /// other item can change its answer except by the shortcuts in [`ExactRounds::run`].
-struct ExactRounds<'a> {
-    /// `(item, want, slots)`: identical `(subtree, want)` pairs are merged.
-    pending: Vec<(&'a Expr, Want, Vec<usize>)>,
+struct ExactRounds {
+    /// `(class, want, slots)`: structurally equal subtrees share one class ([`RoundMemo`]).
+    pending: Vec<(usize, Want, Vec<usize>)>,
 }
 
-/// Supports already computed in this run of the rounds, reused when a later item contains the
-/// same node, and the items that did not fit the current round's cap.
-struct RoundMemo {
+/// What a memo lookup found for a node.
+enum MemoHit<'m> {
+    TooLarge,
+    Support(&'m Distribution),
+}
+
+/// State the rounds share across both phases of one [`precheck_divisors`] call.
+///
+/// Items are grouped into classes of structurally equal subtrees, and every address added to a
+/// class is recorded, so a lookup finds the shared entry from any of them: what is decided does
+/// not depend on which copy of a subtree was added first (the order of the terms).
+struct RoundMemo<'a> {
+    /// One representative subtree per class.
+    reps: Vec<&'a Expr>,
+    /// Every recorded address, with its class.
+    class_of: BTreeMap<usize, usize>,
+    /// Known supports, per class.
     dists: BTreeMap<usize, Distribution>,
+    /// Entries stored in `dists`, counted once per class, at most [`MAX_EXACT_LIVE_STATES`].
     stored: usize,
+    /// Classes that did not fit the current round's cap.
     too_large: BTreeSet<usize>,
+    /// Addresses of every subtree with no success value (all addresses of its class).
+    never: BTreeSet<usize>,
+    /// `(class, want)` pairs that failed every round: not run again in the other phase.
+    exhausted: BTreeSet<(usize, Want)>,
+}
+
+impl<'a> RoundMemo<'a> {
+    fn new() -> Self {
+        Self {
+            reps: Vec::new(),
+            class_of: BTreeMap::new(),
+            dists: BTreeMap::new(),
+            stored: 0,
+            too_large: BTreeSet::new(),
+            never: BTreeSet::new(),
+            exhausted: BTreeSet::new(),
+        }
+    }
+
+    /// The class of `e`, created if new, with `e`'s address recorded in it.
+    fn class(&mut self, e: &'a Expr) -> usize {
+        let at = core::ptr::from_ref(e) as usize;
+        if let Some(&c) = self.class_of.get(&at) {
+            return c;
+        }
+        let c = match self.reps.iter().position(|r| *r == e) {
+            Some(c) => c,
+            None => {
+                self.reps.push(e);
+                self.reps.len() - 1
+            }
+        };
+        self.class_of.insert(at, c);
+        c
+    }
+
+    fn lookup(&self, e: &Expr) -> Option<MemoHit<'_>> {
+        let c = *self.class_of.get(&(core::ptr::from_ref(e) as usize))?;
+        if self.too_large.contains(&c) {
+            return Some(MemoHit::TooLarge);
+        }
+        self.dists.get(&c).map(MemoHit::Support)
+    }
+
+    /// Records that class `c` has no success value.
+    fn mark_never(&mut self, c: usize) {
+        let addrs: Vec<usize> = self
+            .class_of
+            .iter()
+            .filter(|&(_, &k)| k == c)
+            .map(|(&a, _)| a)
+            .collect();
+        self.never.extend(addrs);
+    }
 }
 
 fn node_count(expr: &Expr) -> usize {
@@ -1089,67 +1159,85 @@ fn any_success(op: BinaryOp, l: &Distribution, r: &Distribution) -> bool {
     })
 }
 
-impl<'a> ExactRounds<'a> {
+fn empty_distribution() -> Distribution {
+    Distribution {
+        entries: Vec::new(),
+    }
+}
+
+/// A stand-in support for a `Succeeds` answer: empty exactly when the item cannot succeed.
+fn stand_in(succeeds: bool) -> Distribution {
+    if succeeds {
+        Distribution::point(0)
+    } else {
+        empty_distribution()
+    }
+}
+
+impl ExactRounds {
     const fn new() -> Self {
         Self {
             pending: Vec::new(),
         }
     }
 
-    /// Adds `item` (asking `want`) for `slot`, merging identical pairs.
-    fn add(&mut self, item: &'a Expr, want: Want, slot: usize) {
+    /// Adds `item` (asking `want`) for `slot`, merging structurally equal subtrees.
+    fn add<'a>(&mut self, memo: &mut RoundMemo<'a>, item: &'a Expr, want: Want, slot: usize) {
+        let c = memo.class(item);
         match self
             .pending
             .iter_mut()
-            .find(|(e, w, _)| *w == want && *e == item)
+            .find(|(k, w, _)| *w == want && *k == c)
         {
             Some((_, _, slots)) => slots.push(slot),
-            None => self.pending.push((item, want, alloc::vec![slot])),
+            None => self.pending.push((c, want, alloc::vec![slot])),
         }
     }
 
     /// One item under `budget`: its support (`Support`), or a stand-in support that is empty
     /// exactly when it cannot succeed (`Succeeds`). The flag is whether the result is the real
     /// support (and may be stored for reuse).
+    ///
+    /// For `Succeeds` on `l op r`, when `l` does not fit the cap, `r` is still evaluated on a
+    /// budget of the same cap: if `r` has no success value, neither has the item. So one
+    /// `Succeeds` item spends at most twice the round's cap.
     fn evaluate(
         item: &Expr,
         want: Want,
         budget: &mut ExactBudget,
-        memo: &RoundMemo,
+        memo: &RoundMemo<'_>,
     ) -> Result<(Distribution, bool), ExactAbort> {
         let known = |e: &Expr, budget: &mut ExactBudget| -> ExactNodeResult {
-            let at = core::ptr::from_ref(e) as usize;
-            if memo.too_large.contains(&at) {
-                return Err(ExactAbort::TooLarge);
-            }
-            match memo.dists.get(&at) {
-                Some(d) => {
+            match memo.lookup(e) {
+                Some(MemoHit::TooLarge) => Err(ExactAbort::TooLarge),
+                Some(MemoHit::Support(d)) => {
                     budget.charge_transitions(d.len().max(1) as u128)?;
+                    budget.reserve_live(d.len())?;
                     Ok((d.clone(), ModelledCaps::default()))
                 }
                 None => try_exact(e, budget, None, Some(memo)),
             }
         };
         match (want, item) {
-            (Want::Succeeds, Expr::Binary { op, left, right }) => {
-                let (l, _) = known(left, budget)?;
-                if l.is_empty() {
-                    return Ok((l, false));
+            (Want::Succeeds, Expr::Binary { op, left, right }) => match known(left, budget) {
+                Ok((l, _)) if l.is_empty() => Ok((l, false)),
+                Ok((l, _)) => {
+                    let (r, _) = known(right, budget)?;
+                    budget.charge_transitions(l.len() as u128)?;
+                    Ok((stand_in(any_success(*op, &l, &r)), false))
                 }
-                let (r, _) = known(right, budget)?;
-                budget.charge_transitions(l.len() as u128)?;
-                let ok = any_success(*op, &l, &r);
-                Ok((
-                    if ok {
-                        Distribution::point(0)
-                    } else {
-                        Distribution {
-                            entries: Vec::new(),
-                        }
-                    },
-                    false,
-                ))
-            }
+                Err(ExactAbort::TooLarge) => {
+                    let mut right_budget = ExactBudget::tolerant_with_cap(budget.max_transitions);
+                    let r = known(right, &mut right_budget);
+                    budget.transitions =
+                        budget.transitions.saturating_add(right_budget.transitions);
+                    match r {
+                        Ok((r, _)) if r.is_empty() => Ok((r, false)),
+                        _ => Err(ExactAbort::TooLarge),
+                    }
+                }
+                Err(other) => Err(other),
+            },
             _ => try_exact(item, budget, None, Some(memo)).map(|(d, _)| (d, true)),
         }
     }
@@ -1160,80 +1248,100 @@ impl<'a> ExactRounds<'a> {
     ///
     /// Items run smallest first (node count, then canonical form), so a subtree that is itself an
     /// item is done before the items that contain it, in an order that does not depend on how
-    /// the expression's terms are ordered. Then, for an item that contains such a subtree:
-    /// - a subtree with no success value: the item has none either (every operand must succeed),
-    ///   so it is decided empty without being evaluated, before each round and after the last;
+    /// the expression's terms are ordered. `memo` is shared by both phases of the check and
+    /// keyed by class (structurally equal subtrees, every recorded address), so the shortcuts
+    /// below do not depend on which copy of a subtree came first:
+    /// - an item whose class already has a support (from either phase) is decided from it, and
+    ///   an item whose `(class, want)` failed every round is not run again;
+    /// - a subtree with no success value: an item containing it has none either (every operand
+    ///   must succeed), so it is decided empty without being evaluated, before each round and
+    ///   after the last;
     /// - a subtree that did not fit this round's cap is treated as too large inside the item too,
     ///   so its work is not redone;
-    /// - a subtree whose support is known is reused (charged its length), up to
-    ///   [`MAX_EXACT_LIVE_STATES`] stored entries in all.
+    /// - a subtree whose support is known is reused (charged its length and its live slots), up
+    ///   to [`MAX_EXACT_LIVE_STATES`] stored entries in all, counted once per class.
     ///
-    /// Each shortcut is sound, and depends only on which items the expression has, not on the
-    /// order its terms are written in. They keep the left spine of one expensive operand, whose prefixes are separate items, from
-    /// paying for that operand once per prefix.
-    fn run(
+    /// Each shortcut is sound. They keep the left spine of one expensive operand, whose prefixes
+    /// are separate items, from paying for that operand once per prefix.
+    fn run<'a>(
         self,
+        memo: &mut RoundMemo<'a>,
         transitions: &mut usize,
         mut decide: impl FnMut(&Distribution, &[usize]) -> bool,
     ) -> bool {
-        let empty = Distribution {
-            entries: Vec::new(),
-        };
-        let mut never: BTreeSet<usize> = BTreeSet::new();
-        let mut memo = RoundMemo {
-            dists: BTreeMap::new(),
-            stored: 0,
-            too_large: BTreeSet::new(),
-        };
-        let mut pending: Vec<(usize, String, &'a Expr, Want, Vec<usize>)> = self
+        let empty = empty_distribution();
+        let mut pending: Vec<(usize, String, usize, Want, Vec<usize>)> = self
             .pending
             .into_iter()
-            .map(|(e, w, slots)| (node_count(e), e.to_canonical_string(), e, w, slots))
+            .map(|(c, w, slots)| {
+                let e = memo.reps[c];
+                (node_count(e), e.to_canonical_string(), c, w, slots)
+            })
             .collect();
         pending.sort_by(|a, b| (a.0, &a.1, a.3).cmp(&(b.0, &b.1, b.3)));
+        let mut unresolved = Vec::new();
         for cap in DIVISOR_ROUND_CAPS {
             if pending.is_empty() {
                 break;
             }
             memo.too_large.clear();
             let mut retry = Vec::new();
-            for (size, key, item, want, slots) in pending {
-                let at = core::ptr::from_ref(item) as usize;
-                if contains_any(item, &never) {
-                    never.insert(at);
+            for (size, key, c, want, slots) in pending {
+                let item = memo.reps[c];
+                if memo.exhausted.contains(&(c, want)) {
+                    unresolved.push((c, slots));
+                    continue;
+                }
+                if let Some(d) = memo.dists.get(&c) {
+                    let known = match want {
+                        Want::Support => d.clone(),
+                        Want::Succeeds => stand_in(!d.is_empty()),
+                    };
+                    if decide(&known, &slots) {
+                        return true;
+                    }
+                    continue;
+                }
+                if contains_any(item, &memo.never) {
+                    memo.mark_never(c);
                     if decide(&empty, &slots) {
                         return true;
                     }
                     continue;
                 }
                 let mut budget = ExactBudget::tolerant_with_cap(cap);
-                let res = Self::evaluate(item, want, &mut budget, &memo);
+                let res = Self::evaluate(item, want, &mut budget, memo);
                 *transitions = transitions.saturating_add(budget.transitions);
                 match res {
                     Ok((dist, real)) => {
                         if dist.is_empty() {
-                            never.insert(at);
+                            memo.mark_never(c);
                         }
                         let stop = decide(&dist, &slots);
                         if real && memo.stored.saturating_add(dist.len()) <= MAX_EXACT_LIVE_STATES {
                             memo.stored += dist.len();
-                            memo.dists.insert(at, dist);
+                            memo.dists.insert(c, dist);
                         }
                         if stop {
                             return true;
                         }
                     }
                     Err(ExactAbort::TooLarge) => {
-                        memo.too_large.insert(at);
-                        retry.push((size, key, item, want, slots));
+                        memo.too_large.insert(c);
+                        retry.push((size, key, c, want, slots));
                     }
                     Err(ExactAbort::Unsupported | ExactAbort::Error(_)) => {}
                 }
             }
             pending = retry;
         }
-        for (_, _, item, _, slots) in pending {
-            if contains_any(item, &never) && decide(&empty, &slots) {
+        memo.too_large.clear();
+        for (_, _, c, want, slots) in pending {
+            memo.exhausted.insert((c, want));
+            unresolved.push((c, slots));
+        }
+        for (c, slots) in unresolved {
+            if contains_any(memo.reps[c], &memo.never) && decide(&empty, &slots) {
                 return true;
             }
         }
@@ -1283,8 +1391,10 @@ fn contains_any(expr: &Expr, nodes: &BTreeSet<usize>) -> bool {
 ///    - then every undecided earlier operand of a division with `zero == Yes`, to decide whether
 ///      it can succeed (an empty success set is `No`).
 ///
-///    Identical subtrees are merged, and every item gets every round, each on its own budget
-///    ([`DIVISOR_ROUND_CAPS`]), so no sibling, and no order, can change what is decided.
+///    Structurally equal subtrees form one class, looked up from any copy's address
+///    ([`RoundMemo`]), and every item (a class and what is asked of it) gets every round, each on
+///    its own budget ([`DIVISOR_ROUND_CAPS`]), so no sibling's cost and no choice of copy can
+///    change its answer. Both phases share the memo, so an item is run at most once.
 /// 3. Any division with `reached == Yes` and `zero == Yes` returns
 ///    `Err(RollError::DivisionByZero)`. A division with `reached == No` or `zero == No` cannot raise
 ///    it. Every other division is counted as **unchecked**: an exact main pass still decides it,
@@ -1296,16 +1406,21 @@ fn contains_any(expr: &Expr, nodes: &BTreeSet<usize>) -> bool {
 /// and as `No` when every evaluation has exceeded `MAX_TOTAL_DRAWS` by then.
 ///
 /// ### Order and bound
-/// Each division's facts depend only on the expression, never on its siblings or their order.
+/// Each division's facts depend only on the expression and its items, never on a sibling's budget
+/// or on which copy of a repeated subtree comes first. Which items an expression has can still
+/// depend on how its terms are grouped (spec `§5.4` item 3 lists what stays open).
 ///
 /// Bounds:
 /// - the support pass costs at most `O(nodes * 128^2 * log2(count))` interval operations;
-/// - the rounds cost at most `D * (2^16 + 2^20 + MAX_EXACT_STATES)` transitions for `D` distinct
-///   items (pending divisors plus undecided operands), and `D` is at most the number of binary
-///   nodes, which the 1,000-byte input caps at 499; most items fail a round at its first charge,
-///   before any work, and only items that fit a cap do the work they are charged;
-/// - every round uses at most [`MAX_EXACT_LIVE_STATES`] live slots per item, and one item at a
-///   time.
+/// - the rounds cost at most `2^16 + 2^20 + MAX_EXACT_STATES` transitions per divisor item and
+///   twice that per `Succeeds` item (whose right operand may get a cap of its own), over both
+///   phases, so at most `2 * D * (2^16 + 2^20 + MAX_EXACT_STATES)` for `D` distinct items
+///   (pending divisors plus undecided operands); `D` is at most two per binary node, and the
+///   1,000-byte input caps those at 499; most items fail a round at its first charge, before any
+///   work, and only items that fit a cap do the work they are charged;
+/// - one item runs at a time, with at most [`MAX_EXACT_LIVE_STATES`] live slots per budget (memo
+///   hits are reserved like any other operand), plus the memo's at most
+///   [`MAX_EXACT_LIVE_STATES`] stored entries.
 fn precheck_divisors(expr: &Expr, draws: &DrawContext) -> Result<DivisorCheck, RollError> {
     let mut check = DivisorCheck {
         unchecked: 0,
@@ -1348,15 +1463,17 @@ fn precheck_divisors(expr: &Expr, draws: &DrawContext) -> Result<DivisorCheck, R
         return Err(RollError::DivisionByZero);
     }
 
-    // Phase 2a: divisors whose zero is undecided.
+    // Phase 2a: divisors whose zero is undecided. Both phases share one memo, so an item that
+    // both phases ask about is evaluated once.
+    let mut memo = RoundMemo::new();
     let mut rounds = ExactRounds::new();
     for (idx, rec) in records.iter().enumerate() {
         if rec.zero == Tri::Maybe && rec.reached != Tri::No {
-            rounds.add(rec.divisor, Want::Support, idx);
+            rounds.add(&mut memo, rec.divisor, Want::Support, idx);
         }
     }
     let mut zeros: Vec<(usize, Tri)> = Vec::new();
-    let found = rounds.run(&mut check.transitions, |dist, idxs| {
+    let found = rounds.run(&mut memo, &mut check.transitions, |dist, idxs| {
         let zero = if dist.is_reachable(0) {
             Tri::Yes
         } else {
@@ -1385,6 +1502,7 @@ fn precheck_divisors(expr: &Expr, draws: &DrawContext) -> Result<DivisorCheck, R
         if rec.zero == Tri::Yes && rec.reached == Tri::Maybe {
             for &(c, nonzero) in &rec.conds {
                 rounds.add(
+                    &mut memo,
                     c,
                     if nonzero {
                         Want::Support
@@ -1397,7 +1515,7 @@ fn precheck_divisors(expr: &Expr, draws: &DrawContext) -> Result<DivisorCheck, R
             }
         }
     }
-    let found = rounds.run(&mut check.transitions, |dist, slots| {
+    let found = rounds.run(&mut memo, &mut check.transitions, |dist, slots| {
         for &s in slots {
             let (i, nonzero) = cond_of[s];
             let ok = if nonzero {
@@ -1663,8 +1781,12 @@ fn tolerant_pairwise(
             (-m, m)
         }
     };
-    let lo = lo.max(i128::from(i64::MIN)) as i64;
-    let hi = hi.min(i128::from(i64::MAX)) as i64;
+    let (lo, hi) = (lo.max(i128::from(i64::MIN)), hi.min(i128::from(i64::MAX)));
+    if lo > hi {
+        // Every pair overflows on the same side.
+        return Ok(empty_distribution());
+    }
+    let (lo, hi) = (lo as i64, hi as i64);
     let mut acc = Accum::with_bounds(lo, hi, budget)?;
     let cost = if acc.is_sparse() {
         pairs.saturating_mul(SPARSE_TRANSITION_WEIGHT)
@@ -1790,7 +1912,7 @@ fn try_exact(
     expr: &Expr,
     budget: &mut ExactBudget,
     draws: Option<&DrawContext>,
-    memo: Option<&RoundMemo>,
+    memo: Option<&RoundMemo<'_>>,
 ) -> ExactNodeResult {
     let mut stack: Vec<ExactCont<'_>> = Vec::new();
     let mut cur_expr: Option<&Expr> = Some(expr);
@@ -1799,21 +1921,23 @@ fn try_exact(
     loop {
         if let Some(node) = cur_expr.take() {
             let live_base = budget.live_states;
-            let at = core::ptr::from_ref(node) as usize;
             if let Some(m) = memo
                 && !core::ptr::eq(node, expr)
             {
-                if m.too_large.contains(&at) {
-                    last_res = Some(Err(ExactAbort::TooLarge));
-                    continue;
-                }
-                if let Some(d) = m.dists.get(&at) {
-                    let res = budget
-                        .charge_transitions(d.len().max(1) as u128)
-                        .and_then(|()| budget.reserve_live(d.len()))
-                        .map(|()| (d.clone(), ModelledCaps::default()));
-                    last_res = Some(finish_node_frame(res, live_base, budget));
-                    continue;
+                match m.lookup(node) {
+                    Some(MemoHit::TooLarge) => {
+                        last_res = Some(Err(ExactAbort::TooLarge));
+                        continue;
+                    }
+                    Some(MemoHit::Support(d)) => {
+                        let res = budget
+                            .charge_transitions(d.len().max(1) as u128)
+                            .and_then(|()| budget.reserve_live(d.len()))
+                            .map(|()| (d.clone(), ModelledCaps::default()));
+                        last_res = Some(finish_node_frame(res, live_base, budget));
+                        continue;
+                    }
+                    None => {}
                 }
             }
             match node {
@@ -4523,7 +4647,7 @@ mod tests {
             }
         }
         let mut rng = Lcg(20_261_114);
-        let (mut compared, mut with_errors) = (0, 0);
+        let (mut compared, mut with_errors, mut memo_hits) = (0, 0, 0);
         for _ in 0..1_500 {
             let src = term(&mut rng, 4);
             let Ok(expr) = parse(&src) else { continue };
@@ -4537,24 +4661,64 @@ mod tests {
             let got: BTreeSet<i64> = dist.entries().iter().map(|&(v, _)| v).collect();
             assert_eq!(got, want, "{src}");
             // The existence check the rounds use for an undecided operand agrees.
-            let memo = super::RoundMemo {
-                dists: alloc::collections::BTreeMap::new(),
-                stored: 0,
-                too_large: BTreeSet::new(),
-            };
+            let memo = super::RoundMemo::new();
             let mut budget = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
             let (stand_in, _) =
                 super::ExactRounds::evaluate(&expr, super::Want::Succeeds, &mut budget, &memo)
                     .unwrap();
             assert_eq!(stand_in.is_empty(), want.is_empty(), "{src}: succeeds");
+            // With the left operand's support in the memo (a memo hit, as in the rounds), the
+            // support and the existence check are unchanged.
+            if let Expr::Binary { left, .. } = &expr {
+                let mut b = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
+                if let Ok((l, _)) = try_exact(left, &mut b, None, None) {
+                    let mut memo = super::RoundMemo::new();
+                    let c = memo.class(left);
+                    memo.dists.insert(c, l);
+                    let mut b = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
+                    let (d, _) = try_exact(&expr, &mut b, None, Some(&memo)).unwrap();
+                    let again: BTreeSet<i64> = d.entries().iter().map(|&(v, _)| v).collect();
+                    assert_eq!(again, want, "{src}: memo hit");
+                    let mut b = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
+                    let (si, _) =
+                        super::ExactRounds::evaluate(&expr, super::Want::Succeeds, &mut b, &memo)
+                            .unwrap();
+                    assert_eq!(si.is_empty(), want.is_empty(), "{src}: succeeds, memo hit");
+                    memo_hits += 1;
+                }
+            }
             compared += 1;
             if super::exact_phase(&expr).is_err() {
                 with_errors += 1;
             }
         }
         assert!(
-            compared > 800 && with_errors > 200,
-            "{compared} {with_errors}"
+            compared > 800 && with_errors > 200 && memo_hits > 300,
+            "{compared} {with_errors} {memo_hits}"
         );
+        // A pair whose every result overflows on one side (the cast guard in
+        // `tolerant_pairwise`), and an operand that never succeeds.
+        let big = super::Distribution {
+            entries: alloc::vec![(i64::MAX - 1, 0.5), (i64::MAX, 0.5)],
+        };
+        let small = super::Distribution {
+            entries: alloc::vec![(2, 0.5), (3, 0.5)],
+        };
+        for op in [BinaryOp::Add, BinaryOp::Mul] {
+            let mut b = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
+            let d = super::tolerant_pairwise(op, &big, &small, &mut b).unwrap();
+            assert!(d.is_empty(), "{op:?}");
+            assert_eq!(b.transitions, 0, "{op:?}: nothing charged");
+        }
+        let never = parse("(9223372036854775807+1d2)*1d4").unwrap();
+        let mut b = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
+        let (si, _) = super::ExactRounds::evaluate(
+            &never,
+            super::Want::Succeeds,
+            &mut b,
+            &super::RoundMemo::new(),
+        )
+        .unwrap();
+        assert!(si.is_empty());
     }
 }
