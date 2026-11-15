@@ -18,7 +18,7 @@ use alloc::vec::Vec;
 
 use crate::ast::{
     BinaryOp, ClampBounds, CompareOp, ComparePoint, DiceSpec, ExplosionVariant, Expr, KeepDropOp,
-    MAX_EXPLOSIONS, MAX_TOTAL_DRAWS, ResultMode,
+    MAX_EXPLOSIONS, MAX_REROLLS, MAX_TOTAL_DRAWS, ResultMode,
 };
 
 /// Maximum intervals kept per set before it is coarsened.
@@ -41,16 +41,6 @@ pub(crate) enum Tri {
     Yes,
 }
 
-impl Tri {
-    pub(crate) const fn and(self, other: Self) -> Self {
-        match (self, other) {
-            (Self::No, _) | (_, Self::No) => Self::No,
-            (Self::Yes, Self::Yes) => Self::Yes,
-            _ => Self::Maybe,
-        }
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Kind {
     Must,
@@ -67,6 +57,10 @@ fn clip(lo: i128, hi: i128) -> Option<(i64, i64)> {
     let lo = lo.max(i128::from(i64::MIN));
     let hi = hi.min(i128::from(i64::MAX));
     (lo <= hi).then_some((lo as i64, hi as i64))
+}
+
+fn ceil_div(a: i128, b: i128) -> i128 {
+    -floor_div(-a, b)
 }
 
 fn floor_div(a: i128, b: i128) -> i128 {
@@ -292,6 +286,36 @@ impl IvSet {
                                     break 'outer;
                                 }
                                 pieces.push((x * y, x * y));
+                            }
+                        }
+                    }
+                    // `k * [lo, hi]` with too many points: keep only the factors whose product
+                    // fits `i64` (the others overflow), so a partial overflow does not widen the
+                    // hull to all of `i64`, and its ends are real values for `must`.
+                    Some(k) => {
+                        let (fmin, fmax) = if k > 0 {
+                            (
+                                ceil_div(i128::from(i64::MIN), k),
+                                floor_div(i128::from(i64::MAX), k),
+                            )
+                        } else {
+                            (
+                                ceil_div(i128::from(i64::MAX), k),
+                                floor_div(i128::from(i64::MIN), k),
+                            )
+                        };
+                        let (vlo, vhi) = (span.0.max(fmin), span.1.min(fmax));
+                        if vlo <= vhi {
+                            let (x, y) = (k * vlo, k * vhi);
+                            match kind {
+                                Kind::May => pieces.push((x.min(y), x.max(y))),
+                                Kind::Must => {
+                                    pieces.push((x, x));
+                                    pieces.push((y, y));
+                                    if vlo <= 0 && vhi >= 0 {
+                                        pieces.push((0, 0));
+                                    }
+                                }
                             }
                         }
                     }
@@ -728,51 +752,237 @@ fn binary_abs(op: BinaryOp, l: &Abs, r: &Abs) -> Abs {
 
 /// What the support pass learned about one `DivFloor` node, in engine evaluation order.
 pub(crate) struct DivisorRecord<'a> {
+    /// The division node.
+    pub(crate) node: &'a Expr,
     /// The divisor subtree (`right` operand).
     pub(crate) divisor: &'a Expr,
     /// Whether the engine reaches the division with its dividend and divisor both evaluated
     /// successfully: everything evaluated before it can succeed, and the dividend can succeed.
+    /// `Maybe` exactly when `conds` is not empty.
     pub(crate) reached: Tri,
+    /// The earlier operands whose success the support pass could not decide (`must` empty, `may`
+    /// not): the division is reached when every one of them can succeed (with a non-zero value,
+    /// when the flag is set). They are disjoint subtrees with independent dice, so their
+    /// successes combine (the draw budget aside). See [`Cond`].
+    pub(crate) conds: Vec<Cond<'a>>,
     /// Whether the divisor can evaluate to `0` without an error.
     pub(crate) zero: Tri,
 }
 
+/// An undecided earlier operand: the subtree, and whether it must succeed with a non-zero value
+/// (the divisor of a division it sits under) rather than with any value.
+///
+/// A node whose own operator cannot raise an error for any pair of operand values in their `may`
+/// sets succeeds exactly when its operands do (a division's divisor with a non-zero value), so an
+/// undecided node like that is split into its undecided operands. For a sum of terms, the
+/// conditions are then the undecided terms themselves, whatever order they are written in.
+pub(crate) type Cond<'a> = (&'a Expr, bool);
+
+/// Reachability of a subexpression: `None` when it is never reached, else the undecided earlier
+/// operands it depends on (none: reached).
+type Reach<'a> = Option<Vec<Cond<'a>>>;
+
+/// What the walk learned about one node, for splitting conditions.
+#[derive(Copy, Clone)]
+struct NodeFact {
+    /// Whether the node can succeed.
+    succeed: Tri,
+    /// Whether it can succeed with a non-zero value.
+    nonzero: Tri,
+    /// Whether its own operator cannot raise an error for operand values in their `may` sets.
+    safe: bool,
+}
+
+type Facts = alloc::collections::BTreeMap<usize, NodeFact>;
+
+fn addr(e: &Expr) -> usize {
+    core::ptr::from_ref(e) as usize
+}
+
+fn record_fact(facts: &mut Facts, e: &Expr, abs: &Abs, safe: bool) {
+    let nonzero = if abs.must.iv.iter().any(|&(lo, hi)| lo != 0 || hi != 0) {
+        Tri::Yes
+    } else if abs.may.iv.iter().all(|&(lo, hi)| lo == 0 && hi == 0) {
+        Tri::No
+    } else {
+        Tri::Maybe
+    };
+    facts.insert(
+        addr(e),
+        NodeFact {
+            succeed: abs.can_succeed(),
+            nonzero,
+            safe,
+        },
+    );
+}
+
+/// Whether `op` cannot raise an error for any `a` in `l` and `b` in `r` (a zero divisor aside,
+/// which a division's split asks about separately).
+fn op_safe(op: BinaryOp, l: &IvSet, r: &IvSet) -> bool {
+    let (Some((a, b)), Some((c, d))) = (l.hull(), r.hull()) else {
+        return true;
+    };
+    let (a, b, c, d) = (i128::from(a), i128::from(b), i128::from(c), i128::from(d));
+    let fits = |lo: i128, hi: i128| lo >= i128::from(i64::MIN) && hi <= i128::from(i64::MAX);
+    match op {
+        BinaryOp::Add => fits(a + c, b + d),
+        BinaryOp::Sub => fits(a - d, b - c),
+        BinaryOp::Mul => {
+            let k = [a * c, a * d, b * c, b * d];
+            fits(
+                k.iter().copied().min().unwrap_or(0),
+                k.iter().copied().max().unwrap_or(0),
+            )
+        }
+        BinaryOp::DivFloor => !(a == i128::from(i64::MIN) && c <= -1 && d >= -1),
+    }
+}
+
+/// The undecided parts of `e`, which must succeed (with a non-zero value if `nonzero`).
+fn split_cond<'a>(e: &'a Expr, nonzero: bool, facts: &Facts, out: &mut Vec<Cond<'a>>) {
+    let Some(f) = facts.get(&addr(e)).copied() else {
+        out.push((e, nonzero));
+        return;
+    };
+    if (if nonzero { f.nonzero } else { f.succeed }) == Tri::Yes {
+        return;
+    }
+    match e {
+        Expr::Binary { op, left, right } if f.safe && !nonzero => {
+            split_cond(left, false, facts, out);
+            split_cond(right, *op == BinaryOp::DivFloor, facts, out);
+        }
+        Expr::UnaryNeg(inner) if f.safe && !nonzero => split_cond(inner, false, facts, out),
+        _ => out.push((e, nonzero)),
+    }
+}
+
+fn reach_tri(reach: &Reach<'_>) -> Tri {
+    match reach {
+        None => Tri::No,
+        Some(c) if c.is_empty() => Tri::Yes,
+        Some(_) => Tri::Maybe,
+    }
+}
+
 /// Walks `expr` in engine order, returning its success set and appending one record per division.
 ///
-/// `reach` is whether evaluation reaches `expr` with everything before it successful. Left spines
-/// are walked iteratively; recursion follows right operands and unary operands only, whose depth
-/// the parser caps at `MAX_NESTING_DEPTH`.
-pub(crate) fn walk<'a>(expr: &'a Expr, reach: Tri, out: &mut Vec<DivisorRecord<'a>>) -> Abs {
-    walk_inner(expr, reach, 0, out).0
+/// Left spines are walked iteratively; recursion follows right operands and unary operands only,
+/// whose depth the parser caps at `MAX_NESTING_DEPTH`.
+pub(crate) fn walk<'a>(expr: &'a Expr, out: &mut Vec<DivisorRecord<'a>>) -> Abs {
+    let mut facts = Facts::new();
+    walk_inner(expr, &Some(Vec::new()), 0, out, &mut facts).0
 }
 
-/// Draws every evaluation of `spec` takes, whatever the faces (`analyze`'s certain-draw rule).
-fn group_certain_draws(spec: &DiceSpec) -> u64 {
-    u64::from(spec.count.get()).saturating_mul(crate::analyze::certain_draws_per_die(spec))
+/// Fewest `roll_single_die` calls one die of `spec` makes (the initial roll, its rerolls and its
+/// explosion chain) on any execution. Every roll takes at least one RNG word, so `count` times
+/// this is a lower bound on the group's draws.
+///
+/// It is a shortest path over the faces through the stages of `eval.rs`, held as the least cost
+/// of each face, piecewise constant over intervals (each compare point splits at most two
+/// pieces, so there are at most `2 * modifiers + 1`):
+/// - `r` with matched set `M`: a face outside `M` keeps its cost or is reached after one reroll
+///   from the cheapest face in `M`; a face in `M` is final only after `MAX_REROLLS` rerolls;
+/// - `ro`: every face in `M` is rerolled once and lands anywhere;
+/// - the clamp maps the faces, and an explosion whose first test passes rolls one child (or
+///   `MAX_EXPLOSIONS` when every raw face matches).
+///
+/// It is tighter than `analyze`'s certain-draw rule (§5.3.1), which the Monte Carlo cost model
+/// keeps: `1d4ro<=2ro>=3` always rolls twice, and that rule counts once.
+pub(crate) fn min_rolls_per_die(spec: &DiceSpec) -> u64 {
+    let (lo, hi) = (spec.sides.min_face(), spec.sides.max_face());
+    // `(lo, hi, cost)` pieces covering `[lo, hi]` in order.
+    let mut pieces: Vec<(i64, i64, u64)> = alloc::vec![(lo, hi, 1)];
+    for (cp, once) in spec
+        .reroll_unlimited
+        .iter()
+        .map(|&cp| (cp, false))
+        .chain(spec.reroll_once.iter().map(|&cp| (cp, true)))
+    {
+        // Split every piece into its matched and unmatched parts.
+        let mut tagged: Vec<(i64, i64, u64, bool)> = Vec::with_capacity(pieces.len() + 2);
+        for &(a, b, c) in &pieces {
+            let range = IvSet::range(a, b);
+            for (part, hit) in [
+                (range.filter(cp, true, Kind::May), true),
+                (range.filter(cp, false, Kind::May), false),
+            ] {
+                tagged.extend(part.iv.iter().map(|&(x, y)| (x, y, c, hit)));
+            }
+        }
+        tagged.sort_unstable_by_key(|p| p.0);
+        let Some(min_m) = tagged.iter().filter(|p| p.3).map(|p| p.2).min() else {
+            continue;
+        };
+        let landed = min_m.saturating_add(1);
+        let stuck = if once {
+            landed
+        } else {
+            min_m.saturating_add(u64::from(MAX_REROLLS))
+        };
+        pieces = tagged
+            .into_iter()
+            .map(|(a, b, c, hit)| (a, b, if hit { stuck } else { c.min(landed) }))
+            .collect();
+    }
+    let Some(rule) = spec.explode else {
+        return pieces.iter().map(|p| p.2).min().unwrap_or(1);
+    };
+    let child = if IvSet::range(lo, hi)
+        .filter(rule.threshold, false, Kind::May)
+        .is_empty()
+    {
+        u64::from(MAX_EXPLOSIONS)
+    } else {
+        1
+    };
+    // Stage 3 is non-decreasing, so each piece maps to an interval of post-clamp values.
+    pieces
+        .iter()
+        .map(|&(a, b, c)| {
+            let post = IvSet::range(clamp_value(a, spec.clamp), clamp_value(b, spec.clamp));
+            if post.filter(rule.threshold, false, Kind::May).is_empty() {
+                c.saturating_add(child)
+            } else {
+                c
+            }
+        })
+        .min()
+        .unwrap_or(1)
 }
 
-/// [`walk`], also carrying the draws every evaluation certainly takes before `expr` (`prefix`).
-/// A subexpression whose certain draws, with everything evaluated before it, exceed
+/// Fewest draws every evaluation of `spec` takes.
+fn group_min_draws(spec: &DiceSpec) -> u64 {
+    u64::from(spec.count.get()).saturating_mul(min_rolls_per_die(spec))
+}
+
+/// [`walk`], also carrying the fewest draws every evaluation takes before `expr` (`prefix`).
+/// A subexpression whose fewest draws, with everything evaluated before it, exceed
 /// `MAX_TOTAL_DRAWS` always raises `DrawBudgetExceeded`, so its success set is empty: nothing
 /// after it is reached, which is what `precheck_divisors` and the main pass both rely on.
 fn walk_inner<'a>(
     expr: &'a Expr,
-    reach: Tri,
+    reach: &Reach<'a>,
     prefix: u64,
     out: &mut Vec<DivisorRecord<'a>>,
+    facts: &mut Facts,
 ) -> (Abs, u64) {
     let over = |draws: u64| prefix.saturating_add(draws) > u64::from(MAX_TOTAL_DRAWS);
-    let mut spine: Vec<(BinaryOp, &'a Expr)> = Vec::new();
+    // `(op, right, left, node)` per binary node of the left spine, outermost first.
+    let mut spine: Vec<(BinaryOp, &'a Expr, &'a Expr, &'a Expr)> = Vec::new();
     let mut leftmost = expr;
     while let Expr::Binary { op, left, right } = leftmost {
-        spine.push((*op, right));
+        spine.push((*op, right, left, leftmost));
         leftmost = left;
     }
+    let mut leftmost_safe = true;
     let (mut acc, mut draws) = match leftmost {
         Expr::Number(v) => (Abs::exact(IvSet::point(*v)), 0),
-        Expr::Dice(spec) => (dice_abs(spec), group_certain_draws(spec)),
+        Expr::Dice(spec) => (dice_abs(spec), group_min_draws(spec)),
         Expr::UnaryNeg(inner) => {
-            let (a, d) = walk_inner(inner, reach, prefix, out);
+            let (a, d) = walk_inner(inner, reach, prefix, out, facts);
+            leftmost_safe = !a.may.contains(i64::MIN);
             let must = a.must.neg(Kind::Must);
             let may = a.may.neg(Kind::May).union(&must, Kind::May);
             (Abs { must, may }, d)
@@ -782,36 +992,217 @@ fn walk_inner<'a>(
     if over(draws) {
         acc = Abs::never();
     }
-    for &(op, right) in spine.iter().rev() {
-        let left_ok = acc.can_succeed();
-        let (r, r_draws) = walk_inner(right, reach.and(left_ok), prefix.saturating_add(draws), out);
+    record_fact(facts, leftmost, &acc, leftmost_safe);
+    for &(op, right, left, node) in spine.iter().rev() {
+        // `acc` is the success set of `left`, the operand the engine evaluates just before `right`.
+        let right_reach = match (reach, acc.can_succeed()) {
+            (None, _) | (_, Tri::No) => None,
+            (Some(c), Tri::Yes) => Some(c.clone()),
+            (Some(c), Tri::Maybe) => {
+                let mut c = c.clone();
+                split_cond(left, false, facts, &mut c);
+                Some(c)
+            }
+        };
+        let (r, r_draws) = walk_inner(
+            right,
+            &right_reach,
+            prefix.saturating_add(draws),
+            out,
+            facts,
+        );
         if op == BinaryOp::DivFloor {
             out.push(DivisorRecord {
+                node,
                 divisor: right,
-                reached: reach.and(left_ok),
+                reached: reach_tri(&right_reach),
+                conds: right_reach.unwrap_or_default(),
                 zero: r.reaches(0),
             });
         }
         draws = draws.saturating_add(r_draws);
+        let safe = op_safe(op, &acc.may, &r.may);
         acc = if over(draws) {
             Abs::never()
         } else {
             binary_abs(op, &acc, &r)
         };
+        record_fact(facts, node, &acc, safe);
     }
     (acc, draws)
-}
-
-/// Draws every evaluation of `expr` certainly takes.
-pub(crate) fn certain_draws(expr: &Expr) -> u64 {
-    let mut sink = Vec::new();
-    walk_inner(expr, Tri::Yes, 0, &mut sink).1
 }
 
 /// Whether `expr` can be evaluated without an error (`Tri::Yes` only when a witness value is known).
 pub(crate) fn can_succeed(expr: &Expr) -> Tri {
     let mut sink = Vec::new();
-    walk(expr, Tri::Yes, &mut sink).can_succeed()
+    walk(expr, &mut sink).can_succeed()
+}
+
+/// Draw facts about one node, for the main exact pass's error reporting.
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct NodeDraws {
+    /// Fewest and most die rolls of everything the engine evaluates before the node.
+    before_min: u64,
+    before_max: u64,
+    /// Fewest and most die rolls of the node itself.
+    own_min: u64,
+    own_max: u64,
+    /// Whether no dice group evaluated before the node whose draws vary between runs sits under
+    /// a node that can raise an error (checked with interval hulls, so `false` may be
+    /// pessimistic). Then the success of everything before does not depend on those groups, and
+    /// they can take their cheapest runs.
+    before_safe: bool,
+}
+
+impl NodeDraws {
+    /// Whether an error the node raises itself, once its operands have succeeded, is one the
+    /// engine can reach within the draw budget:
+    /// - `No` when every evaluation has exceeded `MAX_TOTAL_DRAWS` by the end of the node;
+    /// - `Yes` when every evaluation fits, or when `before_safe` holds and the cheapest run of
+    ///   what comes before, followed by any run of the node, fits (every face sequence has an
+    ///   execution with one word per roll, so rolls are draws there);
+    /// - `Maybe` otherwise.
+    pub(crate) fn error_reachable(&self) -> Tri {
+        let max = u64::from(MAX_TOTAL_DRAWS);
+        if self.before_min.saturating_add(self.own_min) > max {
+            Tri::No
+        } else if self.before_max.saturating_add(self.own_max) <= max
+            || (self.before_safe && self.before_min.saturating_add(self.own_max) <= max)
+        {
+            Tri::Yes
+        } else {
+            Tri::Maybe
+        }
+    }
+}
+
+/// [`NodeDraws`] for every node of one expression, keyed by node address, from one engine-order
+/// walk (`O(nodes)` entries).
+pub(crate) struct DrawContext {
+    nodes: alloc::collections::BTreeMap<usize, NodeDraws>,
+}
+
+struct DrawRun {
+    min: u64,
+    max: u64,
+    safe: bool,
+    nodes: alloc::collections::BTreeMap<usize, NodeDraws>,
+}
+
+fn widen((a, b): (i64, i64)) -> (i128, i128) {
+    (i128::from(a), i128::from(b))
+}
+
+/// Records `e`'s facts and returns its success-value hull (`None`: it never succeeds) and whether
+/// it holds a dice group whose draws vary between runs. Recursion follows the expression, as
+/// `expr_max_die_rolls` does.
+fn draw_visit(e: &Expr, run: &mut DrawRun) -> (Option<(i128, i128)>, bool) {
+    let (bmin, bmax, bsafe) = (run.min, run.max, run.safe);
+    let (hull, local_safe, varies) = match e {
+        Expr::Number(v) => (Some((i128::from(*v), i128::from(*v))), true, false),
+        Expr::Dice(spec) => {
+            let (lo, hi) = (
+                group_min_draws(spec),
+                crate::analyze::group_max_die_rolls(spec),
+            );
+            run.min = run.min.saturating_add(lo);
+            run.max = run.max.saturating_add(hi);
+            (dice_abs(spec).may.hull().map(widen), true, lo != hi)
+        }
+        Expr::UnaryNeg(inner) => match draw_visit(inner, run) {
+            (Some((a, b)), v) => (clip(-b, -a).map(widen), a > i128::from(i64::MIN), v),
+            (None, v) => (None, true, v),
+        },
+        Expr::Binary { op, left, right } => {
+            let (l, lv) = draw_visit(left, run);
+            let (r, rv) = draw_visit(right, run);
+            match (l, r) {
+                (Some((a, b)), Some((c, d))) => {
+                    let (lo, hi) = match op {
+                        BinaryOp::Add => (a + c, b + d),
+                        BinaryOp::Sub => (a - d, b - c),
+                        BinaryOp::Mul => {
+                            let k = [a * c, a * d, b * c, b * d];
+                            (
+                                k.iter().copied().min().unwrap_or(0),
+                                k.iter().copied().max().unwrap_or(0),
+                            )
+                        }
+                        BinaryOp::DivFloor => {
+                            let m = a.abs().max(b.abs());
+                            (-m, m)
+                        }
+                    };
+                    let safe = match op {
+                        BinaryOp::DivFloor => {
+                            !(c <= 0 && d >= 0) && !(a == i128::from(i64::MIN) && c <= -1)
+                        }
+                        _ => lo >= i128::from(i64::MIN) && hi <= i128::from(i64::MAX),
+                    };
+                    // A constant factor: only the factors whose product fits succeed.
+                    let hull = match (op, a == b, c == d) {
+                        (BinaryOp::Mul, true, _) => scaled_hull(a, c, d),
+                        (BinaryOp::Mul, _, true) => scaled_hull(c, a, b),
+                        _ => clip(lo, hi).map(widen),
+                    };
+                    (hull, safe, lv || rv)
+                }
+                _ => (None, true, lv || rv),
+            }
+        }
+    };
+    // What comes after `e` may assume the cheapest run of everything before it only when no
+    // group whose draws vary sits under a node that can fail (that run may not succeed).
+    run.safe &= local_safe || !varies;
+    run.nodes.insert(
+        core::ptr::from_ref(e) as usize,
+        NodeDraws {
+            before_min: bmin,
+            before_max: bmax,
+            own_min: run.min - bmin,
+            own_max: run.max - bmax,
+            before_safe: bsafe,
+        },
+    );
+    (hull, varies)
+}
+
+/// Hull of the values `k * v`, `v` in `[lo, hi]`, that fit `i64`.
+fn scaled_hull(k: i128, lo: i128, hi: i128) -> Option<(i128, i128)> {
+    if k == 0 {
+        return Some((0, 0));
+    }
+    let (fmin, fmax) = if k > 0 {
+        (
+            ceil_div(i128::from(i64::MIN), k),
+            floor_div(i128::from(i64::MAX), k),
+        )
+    } else {
+        (
+            ceil_div(i128::from(i64::MAX), k),
+            floor_div(i128::from(i64::MIN), k),
+        )
+    };
+    let (vlo, vhi) = (lo.max(fmin), hi.min(fmax));
+    (vlo <= vhi).then(|| ((k * vlo).min(k * vhi), (k * vlo).max(k * vhi)))
+}
+
+impl DrawContext {
+    pub(crate) fn new(expr: &Expr) -> Self {
+        let mut run = DrawRun {
+            min: 0,
+            max: 0,
+            safe: true,
+            nodes: alloc::collections::BTreeMap::new(),
+        };
+        draw_visit(expr, &mut run);
+        Self { nodes: run.nodes }
+    }
+
+    /// Facts for `e`, a node of the expression this context was built from.
+    pub(crate) fn get(&self, e: &Expr) -> Option<NodeDraws> {
+        self.nodes.get(&(core::ptr::from_ref(e) as usize)).copied()
+    }
 }
 
 #[cfg(test)]
@@ -822,8 +1213,91 @@ mod tests {
     fn records(src: &str) -> Vec<(Tri, Tri)> {
         let e = parse(src).unwrap();
         let mut out = Vec::new();
-        walk(&e, Tri::Yes, &mut out);
+        walk(&e, &mut out);
         out.iter().map(|r| (r.reached, r.zero)).collect()
+    }
+
+    /// `min_rolls_per_die` against the engine: the fewest words over every tape of up to five
+    /// single-word faces (a `d2`..`d4` has no Lemire retry for the witness words), on generated
+    /// one-die specs, and never below `analyze`'s certain-draw rule.
+    #[test]
+    fn min_rolls_per_die_matches_the_engine_on_small_dice() {
+        use crate::analyze::{certain_draws_per_die, lemire_witness_word};
+        use crate::eval::evaluate_with_tape;
+        use alloc::format;
+        use core::num::NonZeroU64;
+
+        let one = |src: &str| match parse(src).unwrap() {
+            Expr::Dice(s) => min_rolls_per_die(&s),
+            _ => unreachable!("a dice group"),
+        };
+        assert_eq!(one("1d4ro<=2ro>=3"), 2);
+        assert_eq!(one("1d6r>=1"), 101);
+        assert_eq!(one("1d6ro>=1"), 2);
+        assert_eq!(one("1d6r<=3ro>=4"), 2);
+        assert_eq!(one("1d6!>=1"), 101);
+        assert_eq!(one("1d6min6!"), 2);
+        assert_eq!(one("1d6r<=5ro=6"), 2);
+
+        struct Lcg(u64);
+        impl Lcg {
+            fn next(&mut self, n: u64) -> u64 {
+                self.0 = self
+                    .0
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                (self.0 >> 33) % n
+            }
+        }
+        const OPS: [&str; 5] = ["=", ">", ">=", "<", "<="];
+        let mut rng = Lcg(20_261_114);
+        let mut checked = 0;
+        for _ in 0..400 {
+            let sides = 2 + rng.next(3);
+            let mut src = format!("1d{sides}");
+            for _ in 0..rng.next(4) {
+                src.push_str(["r", "ro"][rng.next(2) as usize]);
+                src.push_str(OPS[rng.next(5) as usize]);
+                src.push_str(&format!("{}", 1 + rng.next(sides)));
+            }
+            if rng.next(3) == 0 {
+                src.push_str(&format!("min{}", 1 + rng.next(sides)));
+            }
+            if rng.next(2) == 0 {
+                src.push_str(&format!("!>{}", 1 + rng.next(sides)));
+            }
+            let Ok(expr) = parse(&src) else { continue };
+            let Expr::Dice(spec) = &expr else {
+                unreachable!("a dice group")
+            };
+            let span = NonZeroU64::new(sides).unwrap();
+            // Fewest words over every tape of up to 5 faces (`None`: more than 5).
+            let mut best: Option<u64> = None;
+            'len: for len in 1..=5_u32 {
+                for code in 0..sides.pow(len) {
+                    let mut c = code;
+                    let tape: Vec<u64> = (0..len)
+                        .map(|_| {
+                            let k = c % sides;
+                            c /= sides;
+                            lemire_witness_word(span, k)
+                        })
+                        .collect();
+                    if let Ok((_, used)) = evaluate_with_tape(&expr, &tape) {
+                        best = Some(used as u64);
+                        break 'len;
+                    }
+                }
+            }
+            let got = min_rolls_per_die(spec);
+            match best {
+                Some(b) => assert_eq!(got, b, "{src}"),
+                None => assert!(got > 5, "{src}: {got}"),
+            }
+            assert!(got >= certain_draws_per_die(spec), "{src}");
+            checked += 1;
+        }
+        assert!(checked > 300, "{checked}");
     }
 
     #[test]
@@ -936,7 +1410,7 @@ mod tests {
             let src = term(&mut rng, 3);
             let Ok(expr) = parse(&src) else { continue };
             let mut recs = Vec::new();
-            let abs = walk(&expr, Tri::Yes, &mut recs);
+            let abs = walk(&expr, &mut recs);
             let claimed_zero = recs
                 .iter()
                 .any(|r| r.reached == Tri::Yes && r.zero == Tri::Yes);
