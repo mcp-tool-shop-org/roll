@@ -1520,29 +1520,54 @@ fn mode_on_a_subnormal_mass_sum_is_not_silently_the_first_entry() {
     assert_eq!(compute_stats(&d).mode, 2);
 }
 
-proptest::proptest! {
-    // 256 cases in native release (the capped CI step); 24 in debug and wasm, where a sampled
-    // case is about 20x slower.
-    #![proptest_config(proptest::test_runner::Config {
-        cases: if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) { 256 } else { 24 },
+/// #21 fix 1, item 8: random parsed expressions with large multipliers and nested products
+/// analyze within the quick bound, and never panic (debug has overflow checks). Run under the
+/// 2 GiB memory cap (CI: `ulimit -v` on the release analyzer step).
+///
+/// 256 cases in native release (the capped CI step); 24 in debug and wasm, where a sampled case
+/// is about 20x slower. The test writes its case count to stderr directly (not through the
+/// captured `eprintln!`), so the CI log shows how many cases ran and how long they took.
+#[test]
+fn prop_large_products_analyze_quickly_without_panic() {
+    use proptest::strategy::Strategy;
+    use std::io::Write;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    const LEAVES: [&str; 12] = [
+        "(10d100-500)",
+        "(d257-129)",
+        "(1d6-3)",
+        "(2d6!-7)",
+        "1d2",
+        "(1d6min6!kh1)",
+        "99999999999999999",
+        "4611686018427387904",
+        "9223372036854775807",
+        "1000000000",
+        "(1d1000000-500000)",
+        "(3d4!>=1kl2-2)",
+    ];
+    const OPS: [&str; 4] = ["*", "*", "+", "-"];
+    let config = proptest::test_runner::Config {
+        cases: if cfg!(all(not(debug_assertions), not(target_arch = "wasm32"))) {
+            256
+        } else {
+            24
+        },
         failure_persistence: None,
         ..proptest::test_runner::Config::default()
-    })]
-
-    /// #21 fix 1, item 8: random parsed expressions with large multipliers and nested products
-    /// analyze within the quick bound, and never panic (debug has overflow checks). Run under the
-    /// 2 GiB memory cap (CI: `ulimit -v` on the release analyzer step).
-    #[test]
-    fn prop_large_products_analyze_quickly_without_panic(
-        terms in proptest::collection::vec((0usize..12, 0usize..4, 0usize..3), 2..7),
-        divide in 0usize..3,
-    ) {
-        const LEAVES: [&str; 12] = [
-            "(10d100-500)", "(d257-129)", "(1d6-3)", "(2d6!-7)", "1d2", "(1d6min6!kh1)",
-            "99999999999999999", "4611686018427387904", "9223372036854775807", "1000000000",
-            "(1d1000000-500000)", "(3d4!>=1kl2-2)",
-        ];
-        const OPS: [&str; 4] = ["*", "*", "+", "-"];
+    };
+    let planned = config.cases;
+    let ran = AtomicU32::new(0);
+    let started = std::time::Instant::now();
+    let strategy = (
+        proptest::collection::vec((0usize..12, 0usize..4, 0usize..3), 2..7),
+        0usize..3,
+    )
+        .boxed();
+    let mut runner = proptest::test_runner::TestRunner::new(config);
+    let result = runner.run(&strategy, |(terms, divide)| {
+        ran.fetch_add(1, Ordering::Relaxed);
         let mut src = String::new();
         let mut open = 0;
         for (i, &(leaf, op, paren)) in terms.iter().enumerate() {
@@ -1569,6 +1594,16 @@ proptest::proptest! {
         let elapsed = t0.elapsed();
         // A hang guard (`sampled_bound`): a case may sample up to the work ceiling.
         proptest::prop_assert!(elapsed < sampled_bound(), "{} took {:?}", src, elapsed);
+        Ok(())
+    });
+    let _ = writeln!(
+        std::io::stderr(),
+        "prop_large_products_analyze_quickly_without_panic: {} cases run ({planned} planned) in {:?}",
+        ran.load(Ordering::Relaxed),
+        started.elapsed()
+    );
+    if let Err(e) = result {
+        panic!("{e}");
     }
 }
 
@@ -1669,7 +1704,7 @@ fn every_pending_divisor_gets_every_exact_round() {
     let s = format!("1/({}-7)", ["(1d1000*1d1000)"; 4].join("*"));
     assert_quick(z, &Err(RollError::DivisionByZero));
     // Native only: under wasmtime `s` takes about 7 times its debug time (0.6 s), and the CI job
-    // has a 15-minute limit.
+    // has a 25-minute limit.
     if cfg!(target_arch = "wasm32") {
         return;
     }
@@ -1705,6 +1740,61 @@ fn exact_rounds_review_findings_of_23() {
     );
 }
 
+#[test]
+fn exact_rounds_review_findings_of_23_round_2() {
+    // Each held to the hang guard; the heaviest takes about 0.8 s in debug here.
+    let check = |src: &str, ok: &dyn Fn(&Result<(), RollError>) -> bool| {
+        let t0 = std::time::Instant::now();
+        let got = analyze(&parse(src).unwrap()).map(|_| ());
+        assert!(t0.elapsed() < sampled_bound(), "{src}: {:?}", t0.elapsed());
+        assert!(ok(&got), "{src}: {got:?}");
+    };
+    let overflow = |r: &Result<(), RollError>| *r == Err(RollError::ArithmeticOverflow);
+    let zero = |r: &Result<(), RollError>| *r == Err(RollError::DivisionByZero);
+    // F1: `O` never fits (no product of two d1000 faces is 999981..=999984), so every run
+    // overflows; the class of `O` has no success value, whichever copy is registered first. The
+    // first fix returned `DivisorUnchecked { divisors: 1 }` for `T2' + T1'`.
+    let o = "((1d1000*1d1000-999983)*4611686018427387904)";
+    let t2 = format!("((((1d10000*1d10000)+{o})+1/(1d2-1))*4611686018427387900)+1/(1d2-1)");
+    let t1 = format!("1/{o}");
+    check(&format!("{t2}+{t1}"), &overflow);
+    check(&format!("{t1}+{t2}"), &overflow);
+    // Native only below: under wasmtime these take about 7 times their debug time.
+    if cfg!(target_arch = "wasm32") {
+        return;
+    }
+    // F2: `M` inside the divisor sits under `/1000000`, not an item; every node has a class, so it
+    // reuses `M`'s support in both orders (the zero is reached: every `M` die 1000, both `K1` dice
+    // 999). The first fix returned `DivisorUnchecked { divisors: 1 }` in both orders.
+    let z = "((1d1000*1d1000)/1000000)";
+    let m = format!("({z}+{z}+(1d1000*1d1000-999500))");
+    let k1 = "(1d1000*1d1000-998001)";
+    check(&format!("1/(({m}/1000000)+{k1})+1/{m}"), &zero);
+    check(&format!("1/{m}+1/(({m}/1000000)+{k1})"), &zero);
+    // Wrong error kind: a divisor that stays undecided (`zero` is `Maybe`) may be `0` (faces 2,
+    // 3, 1, ..., 1 make `P4 - 6` zero), so the certain overflow after it is not the answer.
+    let p4 = ["(1d1000*1d1000)"; 4].join("*");
+    check(&format!("1/({p4}-6)+(9223372036854775807+1d2)"), &|r| {
+        matches!(r, Err(RollError::DivisorUnchecked { .. }))
+    });
+    // The same with the memo full of `A`'s supports (4 x 750,000 = MAX_EXACT_LIVE_STATES): the
+    // engine reaches the zero in `B2`, so `ArithmeticOverflow` is not allowed.
+    let a = format!(
+        "({})",
+        (0..4)
+            .map(|i| format!("1/(1d2*1d500000-{})", 999_999 - 2 * i))
+            .collect::<Vec<_>>()
+            .join("+")
+    );
+    let b2 = format!("(1/((1/{m})+{k1})+(9223372036854775807+1d2))");
+    check(&format!("{a}+{b2}"), &|r| {
+        matches!(
+            r,
+            Err(RollError::DivisorUnchecked { .. } | RollError::DivisionByZero)
+        )
+    });
+}
+
 /// Primes from 999,000 up: none is a product of two faces of a d1000.
 fn primes_from_999000(n: usize) -> Vec<u64> {
     (999_000_u64..)
@@ -1731,7 +1821,7 @@ fn sum_within_cap(terms: impl Iterator<Item = String>) -> String {
 #[test]
 fn exact_rounds_stay_bounded_on_many_items() {
     // Native only: under wasmtime these take about 7 times their debug time (about 12 s in all),
-    // and the CI job has a 15-minute limit.
+    // and the CI job has a 25-minute limit.
     if cfg!(target_arch = "wasm32") {
         return;
     }

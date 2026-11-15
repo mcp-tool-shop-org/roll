@@ -1042,54 +1042,108 @@ enum MemoHit<'m> {
 
 /// State the rounds share across both phases of one [`precheck_divisors`] call.
 ///
-/// Items are grouped into classes of structurally equal subtrees, and every address added to a
-/// class is recorded, so a lookup finds the shared entry from any of them: what is decided does
-/// not depend on which copy of a subtree was added first (the order of the terms).
+/// Every node of the checked expression gets a structural class once, bottom-up (hash-consing:
+/// equal subtrees get equal classes, at most one class per node), and every lookup goes through
+/// it, so a copy of a subtree is found wherever it sits, inside an item or not.
+///
+/// The stored supports share one store of at most [`MAX_EXACT_LIVE_STATES`] entries: what is
+/// stored first is reused, and a class decided after the store is full keeps only its facts
+/// (whether it has a success value, a zero, a non-zero value), so it is not evaluated again.
 struct RoundMemo<'a> {
     /// One representative subtree per class.
     reps: Vec<&'a Expr>,
-    /// Every recorded address, with its class.
+    /// The class of every node of the checked expression, by address.
     class_of: BTreeMap<usize, usize>,
+    /// Classes by structural key, for hash-consing.
+    keys: BTreeMap<ClassKey, usize>,
     /// Known supports, per class.
     dists: BTreeMap<usize, Distribution>,
     /// Entries stored in `dists`, counted once per class, at most [`MAX_EXACT_LIVE_STATES`].
     stored: usize,
     /// Classes that did not fit the current round's cap.
     too_large: BTreeSet<usize>,
-    /// Addresses of every subtree with no success value (all addresses of its class).
+    /// Classes with no success value.
     never: BTreeSet<usize>,
+    /// Classes known to have a success value.
+    nonempty: BTreeSet<usize>,
+    /// For a class whose real support was computed: whether it holds `0`, and a non-zero value.
+    support_facts: BTreeMap<usize, (bool, bool)>,
     /// `(class, want)` pairs that failed every round: not run again in the other phase.
     exhausted: BTreeSet<(usize, Want)>,
 }
 
+/// Structural key of a node, over its children's classes.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum ClassKey {
+    Number(i64),
+    Dice(String),
+    Neg(usize),
+    Binary(u8, usize, usize),
+}
+
 impl<'a> RoundMemo<'a> {
-    fn new() -> Self {
-        Self {
+    /// A memo with every node of `expr` assigned its class.
+    fn new(expr: &'a Expr) -> Self {
+        let mut memo = Self {
             reps: Vec::new(),
             class_of: BTreeMap::new(),
+            keys: BTreeMap::new(),
             dists: BTreeMap::new(),
             stored: 0,
             too_large: BTreeSet::new(),
             never: BTreeSet::new(),
+            nonempty: BTreeSet::new(),
+            support_facts: BTreeMap::new(),
             exhausted: BTreeSet::new(),
-        }
+        };
+        memo.intern(expr);
+        memo
     }
 
-    /// The class of `e`, created if new, with `e`'s address recorded in it.
-    fn class(&mut self, e: &'a Expr) -> usize {
-        let at = core::ptr::from_ref(e) as usize;
-        if let Some(&c) = self.class_of.get(&at) {
-            return c;
-        }
-        let c = match self.reps.iter().position(|r| *r == e) {
-            Some(c) => c,
-            None => {
-                self.reps.push(e);
-                self.reps.len() - 1
+    /// Assigns a class to every node of `root` not yet classed, children first (no recursion,
+    /// so a 499-operator spine does not grow the native stack), and returns `root`'s class.
+    fn intern(&mut self, root: &'a Expr) -> usize {
+        let addr = |e: &Expr| core::ptr::from_ref(e) as usize;
+        let mut stack: Vec<(&'a Expr, bool)> = alloc::vec![(root, false)];
+        while let Some((e, children_done)) = stack.pop() {
+            if self.class_of.contains_key(&addr(e)) {
+                continue;
             }
-        };
-        self.class_of.insert(at, c);
-        c
+            if !children_done {
+                stack.push((e, true));
+                match e {
+                    Expr::Number(_) | Expr::Dice(_) => {}
+                    Expr::UnaryNeg(inner) => stack.push((inner, false)),
+                    Expr::Binary { left, right, .. } => {
+                        stack.push((right, false));
+                        stack.push((left, false));
+                    }
+                }
+                continue;
+            }
+            let key = match e {
+                Expr::Number(v) => ClassKey::Number(*v),
+                Expr::Dice(spec) => ClassKey::Dice(spec.to_canonical_string()),
+                Expr::UnaryNeg(inner) => ClassKey::Neg(self.class_of[&addr(inner)]),
+                Expr::Binary { op, left, right } => ClassKey::Binary(
+                    *op as u8,
+                    self.class_of[&addr(left)],
+                    self.class_of[&addr(right)],
+                ),
+            };
+            let next = self.reps.len();
+            let c = *self.keys.entry(key).or_insert(next);
+            if c == next {
+                self.reps.push(e);
+            }
+            self.class_of.insert(addr(e), c);
+        }
+        self.class_of[&addr(root)]
+    }
+
+    /// The class of `e`, a node of the checked expression (or classed now if it is not one).
+    fn class(&mut self, e: &'a Expr) -> usize {
+        self.intern(e)
     }
 
     fn lookup(&self, e: &Expr) -> Option<MemoHit<'_>> {
@@ -1100,15 +1154,65 @@ impl<'a> RoundMemo<'a> {
         self.dists.get(&c).map(MemoHit::Support)
     }
 
-    /// Records that class `c` has no success value.
-    fn mark_never(&mut self, c: usize) {
-        let addrs: Vec<usize> = self
-            .class_of
-            .iter()
-            .filter(|&(_, &k)| k == c)
-            .map(|(&a, _)| a)
-            .collect();
-        self.never.extend(addrs);
+    /// Whether `expr` or one of its subtrees belongs to a class with no success value.
+    fn contains_never(&self, expr: &Expr) -> bool {
+        if self.never.is_empty() {
+            return false;
+        }
+        let mut stack = alloc::vec![expr];
+        while let Some(e) = stack.pop() {
+            if self
+                .class_of
+                .get(&(core::ptr::from_ref(e) as usize))
+                .is_some_and(|c| self.never.contains(c))
+            {
+                return true;
+            }
+            match e {
+                Expr::Number(_) | Expr::Dice(_) => {}
+                Expr::UnaryNeg(inner) => stack.push(inner),
+                Expr::Binary { left, right, .. } => {
+                    stack.push(left);
+                    stack.push(right);
+                }
+            }
+        }
+        false
+    }
+
+    /// Records what an evaluation of class `c` showed.
+    fn learn(&mut self, c: usize, dist: &Distribution, real: bool) {
+        if dist.is_empty() {
+            self.never.insert(c);
+        } else {
+            self.nonempty.insert(c);
+        }
+        if real {
+            let zero = dist.is_reachable(0);
+            let nonzero = dist.entries.iter().any(|&(v, _)| v != 0);
+            self.support_facts.insert(c, (zero, nonzero));
+        }
+    }
+
+    /// A stand-in support that answers what is asked of class `c` with `want`, from what is
+    /// already known about it, without its stored support.
+    fn known_answer(&self, c: usize, want: Want) -> Option<Distribution> {
+        if self.never.contains(&c) {
+            return Some(empty_distribution());
+        }
+        match want {
+            Want::Succeeds => self.nonempty.contains(&c).then(|| stand_in(true)),
+            Want::Support => self.support_facts.get(&c).map(|&(zero, nonzero)| {
+                let mut entries = Vec::new();
+                if zero {
+                    entries.push((0, 1.0));
+                }
+                if nonzero {
+                    entries.push((1, 1.0));
+                }
+                Distribution { entries }
+            }),
+        }
     }
 }
 
@@ -1249,17 +1353,18 @@ impl ExactRounds {
     /// Items run smallest first (node count, then canonical form), so a subtree that is itself an
     /// item is done before the items that contain it, in an order that does not depend on how
     /// the expression's terms are ordered. `memo` is shared by both phases of the check and
-    /// keyed by class (structurally equal subtrees, every recorded address), so the shortcuts
-    /// below do not depend on which copy of a subtree came first:
-    /// - an item whose class already has a support (from either phase) is decided from it, and
-    ///   an item whose `(class, want)` failed every round is not run again;
+    /// keyed by the structural class of every node ([`RoundMemo`]):
+    /// - an item whose class already has a stored support, or was decided after the store was
+    ///   full (its facts), is decided from it, and an item whose `(class, want)` failed every
+    ///   round is not run again;
     /// - a subtree with no success value: an item containing it has none either (every operand
     ///   must succeed), so it is decided empty without being evaluated, before each round and
     ///   after the last;
     /// - a subtree that did not fit this round's cap is treated as too large inside the item too,
     ///   so its work is not redone;
-    /// - a subtree whose support is known is reused (charged its length and its live slots), up
-    ///   to [`MAX_EXACT_LIVE_STATES`] stored entries in all, counted once per class.
+    /// - a subtree whose support is stored is reused (charged its length and its live slots); the
+    ///   store is shared and holds at most [`MAX_EXACT_LIVE_STATES`] entries, first come, first
+    ///   served, so what a sibling stored first can change what another item reuses.
     ///
     /// Each shortcut is sound. They keep the left spine of one expensive operand, whose prefixes
     /// are separate items, from paying for that operand once per prefix.
@@ -1293,17 +1398,24 @@ impl ExactRounds {
                     continue;
                 }
                 if let Some(d) = memo.dists.get(&c) {
-                    let known = match want {
-                        Want::Support => d.clone(),
-                        Want::Succeeds => stand_in(!d.is_empty()),
+                    let stop = match want {
+                        Want::Support => decide(d, &slots),
+                        Want::Succeeds => decide(&stand_in(!d.is_empty()), &slots),
                     };
+                    if stop {
+                        return true;
+                    }
+                    continue;
+                }
+                // Decided earlier (in either phase) but not stored: not evaluated again.
+                if let Some(known) = memo.known_answer(c, want) {
                     if decide(&known, &slots) {
                         return true;
                     }
                     continue;
                 }
-                if contains_any(item, &memo.never) {
-                    memo.mark_never(c);
+                if memo.contains_never(item) {
+                    memo.never.insert(c);
                     if decide(&empty, &slots) {
                         return true;
                     }
@@ -1314,9 +1426,7 @@ impl ExactRounds {
                 *transitions = transitions.saturating_add(budget.transitions);
                 match res {
                     Ok((dist, real)) => {
-                        if dist.is_empty() {
-                            memo.mark_never(c);
-                        }
+                        memo.learn(c, &dist, real);
                         let stop = decide(&dist, &slots);
                         if real && memo.stored.saturating_add(dist.len()) <= MAX_EXACT_LIVE_STATES {
                             memo.stored += dist.len();
@@ -1341,34 +1451,15 @@ impl ExactRounds {
             unresolved.push((c, slots));
         }
         for (c, slots) in unresolved {
-            if contains_any(memo.reps[c], &memo.never) && decide(&empty, &slots) {
-                return true;
+            if memo.contains_never(memo.reps[c]) {
+                memo.never.insert(c);
+                if decide(&empty, &slots) {
+                    return true;
+                }
             }
         }
         false
     }
-}
-
-/// Whether `expr` or one of its subtrees is one of the nodes at the addresses in `nodes`.
-fn contains_any(expr: &Expr, nodes: &BTreeSet<usize>) -> bool {
-    if nodes.is_empty() {
-        return false;
-    }
-    let mut stack = alloc::vec![expr];
-    while let Some(e) = stack.pop() {
-        if nodes.contains(&(core::ptr::from_ref(e) as usize)) {
-            return true;
-        }
-        match e {
-            Expr::Number(_) | Expr::Dice(_) => {}
-            Expr::UnaryNeg(inner) => stack.push(inner),
-            Expr::Binary { left, right, .. } => {
-                stack.push(left);
-                stack.push(right);
-            }
-        }
-    }
-    false
 }
 
 /// The `§5.4` divisor check, run before the main exact pass.
@@ -1391,10 +1482,11 @@ fn contains_any(expr: &Expr, nodes: &BTreeSet<usize>) -> bool {
 ///    - then every undecided earlier operand of a division with `zero == Yes`, to decide whether
 ///      it can succeed (an empty success set is `No`).
 ///
-///    Structurally equal subtrees form one class, looked up from any copy's address
-///    ([`RoundMemo`]), and every item (a class and what is asked of it) gets every round, each on
-///    its own budget ([`DIVISOR_ROUND_CAPS`]), so no sibling's cost and no choice of copy can
-///    change its answer. Both phases share the memo, so an item is run at most once.
+///    Every node gets a structural class ([`RoundMemo`]), and every item (a class and what is
+///    asked of it) gets every round, each on its own budget ([`DIVISOR_ROUND_CAPS`]). Both phases
+///    share the memo, so an item is run at most once; its supports are one shared store of at
+///    most [`MAX_EXACT_LIVE_STATES`] entries, so a sibling that fills it can change what another
+///    item reuses.
 /// 3. Any division with `reached == Yes` and `zero == Yes` returns
 ///    `Err(RollError::DivisionByZero)`. A division with `reached == No` or `zero == No` cannot raise
 ///    it. Every other division is counted as **unchecked**: an exact main pass still decides it,
@@ -1406,9 +1498,10 @@ fn contains_any(expr: &Expr, nodes: &BTreeSet<usize>) -> bool {
 /// and as `No` when every evaluation has exceeded `MAX_TOTAL_DRAWS` by then.
 ///
 /// ### Order and bound
-/// Each division's facts depend only on the expression and its items, never on a sibling's budget
-/// or on which copy of a repeated subtree comes first. Which items an expression has can still
-/// depend on how its terms are grouped (spec `§5.4` item 3 lists what stays open).
+/// Each division's facts depend only on the expression. They do not depend on which copy of a
+/// repeated subtree comes first, but they can depend on how its terms are grouped and on which
+/// siblings fill the shared store first; then the answer is `DivisorUnchecked` (spec `§5.4` item
+/// 3 lists the known cases).
 ///
 /// Bounds:
 /// - the support pass costs at most `O(nodes * 128^2 * log2(count))` interval operations;
@@ -1465,7 +1558,7 @@ fn precheck_divisors(expr: &Expr, draws: &DrawContext) -> Result<DivisorCheck, R
 
     // Phase 2a: divisors whose zero is undecided. Both phases share one memo, so an item that
     // both phases ask about is evaluated once.
-    let mut memo = RoundMemo::new();
+    let mut memo = RoundMemo::new(expr);
     let mut rounds = ExactRounds::new();
     for (idx, rec) in records.iter().enumerate() {
         if rec.zero == Tri::Maybe && rec.reached != Tri::No {
@@ -1543,7 +1636,8 @@ fn precheck_divisors(expr: &Expr, draws: &DrawContext) -> Result<DivisorCheck, R
             (Tri::No, _) | (_, Tri::No) => {}
             (_, zero) => {
                 check.unchecked = check.unchecked.saturating_add(1);
-                check.zero_undecided |= zero == Tri::Yes;
+                // §5.4 item 6: any divisor that may be `0` (`zero` is not `No` here) could win.
+                check.zero_undecided |= zero != Tri::No;
             }
         }
     }
@@ -4661,7 +4755,7 @@ mod tests {
             let got: BTreeSet<i64> = dist.entries().iter().map(|&(v, _)| v).collect();
             assert_eq!(got, want, "{src}");
             // The existence check the rounds use for an undecided operand agrees.
-            let memo = super::RoundMemo::new();
+            let memo = super::RoundMemo::new(&expr);
             let mut budget = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
             let (stand_in, _) =
                 super::ExactRounds::evaluate(&expr, super::Want::Succeeds, &mut budget, &memo)
@@ -4672,7 +4766,7 @@ mod tests {
             if let Expr::Binary { left, .. } = &expr {
                 let mut b = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
                 if let Ok((l, _)) = try_exact(left, &mut b, None, None) {
-                    let mut memo = super::RoundMemo::new();
+                    let mut memo = super::RoundMemo::new(&expr);
                     let c = memo.class(left);
                     memo.dists.insert(c, l);
                     let mut b = ExactBudget::tolerant_with_cap(MAX_EXACT_STATES);
@@ -4716,7 +4810,7 @@ mod tests {
             &never,
             super::Want::Succeeds,
             &mut b,
-            &super::RoundMemo::new(),
+            &super::RoundMemo::new(&never),
         )
         .unwrap();
         assert!(si.is_empty());
